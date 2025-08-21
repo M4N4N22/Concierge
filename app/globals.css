@@ -1,26 +1,135 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Custom variant for dark mode */
+@custom-variant dark (&:is(.dark *));
 
+/* Theme variables */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* Brand Colors */
+  --primary: #b42de6; /* Highlight / Primary */
+  --primary-foreground: #ffffff;
+
+  /* Neutrals for light theme */
+  --background: #eeeeeeda; /* Light slightly off-white */
+  --foreground: #3d3d4e; /* Dark gray text */
+  --card: #ffffff; /* Card white */
+  --card-foreground: #3d3d4e;
+  --muted: #71717b;
+  --popover: #ffffff;
+  --popover-foreground: #3d3d4e;
+  --secondary: #7a34ca; /* Light gray / neutral */
+  --secondary-foreground: #3d3d4e;
+  --accent: #b42de6; /* Same as primary for consistency */
+  --accent-foreground: #ffffff;
+  --border: #a19f9f;
+  --input: #d4d4d4;
+  --ring: #b42de6;
+  --radius: 0.75rem;
+
+  /* Gradients */
+  --gradient-hero: linear-gradient(135deg, #b42de6, #8f1ed1);
+  --gradient-section: linear-gradient(180deg, #fdfafe, #f6f3fb);
+  --gradient-dark: linear-gradient(135deg, #3d3d4e, #2f2f3c);
+  --gradient-purple-glow: linear-gradient(135deg, #b42de61a, #b42de60d);
+
+  /* Shadows */
+  --shadow-glow: 0 0 40px #b42de624;
+  --shadow-card: 0 4px 12px #3d3d4e14;
+
+  /* Sidebar / UI */
+  --sidebar-background: #fbf9fd;
+  --sidebar-foreground: #3d3d4e;
+  --sidebar-primary: #b42de6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #b42de6;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ede9f8;
+  --sidebar-ring: #b42de6;
+}
+
+.dark {
+  /* Dark theme - almost black background */
+  --background: #0a0a0a; /* Neutral-950 */
+  --foreground: #e5e5e5; /* Light gray text */
+
+  --card: #141414; /* Darker card background */
+  --card-foreground: #e5e5e5; /* Card text */
+
+  --popover: #1a1a1a; /* Popover background */
+  --popover-foreground: #e5e5e5; /* Popover text */
+
+  --primary: #b42de6; /* Purple highlight */
+  --primary-foreground: #ffffff; /* Text on primary */
+ --muted: #71717b;
+  --secondary: #7a34ca; /* Neutral dark gray for secondary elements */
+  --secondary-foreground: #e5e5e5;
+
+  --accent: #b42de6; /* Same as primary */
+  --accent-foreground: #ffffff;
+
+  --border: #3e3d3d; /* Neutral borders */
+  --input: #3a3a3a; /* Neutral input background */
+  --ring: #b42de6; /* Focus rings */
+
+  /* Sidebar */
+  --sidebar-background: #1a1a1a;
+  --sidebar-foreground: #e5e5e5;
+  --sidebar-primary: #b42de6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #b42de6;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #3d3d4e;
+  --sidebar-ring: #b42de6;
+}
+
+/* Base styles */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background text-foreground;
+  }
+  .hover-lift {
+    @apply transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1;
+  }
+  .glass-effect {
+    @apply backdrop-blur-sm bg-white/80 border border-white/20;
+  }
+  .gradient-premium {
+    background: linear-gradient(135deg, var(--secondary), var(--accent));
+  }
+  .text-gradient {
+    display: inline-block;
+    background: linear-gradient(135deg, #b42de6, #7a34ca);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
