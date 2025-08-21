@@ -1,4 +1,4 @@
-# 🔐 VaultMind
+# Concierge
 
 **Your Data. Your AI. Your Control.**
 
@@ -7,7 +7,7 @@ The world's first platform where your personal AI advisor learns exclusively fro
 [![Built with 0G](https://img.shields.io/badge/Built%20with-0G-B42DE6?style=flat-square)](https://0g.ai)
 [![INFT Powered](https://img.shields.io/badge/INFT-Powered-B42DE6?style=flat-square)](#inft-technology)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square)](https://vaultmind.demo)
+[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square)](https://concierge-sigma.vercel.app/)
 
 ---
 
@@ -20,7 +20,7 @@ The world's first platform where your personal AI advisor learns exclusively fro
 - 2.5 billion people use AI assistants, but 0% own their AI's training data
 
 **Our Solution:**
-VaultMind creates **Intelligent NFTs (INFTs)** that are AI agents trained exclusively on your personal data vault, giving you the world's first truly personalized AI advisor that you actually own.
+Concierge creates **Intelligent NFTs (INFTs)** that are AI agents trained exclusively on your personal data vault, giving you the world's first truly personalized AI advisor that you actually own.
 
 ---
 
@@ -53,11 +53,11 @@ VaultMind creates **Intelligent NFTs (INFTs)** that are AI agents trained exclus
 
 ## 🏗️ Architecture
 
-VaultMind leverages the complete 0G ecosystem:
+Concierge leverages the complete 0G ecosystem:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         VaultMind Platform                       │
+│                         Concierge Platform                       │
 ├─────────────────────────────────────────────────────────────────┤
 │  🤖 INFT AI Agents    │  🔐 Data Vault UI  │  🏪 Agent Marketplace │
 ├─────────────────────────────────────────────────────────────────┤
@@ -100,254 +100,44 @@ VaultMind leverages the complete 0G ecosystem:
 
 ---
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+
-- Wallet with 0G testnet tokens
-- 0G development environment setup
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/vaultmind/vaultmind-platform.git
-cd vaultmind-platform
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Add your 0G network configuration and API keys
-
-# Start development server
-npm run dev
-```
-
-### Environment Variables
-
-```bash
-# 0G Network Configuration
-NEXT_PUBLIC_0G_CHAIN_RPC="https://evmrpc-testnet.0g.ai"
-NEXT_PUBLIC_0G_STORAGE_ENDPOINT="https://storage-testnet.0g.ai"
-NEXT_PUBLIC_0G_COMPUTE_ENDPOINT="https://compute-testnet.0g.ai"
-
-# Smart Contract Addresses
-NEXT_PUBLIC_INFT_CONTRACT_ADDRESS="0x..."
-NEXT_PUBLIC_VAULT_CONTRACT_ADDRESS="0x..."
-
-# API Keys
-OPENAI_API_KEY="your-key-here"
-PINATA_API_KEY="your-key-here"
-```
-
----
-
-## 🏪 Usage Examples
-
-### 1. Create Your Data Vault
-```typescript
-import { VaultMind } from '@vaultmind/sdk';
-
-const vaultmind = new VaultMind({
-  storageEndpoint: process.env.NEXT_PUBLIC_0G_STORAGE_ENDPOINT,
-  userWallet: wallet
-});
-
-// Upload personal files to encrypted vault
-const vault = await vaultmind.createVault();
-await vault.uploadFile('./bank-statement.pdf', { encrypted: true });
-await vault.uploadFile('./travel-receipts/', { encrypted: true });
-```
-
-### 2. Mint Your INFT Agent
-```typescript
-// Mint a personal AI agent as INFT
-const agent = await vaultmind.mintINFTAgent({
-  name: "My Financial Advisor",
-  specialization: "finance",
-  vaultAccess: vault.id,
-  personality: "conservative, detail-oriented"
-});
-
-console.log(`INFT Agent minted: ${agent.tokenId}`);
-```
-
-### 3. Interact with Your Agent
-```typescript
-// Chat with your personal AI agent
-const response = await agent.chat({
-  message: "How much am I spending on subscriptions?",
-  context: "financial_analysis"
-});
-
-console.log(response.message);
-// "Based on your vault data, you're spending $127/month on 8 subscriptions. 
-//  I found 3 you haven't used in 60+ days. Want me to help you cancel them?"
-```
-
-### 4. Marketplace Operations
-```typescript
-// List successful agent on marketplace
-await vaultmind.marketplace.listAgent({
-  agentId: agent.tokenId,
-  price: "0.5", // 0.5 ETH
-  includeTrainingData: false, // Only personality, not personal data
-  royalty: 0.1 // 10% to original creator
-});
-```
-
----
-
-## 🛠️ Development
-
-### Project Structure
-```
-vaultmind-platform/
-├── apps/
-│   ├── web/                 # Next.js web application
-│   ├── mobile/              # React Native mobile app
-│   └── extension/           # Browser extension
-├── packages/
-│   ├── sdk/                 # VaultMind TypeScript SDK
-│   ├── contracts/           # Smart contracts (INFT, Vault, Marketplace)
-│   ├── ui/                  # Shared UI components
-│   └── agents/              # AI agent templates and logic
-├── docs/                    # Documentation
-└── scripts/                 # Deployment and utility scripts
-```
-
-### Smart Contracts
-
-#### INFT Agent Contract (ERC-7857)
-```solidity
-// Intelligent NFT that binds AI agents to user data vaults
-contract INFTAgent is ERC7857 {
-    struct AgentData {
-        bytes32 vaultHash;      // Link to user's data vault
-        string specialization;   // Finance, travel, health, etc.
-        uint256 trainingBlocks; // Blocks of training data processed
-        uint256 accuracy;       // Performance metrics
-    }
-    
-    mapping(uint256 => AgentData) public agents;
-    
-    function mintAgent(
-        address to,
-        bytes32 vaultHash,
-        string memory specialization
-    ) external returns (uint256 tokenId);
-}
-```
-
-### API Routes
-
-```typescript
-// Example API endpoint for agent interaction
-// /api/agents/[tokenId]/chat
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { tokenId } = req.query;
-  const { message, context } = req.body;
-  
-  // Verify INFT ownership
-  const agent = await verifyINFTOwnership(tokenId, req.user.address);
-  
-  // Process message with agent's personal data context
-  const response = await processAgentMessage(agent, message, context);
-  
-  res.json({ response });
-}
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run smart contract tests
-npm run test:contracts
-
-# Run integration tests with 0G testnet
-npm run test:integration
-
-# Run agent training simulation
-npm run test:agents
-```
-
----
-
-## 🚀 Deployment
-
-### Testnet Deployment
-```bash
-# Deploy smart contracts to 0G testnet
-npm run deploy:testnet
-
-# Deploy web app to Vercel
-npm run deploy:web
-
-# Verify contracts
-npm run verify:contracts
-```
-
-### Production Deployment
-```bash
-# Deploy to 0G mainnet
-npm run deploy:mainnet
-
-# Update contract addresses in frontend
-npm run update:contracts
-```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how to get started:
-
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-inft-feature`
-3. **Make your changes** and add tests
-4. **Run tests**: `npm test`
-5. **Submit a pull request**
-
-### Contribution Guidelines
-- Follow TypeScript and Solidity best practices
-- Add tests for new features
-- Update documentation
-- Ensure privacy and security standards
-
----
-
 ## 📊 Roadmap
 
-### ✅ Phase 1: Foundation (Current)
-- [x] Basic data vault with 0G Storage integration
+### Wave 1: Personal Data Vault Foundation (Current)
+- [x] Upload any files to 0G Storage (encrypted by default)
 - [x] INFT agent minting (ERC-7857)
-- [x] Simple AI chat interface
-- [x] Web application MVP
+- [x] Basic natural language search: "Find my Netflix receipt" (In Progress)
+- [x] Impact: "Upload 20 random personal files, AI instantly organizes and makes them searchable"
 
-### 🔄 Phase 2: Intelligence (In Progress)
-- [ ] Multi-domain AI agents (finance, travel, health)
-- [ ] Advanced data analysis and insights
-- [ ] Cross-agent communication
-- [ ] Mobile application
+### Wave 2: INFT Agent Binding
+- [ ] Mint your personal INFT agent on 0G Chain
+- [ ] Agent learns from YOUR vault data (financial patterns, preferences, etc.)
+- [ ] Basic personalized recommendations
+- [ ] Impact: "Same agent gives completely different advice to different users based on their vault data"
 
-### 🔮 Phase 3: Marketplace (Q2 2024)
-- [ ] INFT agent marketplace
-- [ ] Agent performance metrics and leaderboards
-- [ ] Revenue sharing for creators
-- [ ] Enterprise solutions
+### Wave 2: INFT Agent Binding
+- [ ] Mint your personal INFT agent on 0G Chain
+- [ ] Agent learns from YOUR vault data (financial patterns, preferences, etc.)
+- [ ] Basic personalized recommendations
+- [ ] All powered by the same vault, different INFT specializations
+- [ ] Impact: "One data vault powers three different specialized agents"
 
-### 🚀 Phase 4: Ecosystem (Q3 2024)
-- [ ] Third-party integrations (banks, travel sites, etc.)
-- [ ] Cross-chain INFT portability
-- [ ] Advanced privacy features (ZK proofs)
-- [ ] DAO governance
+### Wave 4: Agent Marketplace & Social Features
+- [ ] Trade/lease successful agent configurations (not the data, just the "personality")
+- [ ] Agent performance leaderboards
+- [ ] Collaborative features: agents can recommend each other
+- [ ] Impact: "Successful agents become valuable INFTs that others want to copy"
+
+### Wave 5: Real-World Integrations
+- [ ] Connect bank APIs, email, calendar (with permission)
+- [ ] Agents can take actions: book flights, cancel subscriptions, rebalance portfolio
+- [ ] DePIN integration for real-world data feeds
+- [ ] Impact: "Agent actually books your vacation and cancels unused subscriptions"
+
+### Wave 6: Advanced Privacy & Monetization
+- [ ] Zero-knowledge proofs for data insights without revealing data
+- [ ] Revenue sharing for agent creators
+- [ ] Enterprise version for businesses
+- [ ] Cross-chain agent portability
 
 ---
 
@@ -355,15 +145,15 @@ We welcome contributions! Here's how to get started:
 
 ### Personal Finance Management
 - **Problem**: Generic financial advice doesn't account for your specific situation
-- **VaultMind Solution**: INFT agent analyzes your actual bank statements, spending patterns, and financial goals to provide personalized investment and budgeting advice
+- **Concierge Solution**: INFT agent analyzes your actual bank statements, spending patterns, and financial goals to provide personalized investment and budgeting advice
 
 ### Travel Planning  
 - **Problem**: Travel apps don't know your preferences, budget, or past experiences
-- **VaultMind Solution**: INFT agent learns from your travel history, preferred airlines, hotel choices, and budget to suggest perfectly tailored itineraries
+- **Concierge Solution**: INFT agent learns from your travel history, preferred airlines, hotel choices, and budget to suggest perfectly tailored itineraries
 
 ### Health & Wellness
 - **Problem**: Health apps can't see your complete wellness picture
-- **VaultMind Solution**: INFT agent analyzes your exercise data, meal photos, sleep patterns, and medical records to provide holistic health insights
+- **Concierge Solution**: INFT agent analyzes your exercise data, meal photos, sleep patterns, and medical records to provide holistic health insights
 
 ---
 
@@ -385,7 +175,7 @@ We welcome contributions! Here's how to get started:
 
 ## 📈 Metrics & Analytics
 
-Track your VaultMind usage:
+Track your Concierge usage:
 - **Data Vault Size**: How much personal data you've uploaded
 - **Agent Intelligence**: Your INFT's learning progress and accuracy
 - **Insights Generated**: Number of personalized recommendations
@@ -394,19 +184,10 @@ Track your VaultMind usage:
 
 ---
 
-## 🏆 Awards & Recognition
-
-- 🥇 **Winner**: ETHGlobal Trifecta 2025
-- 🥇 **Winner**: 0G Network Hackathon
-- 🏅 **Featured**: 0G Awesome Repository
-- 📺 **Coverage**: Featured in Decrypt, CoinDesk, The Block
-
----
-
 ## 🤖 FAQ
 
 **Q: How is this different from ChatGPT?**
-A: ChatGPT gives generic advice because it doesn't know your personal data. VaultMind's INFT agents learn exclusively from YOUR vault data, providing truly personalized insights.
+A: ChatGPT gives generic advice because it doesn't know your personal data. Concierge's INFT agents learn exclusively from YOUR vault data, providing truly personalized insights.
 
 **Q: Is my data secure?**
 A: Yes. Your data is encrypted and stored on 0G's decentralized network. Only you have the keys. We use zero-knowledge proofs so AI can learn without accessing raw data.
