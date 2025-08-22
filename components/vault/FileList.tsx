@@ -6,14 +6,11 @@ import { useAccount } from "wagmi";
 import { ethers } from "ethers";
 import { VAULT_ABI } from "@/lib/vaultAbi";
 import { VAULT_ADDRESS } from "@/lib/contractClient";
-import { fetchFileContent } from "@/utils/fetchFileContent";
-import { toUtf8String } from "ethers";
-
+import { fetchFileContent } from "@/hooks/useFileContent";
 import { Loader2 } from "lucide-react";
 
 function FileRow({ file }: { file: VaultFile }) {
   const [content, setContent] = useState<string | null>(null);
-  const [insights, setInsights] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,13 +20,10 @@ function FileRow({ file }: { file: VaultFile }) {
       setError(null);
 
       try {
-        // Fetch main file content
         const text = await fetchFileContent(file.rootHash);
         setContent(text);
-
-        // Fetch AI insights if insightsCID exists
       } catch (err: any) {
-        console.error("Error fetching file or insights:", err);
+        console.error("Error fetching file content:", err);
         setError(err.message || "Unknown error");
       } finally {
         setLoading(false);
@@ -37,42 +31,61 @@ function FileRow({ file }: { file: VaultFile }) {
     };
 
     loadContent();
-  }, [file.rootHash, file.insightsCID]);
+  }, [file.rootHash]);
 
   const truncateHash = (hash: string) =>
     `${hash.slice(0, 6)}...${hash.slice(-6)}`;
 
   return (
-    <tr className="hover:bg-muted/10 text-left">
-      <td className="px-4 py-4 border-b text-lg">{file.category}</td>
-      <td className="px-4 py-4 border-b text-lg">
+    <tr className="hover:bg-primary/10 text-left">
+      <td className="px-4 py-4 border-b text-sm font-medium">{file.category}</td>
+
+      <td className="px-4 py-4 border-b text-sm font-medium">
         <span className="text-primary">{truncateHash(file.rootHash)}</span>
       </td>
-      <td className="px-4 py-4 border-b text-lg">
+
+      <td className="px-4 py-4 border-b text-sm font-medium">
         {new Date(Number(file.timestamp) * 1000).toLocaleString()}
       </td>
+
+      {/* On-Chain status */}
       <td className="px-4 py-4 border-b text-sm">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted">
-            <Loader2 className="animate-spin h-5 w-5" />
-            Fetching content...
-          </div>
-        ) : error ? (
-          <span className="text-red-500">Error: {error}</span>
+        {file.rootHash ? (
+          <span className="text-green-600 font-medium">Success</span>
         ) : (
-          content?.slice(0, 200)
+          <span className="text-red-500">Not found</span>
         )}
       </td>
-      <td className="px-4 py-4 border-b text-sm">
+
+      {/* Off-Chain Storage status */}
+      <td className="px-4 py-4 border-b text-sm font-medium">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted">
             <Loader2 className="animate-spin h-5 w-5" />
-            Fetching insights...
+            Checking...
           </div>
+        ) : content?.includes("File not found") ? (
+          <span className="text-yellow-600">Not uploaded yet / Indexing</span>
+        ) : content ? (
+          <span className="text-green-600 font-medium">Available</span>
         ) : error ? (
           <span className="text-red-500">Error: {error}</span>
         ) : (
-          insights?.slice(0, 200) || "No insights"
+          <span className="text-yellow-600">Not uploaded yet / Indexing</span>
+        )}
+      </td>
+
+      {/* Preview */}
+      <td className="px-4 py-4 border-b text-sm font-medium" >
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <Loader2 className="animate-spin h-5 w-5" />
+            Fetching preview...
+          </div>
+        ) : content && !content.includes("File not found") ? (
+          content.slice(0, 200)
+        ) : (
+          <span className="text-foreground/70 italic">No preview available</span>
         )}
       </td>
     </tr>
@@ -125,7 +138,7 @@ export default function FileList() {
       {files.length > 0 && (
         <div className="overflow-x-auto">
           <table className="min-w-full rounded text-left">
-            <thead className="font-light">
+            <thead className="font-light text-xs uppercase">
               <tr>
                 <th className="px-4 py-4 text-foreground/90 font-normal border-b">
                   Category
@@ -137,10 +150,13 @@ export default function FileList() {
                   Timestamp
                 </th>
                 <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  Preview
+                  On-Chain
                 </th>
                 <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  AI Insights
+                  Off-Chain (0G Storage)
+                </th>
+                <th className="px-4 py-4 text-foreground/90 font-normal border-b">
+                  Preview
                 </th>
               </tr>
             </thead>

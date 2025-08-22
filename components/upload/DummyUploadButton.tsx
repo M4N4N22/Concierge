@@ -63,10 +63,10 @@ export default function DummyUploadButton({
       disabled={loading || !isConnected}
     >
       {!isConnected
-        ? "Connect Wallet to Use Dummy Files"
+        ? "Connect Wallet to Use Dummy File"
         : loading
-        ? "Uploading dummy files..."
-        : "Test with Dummy Files"}
+        ? "Uploading dummy file..."
+        : "Test with Dummy File"}
     </button>
   );
 }

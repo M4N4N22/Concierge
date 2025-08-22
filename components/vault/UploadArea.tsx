@@ -41,7 +41,7 @@ export default function UploadArea() {
         {/* Dummy files preview */}
         <Accordion type="single" collapsible className="w-full bg-card px-6 py-2 rounded-2xl">
           <AccordionItem value="dummy-files">
-            <AccordionTrigger>Dummy Files Preview</AccordionTrigger>
+            <AccordionTrigger>Dummy File Preview</AccordionTrigger>
             <AccordionContent className="space-y-2">
               {DUMMY_CONTENTS.map((content, index) => (
                 <pre key={index} className="whitespace-pre-wrap break-words  p-2 rounded">

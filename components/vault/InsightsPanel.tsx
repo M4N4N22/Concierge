@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { useUserFiles, VaultFile } from "@/hooks/useUserFiles";
 import { useAccount } from "wagmi";
-import { fetchFileContent } from "@/utils/fetchFileContent"; 
-import { Sparkles } from 'lucide-react';
+import { fetchFileContent } from "@/utils/fetchFileContent";
+import { Sparkles } from "lucide-react";
 
 export default function AIInsights() {
   const { files, loading, refetch } = useUserFiles();
   const { isConnected, address } = useAccount();
   const [insights, setInsights] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
-  const [fetched, setFetched] = useState(false); 
+  const [fetched, setFetched] = useState(false);
 
   const computeInsights = async (file: VaultFile) => {
     try {
@@ -69,7 +69,7 @@ export default function AIInsights() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {!fetched && (
         <button
           onClick={handleGetInsights}
@@ -86,46 +86,54 @@ export default function AIInsights() {
       )}
 
       {fetched && files.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left rounded">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 border-b">Category</th>
-                <th className="px-4 py-3 border-b">File Hash</th>
-                <th className="px-4 py-3 border-b">Insights</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((file: VaultFile, idx: number) => (
-                <tr key={idx} className="">
-                  <td className="px-4 py-3 border-b">{file.category || "—"}</td>
-                  <td className="px-4 py-3 border-b">
-                    <span className="font-mono text-sm">
+        <div className="space-y-8">
+          {Object.entries(
+            files.reduce((acc: Record<string, VaultFile[]>, file) => {
+              const cat = file.category || "Uncategorized";
+              if (!acc[cat]) acc[cat] = [];
+              acc[cat].push(file);
+              return acc;
+            }, {})
+          ).map(([category, groupedFiles]) => (
+            <div key={category} className="space-y-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                📂 {category}
+              </h3>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {groupedFiles.map((file, idx) => (
+                  <div
+                    key={`${file.rootHash}-${idx}`}
+                    className="p-6  rounded-xl bg-card shadow-sm hover:shadow-md transition"
+                  >
+                    <p className="font-mono mb-6 text-muted">
                       {truncateHash(file.rootHash)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 border-b">
-                    {insights[file.rootHash] ? (
-                      <pre className="whitespace-pre-wrap text-sm max-w-xl">
-                        {insights[file.rootHash]}
-                      </pre>
-                    ) : (
-                      <button
-                        onClick={() => computeInsights(file)}
-                        className="px-4 py-2 bg-card border border-transparent rounded-full hover:bg-card/50 hover:border-primary text-sm flex items-center gap-2 font-medium cursor-pointer"
-                        disabled={processing === file.rootHash}
-                      >
-                        <Sparkles className="inline text-primary" />
-                        {processing === file.rootHash
-                          ? "Thinking..."
-                          : "Get Insights"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </p>
+
+                    <div className="mt-3">
+                      {insights[file.rootHash] ? (
+                        <div className="text-sm whitespace-pre-wrap">
+                          {insights[file.rootHash]}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => computeInsights(file)}
+                          className="px-4 py-2  border  rounded-full hover:bg-card/50 hover:border-primary text-sm flex items-center gap-2 font-medium cursor-pointer"
+                          disabled={processing === file.rootHash}
+                        >
+                          {" "}
+                          <Sparkles className="inline text-primary" />{" "}
+                          {processing === file.rootHash
+                            ? "Thinking..."
+                            : "Get Insights"}{" "}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
