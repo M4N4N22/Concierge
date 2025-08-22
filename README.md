@@ -197,3 +197,4 @@ A: INFTs are the first functional AI agents you can actually own. Unlike traditi
 
 **Q: Can I trade my INFT agent?**
 A: Yes! You can trade agent configurations (personality, specialization)
+
