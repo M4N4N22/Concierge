@@ -7,18 +7,39 @@ export async function fetchFileContent(
 ): Promise<string> {
   if (!rootHash) throw new Error("Missing rootHash");
 
+  console.log("=== Fetch File Debug Logs ===");
+  console.log("Env INDEXER_GATEWAY:", INDEXER_GATEWAY || "❌ MISSING");
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`\n=== Attempt ${attempt} ===`);
-      console.log(`Fetching file for rootHash: ${rootHash}`);
-      console.log(`URL: ${INDEXER_GATEWAY}/file?root=${rootHash}`);
+      console.log(`\n=== Attempt ${attempt} of ${retries} ===`);
+      const url = `${INDEXER_GATEWAY}/file?root=${rootHash}`;
+      console.log("RootHash:", rootHash);
+      console.log("Request URL:", url);
 
-      const res = await fetch(`${INDEXER_GATEWAY}/file?root=${rootHash}`);
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "*/*",
+        },
+      });
+
       console.log("Response status:", res.status);
-      console.log("Response headers:", Array.from(res.headers.entries()));
+      console.log("Response statusText:", res.statusText);
+      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
 
-      const bodyText = await res.text();
-      console.log("Response body preview:", bodyText.slice(0, 500)); // first 500 chars
+      // Try both text + json to detect actual format
+      const rawText = await res.text();
+      console.log("Raw response length:", rawText.length);
+      console.log("Raw response preview:", rawText.slice(0, 300));
+
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(rawText);
+        console.log("JSON parsed successfully. Keys:", Object.keys(parsed || {}));
+      } catch (jsonErr) {
+        console.log("Response is not valid JSON.");
+      }
 
       if (res.status === 600) {
         console.error("File temporarily unavailable: segment missing");
@@ -30,13 +51,17 @@ export async function fetchFileContent(
         throw new Error(`Failed to fetch file: ${res.status}`);
       }
 
-      console.log("File fetched successfully.");
-      return bodyText; // return successfully fetched content
+      if (!rawText || rawText === "null") {
+        console.warn("⚠️ Response body is empty or 'null'");
+      }
+
+      console.log("✅ File fetched successfully.");
+      return rawText;
     } catch (err: any) {
-      console.error("Error fetching file:", err);
+      console.error("❌ Error fetching file:", err.message || err);
       if (attempt === retries) {
         console.error("All retries failed.");
-        throw err; // rethrow on last attempt
+        throw err;
       }
       console.log("Retrying...\n");
     }

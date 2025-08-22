@@ -45,6 +45,6 @@ export const uploadFileSafe = async (
 };
 
 export const DUMMY_CONTENTS = [
-  `Marketing strategy: Social media campaign analysis
+  `Netflix receipt for subscription renewal on 2025-10-01.
 `,
 ];

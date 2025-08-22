@@ -20,11 +20,19 @@ export interface UploadResult {
 export async function uploadFileTo0G(file: File): Promise<UploadResult> {
   const tempFilePath = path.join(os.tmpdir(), file.name);
   const arrayBuffer = await file.arrayBuffer();
+
+  // ✅ Log file content (assuming it's UTF-8 text)
+  const fileContent = Buffer.from(arrayBuffer).toString("utf-8");
+  console.log(`\n=== Uploading file: ${file.name} ===`);
+  console.log(`File content:\n${fileContent}\n`);
+
   await fs.promises.writeFile(tempFilePath, Buffer.from(arrayBuffer));
 
   const zgFile = await ZgFile.fromFilePath(tempFilePath);
 
   try {
+    
+
     const [tree, treeErr] = await zgFile.merkleTree();
     if (treeErr)
       throw new Error(`Merkle tree error for ${file.name}: ${treeErr}`);
@@ -34,8 +42,15 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
     const rootHash = tree.rootHash();
     if (!rootHash) throw new Error(`Root hash is null for ${file.name}`);
 
+    console.log(`Local Merkle root (deterministic): ${rootHash}`);
+
     // Try uploading
-    const [uploadedData, uploadErr] = await indexer.upload(zgFile, RPC_URL, signer);
+    console.log("Starting upload to indexer...");
+    const [uploadedData, uploadErr] = await indexer.upload(
+      zgFile,
+      RPC_URL,
+      signer
+    );
 
     // --- Handle "Data already exists" gracefully ---
     if (uploadErr) {
@@ -48,20 +63,46 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
         if ("message" in uploadErr) errMsg = (uploadErr as any).message;
       }
 
+      console.error(`Upload error: ${errMsg}`);
+
       if (errMsg.includes("Data already exists")) {
         console.warn(`File already exists, skipping upload: ${file.name}`);
-        return { fileName: file.name, rootHash }; // use deterministic root hash
+        return { fileName: file.name, rootHash }; // always trust deterministic root
       } else {
         throw new Error(`Upload failed for ${file.name}: ${errMsg}`);
       }
     }
 
-    // --- Successful upload ---
-    // Use returned dataMerkleRoot if available, else deterministic root
-    const finalRootHash =
-      uploadedData && typeof uploadedData === "object" && "dataMerkleRoot" in uploadedData
-        ? (uploadedData as any).dataMerkleRoot
-        : rootHash;
+    console.log("Upload successful. Indexer response:", uploadedData);
+
+    // --- Check indexer root hash ---
+    let indexerRoot: string | null = null;
+    if (
+      uploadedData &&
+      typeof uploadedData === "object" &&
+      "dataMerkleRoot" in uploadedData
+    ) {
+      indexerRoot = (uploadedData as any).dataMerkleRoot;
+      console.log(`Indexer returned rootHash: ${indexerRoot}`);
+    } else {
+      console.warn(
+        "Indexer did not return dataMerkleRoot, falling back to local root."
+      );
+    }
+
+    // --- Compare and decide ---
+    const finalRootHash = indexerRoot ?? rootHash;
+
+    if (indexerRoot && indexerRoot !== rootHash) {
+      console.warn(
+        `⚠️ Root hash mismatch!\n` +
+          `  Local Merkle root:   ${rootHash}\n` +
+          `  Indexer root:        ${indexerRoot}\n` +
+          `  Final root used:     ${finalRootHash}`
+      );
+    } else {
+      console.log(`Final rootHash used: ${finalRootHash}`);
+    }
 
     return { fileName: file.name, rootHash: finalRootHash };
   } finally {
