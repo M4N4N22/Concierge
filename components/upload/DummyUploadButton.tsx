@@ -3,6 +3,13 @@
 import { useAccount } from "wagmi";
 import { DUMMY_CONTENTS, uploadFileSafe } from "@/utils/upload";
 import { useAddToVault } from "@/hooks/useAddToVault";
+import { toast } from "sonner";
+
+type UploadedFile = {
+  file: File;
+  rootHash: string;
+  txHash?: string; // optional for alreadyExists case
+};
 
 export default function DummyUploadButton({
   onUpload,
@@ -14,11 +21,13 @@ export default function DummyUploadButton({
   const emptyBytes32 = "0x" + "00".repeat(32);
 
   const handleDummyUpload = async () => {
-    if (!isConnected)
-      return alert("Please connect your wallet before uploading dummy files.");
+    if (!isConnected) {
+      alert("Please connect your wallet before uploading dummy files.");
+      return;
+    }
 
     setLoading(true);
-    const uploaded: { file: File; rootHash: string; txHash: string }[] = [];
+    const uploaded: UploadedFile[] = [];
 
     for (let i = 0; i < DUMMY_CONTENTS.length; i++) {
       const content = DUMMY_CONTENTS[i];
@@ -31,17 +40,24 @@ export default function DummyUploadButton({
 
         if (!result) {
           console.log(`Skipping file ${file.name} due to upload failure`);
-          return; 
+          continue;
         }
 
-        const { rootHash } = result; // 1) 0G upload (server)
+        const { rootHash, alreadyExists } = result;
+
+        if (alreadyExists) {
+          uploaded.push({ file, rootHash });
+          continue;
+        }
+
+        // ✅ new file → write to vault
         const txHash = await addFile({
-          // 2) Vault write (client)
           rootHash,
           category: "unassigned",
           encryptedKey: "",
           insightsCID: emptyBytes32,
         });
+
         uploaded.push({ file, rootHash, txHash });
       } catch (err) {
         console.error("Dummy upload error:", err);

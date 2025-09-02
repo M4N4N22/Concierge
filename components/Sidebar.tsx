@@ -24,37 +24,37 @@ const sections = [
     title: "Vault",
     icon: Folder,
     items: [
-      { name: "My Files", href: "/dashboard/vault/my-files", icon: FileText },
+      { name: "Upload Files", href: "/dashboard/vault/my-files", icon: FileText },
       {
-        name: "AI Insights",
+        name: "AI Powered Vault",
         href: "/dashboard/vault/insights",
         icon: Sparkles,
       },
-      { name: "Search", href: "/dashboard/vault/search", icon: Search },
+      { name: "Talk to your Data (Soon)", href: "/dashboard/vault/search", icon: Search },
     ],
   },
   {
-    title: "My Agent",
+    title: "My Agent (In Development)",
     icon: Brain,
     items: [
-      { name: "Overview", href: "/dashboard/agent/overview", icon: User },
-      { name: "Learning", href: "/dashboard/agent/learning", icon: Brain },
+      { name: "Overview (Soon)", href: "/dashboard/agent/overview", icon: User },
+      { name: "Learning (Soon)", href: "/dashboard/agent/learning", icon: Brain },
       {
-        name: "Recommendations",
+        name: "Recommendations (Soon)",
         href: "/dashboard/agent/recommendations",
         icon: LineChart,
       },
     ],
   },
   {
-    title: "Future Sections",
+    title: "Future Sections (Upcoming)",
     disabled: false,
     icon: Settings,
     items: [
-      { name: "Specializations", href: "#", icon: Circle },
-      { name: "Marketplace", href: "#", icon: Circle },
-      { name: "Integrations", href: "#", icon: Circle },
-      { name: "Privacy & Monetization", href: "#", icon: Lock },
+      { name: "Specializations (Soon)", href: "#", icon: Circle },
+      { name: "Marketplace (Soon)", href: "#", icon: Circle },
+      { name: "Integrations (Soon)", href: "#", icon: Circle },
+      { name: "Privacy & Monetization (Soon)", href: "#", icon: Lock },
     ],
   },
 ];
@@ -71,9 +71,9 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 h-full border-r p-4 flex flex-col">
+    <div className="w-64 h-full border-r flex flex-col">
       {/* Logo */}
-      <div className="flex items-center gap-2 mb-8">
+      <div className="flex items-center gap-2  p-6">
         <Link href="/" className="flex items-center gap-2">
           <div className="h-8 w-8 flex items-center justify-center rounded-md bg-gradient-to-br from-primary to-secondary text-white font-bold text-lg">
             C
@@ -89,7 +89,7 @@ export function Sidebar() {
         );
 
         return (
-          <div key={section.title} className="mb-2">
+          <div key={section.title} className="mb-2 p-2">
             {/* Section Header */}
             <button
               onClick={() => toggleSection(section.title)}

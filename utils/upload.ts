@@ -2,7 +2,7 @@ import { toast } from "sonner";
 
 export const uploadFileSafe = async (
   file: File
-): Promise<{ rootHash: string } | null> => {
+): Promise<{ rootHash: string; alreadyExists?: boolean } | null> => {
   const formData = new FormData();
   formData.append("files", file);
 
@@ -33,8 +33,13 @@ export const uploadFileSafe = async (
       "rootHash:",
       item.rootHash
     );
-    toast.success(`Upload succeeded for file: ${file.name}`);
-    return { rootHash: item.rootHash };
+    if (item.alreadyExists) {
+      toast.info(`${file.name} already exists. Skipping upload.`);
+    } else {
+      toast.success(`Upload succeeded for file: ${file.name}`);
+    }
+
+    return { rootHash: item.rootHash, alreadyExists: item.alreadyExists };
   } catch (err: any) {
     console.error("Error during fetch/upload:", err);
     toast.error(
