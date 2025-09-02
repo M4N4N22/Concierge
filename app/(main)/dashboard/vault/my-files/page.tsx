@@ -43,9 +43,7 @@ export default function MyFilesPage() {
       <div className="g">
         {/* File List */}
         <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle>Uploaded Files</CardTitle>
-          </CardHeader>
+        
           <CardContent>
             <FileList />
           </CardContent>

@@ -70,14 +70,21 @@ export default function AIInsights() {
 
   return (
     <div className="space-y-6">
-      {!fetched && (
+      {loading ? (
+        <button
+          disabled
+          className="px-5 py-2 bg-foreground text-background rounded-full font-semibold opacity-70 cursor-not-allowed"
+        >
+          Loading...
+        </button>
+      ) : !fetched ? (
         <button
           onClick={handleGetInsights}
           className="px-5 py-2 bg-foreground text-background hover:bg-foreground/90 rounded-full font-semibold"
         >
-          Get Insights from Your Uploaded Files
+          View Your Uploaded Files
         </button>
-      )}
+      ) : null}
 
       {loading && fetched && <p>Loading your files...</p>}
 

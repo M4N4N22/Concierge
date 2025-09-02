@@ -15,6 +15,7 @@ const indexer = new Indexer(INDEXER_RPC);
 export interface UploadResult {
   fileName: string;
   rootHash: string;
+  alreadyExists?: boolean;
 }
 
 export async function uploadFileTo0G(file: File): Promise<UploadResult> {
@@ -31,8 +32,6 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
   const zgFile = await ZgFile.fromFilePath(tempFilePath);
 
   try {
-    
-
     const [tree, treeErr] = await zgFile.merkleTree();
     if (treeErr)
       throw new Error(`Merkle tree error for ${file.name}: ${treeErr}`);
@@ -67,7 +66,7 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
 
       if (errMsg.includes("Data already exists")) {
         console.warn(`File already exists, skipping upload: ${file.name}`);
-        return { fileName: file.name, rootHash }; // always trust deterministic root
+        return { fileName: file.name, rootHash, alreadyExists: true };
       } else {
         throw new Error(`Upload failed for ${file.name}: ${errMsg}`);
       }

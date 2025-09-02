@@ -8,6 +8,12 @@ import { VAULT_ABI } from "@/lib/vaultAbi";
 import { VAULT_ADDRESS } from "@/lib/contractClient";
 import { fetchFileContent } from "@/hooks/useFileContent";
 import { Loader2 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 function FileRow({ file }: { file: VaultFile }) {
   const [content, setContent] = useState<string | null>(null);
@@ -38,7 +44,9 @@ function FileRow({ file }: { file: VaultFile }) {
 
   return (
     <tr className="hover:bg-primary/10 text-left">
-      <td className="px-4 py-4 border-b text-sm font-medium">{file.category}</td>
+      <td className="px-4 py-4 border-b text-sm font-medium">
+        {file.category}
+      </td>
 
       <td className="px-4 py-4 border-b text-sm font-medium">
         <span className="text-primary">{truncateHash(file.rootHash)}</span>
@@ -76,7 +84,7 @@ function FileRow({ file }: { file: VaultFile }) {
       </td>
 
       {/* Preview */}
-      <td className="px-4 py-4 border-b text-sm font-medium" >
+      <td className="px-4 py-4 border-b text-sm font-medium">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted">
             <Loader2 className="animate-spin h-5 w-5" />
@@ -85,7 +93,9 @@ function FileRow({ file }: { file: VaultFile }) {
         ) : content && !content.includes("File not found") ? (
           content.slice(0, 200)
         ) : (
-          <span className="text-foreground/70 italic">No preview available</span>
+          <span className="text-foreground/70 italic">
+            No preview available
+          </span>
         )}
       </td>
     </tr>
@@ -118,56 +128,63 @@ export default function FileList() {
   };
 
   return (
-    <div>
-      {!files.length && (
-        <button
-          onClick={loadUserFiles}
-          className="px-4 py-1 bg-foreground text-background hover:bg-foreground/90 rounded-full mb-3 font-semibold"
-        >
-          View Your Uploaded Files
-        </button>
-      )}
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="files">
+        <AccordionTrigger className="text-lg font-semibold">
+          Your Uploaded Files
+        </AccordionTrigger>
+        <AccordionContent>
+          {!files.length && (
+            <button
+              onClick={loadUserFiles}
+              className="px-4 py-1 bg-foreground text-background hover:bg-foreground/90 rounded-full mb-3 font-semibold"
+            >
+              View Your Uploaded Files
+            </button>
+          )}
 
-      {loading && (
-        <div className="flex items-center gap-2 text-muted mb-3">
-          <Loader2 className="animate-spin h-5 w-5" />
-          Loading files...
-        </div>
-      )}
+          {loading && (
+            <div className="flex items-center gap-2 text-muted mb-3">
+              <Loader2 className="animate-spin h-5 w-5" />
+              Loading files...
+            </div>
+          )}
 
-      {files.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full rounded text-left">
-            <thead className="font-light text-xs uppercase">
-              <tr>
-                <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  Category
-                </th>
-                <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  Root Hash
-                </th>
-                <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  Timestamp
-                </th>
-                <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  On-Chain
-                </th>
-                <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  Off-Chain (0G Storage)
-                </th>
-                <th className="px-4 py-4 text-foreground/90 font-normal border-b">
-                  Preview
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((file, index) => (
-                <FileRow key={index} file={file} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+          {files.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="min-w-full rounded text-left">
+                <thead className="font-light text-xs uppercase">
+                  <tr>
+                    <th className="px-4 py-4 text-foreground/90 font-normal border-b">
+                      AI Assigned Category
+                    </th>
+                    <th className="px-4 py-4 text-foreground/90 font-normal border-b">
+                      Root Hash
+                    </th>
+                    <th className="px-4 py-4 text-foreground/90 font-normal border-b">
+                      Timestamp
+                    </th>
+                    <th className="px-4 py-4 text-foreground/90 font-normal border-b">
+                      On-Chain
+                    </th>
+                    <th className="px-4 py-4 text-foreground/90 font-normal border-b">
+                      Off-Chain (0G Storage)
+                    </th>
+                    <th className="px-4 py-4 text-foreground/90 font-normal border-b">
+                      Preview
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {files.map((file, index) => (
+                    <FileRow key={index} file={file} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }

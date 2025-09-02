@@ -30,14 +30,14 @@ export default function UploadArea() {
   return (
     <div className="flex flex-col md:flex-row gap-6 p-4">
       {/* Left panel: Upload sources */}
-      <div className="md:w-1/3 space-y-4 bg-card p-6 rounded-2xl">
+      <div className="md:w-2/3 space-y-4 bg-card p-6  rounded-2xl">
         <h2 className="text-lg font-semibold">Sources</h2>
         <UploadButton onUpload={handleUpload} loading={loading} setLoading={setLoading} />
         <DummyUploadButton onUpload={handleUpload} loading={loading} setLoading={setLoading} />
       </div>
 
       {/* Right panel: Preview */}
-      <div className="md:w-2/3 space-y-4 ">
+      <div className="md:w-1/3 space-y-4 ">
         {/* Dummy files preview */}
         <Accordion type="single" collapsible className="w-full bg-card px-6 py-2 rounded-2xl">
           <AccordionItem value="dummy-files">
