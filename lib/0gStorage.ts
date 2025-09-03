@@ -22,7 +22,7 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
   const tempFilePath = path.join(os.tmpdir(), file.name);
   const arrayBuffer = await file.arrayBuffer();
 
-  // ✅ Log file content (assuming it's UTF-8 text)
+  //  Log file content (assuming it's UTF-8 text)
   const fileContent = Buffer.from(arrayBuffer).toString("utf-8");
   console.log(`\n=== Uploading file: ${file.name} ===`);
   console.log(`File content:\n${fileContent}\n`);
