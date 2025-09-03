@@ -11,6 +11,11 @@ const VAULT_ADDRESS = process.env.VAULT_ADDRESS!;
 const RPC_URL = process.env.GALILEO_RPC_URL!;
 const PRIVATE_KEY = process.env.GALILEO_PRIVATE_KEY!;
 
+// --- Constants ---
+const MICRO_UNIT = 100_000_000_000_000n; // 1 micro-unit = 1e12 weiOG
+const MIN_FEE_UNITS = 6000n; // minimal provider fee in units
+const MIN_DEPOSIT_OG = 0.1;
+
 export async function POST(req: NextRequest) {
   try {
     const { rootHash, fileName, content } = await req.json();
@@ -37,16 +42,93 @@ export async function POST(req: NextRequest) {
         throw err;
       }
     }
+    console.log("Ledger raw:", ledger);
 
-    // --- Check balance ---
-    let balance = ledger.totalBalance ?? 0;
-    if (balance === BigInt(0)) {
-      console.log("Ledger empty → depositing 0.1 OG...");
-      await broker.ledger.depositFund(0.1);
-      ledger = await broker.ledger.getLedger();
-      balance = ledger.totalBalance ?? BigInt(0);
+    // Fixed balance calculation section in your computeInsights route
+
+    let totalWeiOG = ledger[1] ?? 0n;
+    let lockedWeiOG = ledger[2] ?? 0n;
+
+    console.log(`Debug: totalWeiOG=${totalWeiOG}, lockedWeiOG=${lockedWeiOG}`);
+
+    // Fix: Handle the case where locked > total (shouldn't happen but does)
+    let availableWeiOG: bigint;
+    if (totalWeiOG >= lockedWeiOG) {
+      availableWeiOG = totalWeiOG - lockedWeiOG;
+    } else {
+      console.warn(
+        `Warning: Locked (${lockedWeiOG}) > Total (${totalWeiOG}). Using total as available.`
+      );
+      availableWeiOG = totalWeiOG;
     }
-    console.log(`Ledger ready. Balance = ${balance} weiOG`);
+
+    let availableUnits = availableWeiOG / MICRO_UNIT;
+
+    console.log(
+      `Available: ${availableUnits} units (${Number(availableWeiOG) / 1e18} OG)`
+    );
+
+    // Increase minimum required units to account for actual service costs
+    const REQUIRED_UNITS = 8000n; // Increased from 6000n
+
+    if (availableUnits < REQUIRED_UNITS) {
+      // More aggressive deposit calculation
+      const requiredWeiOG = REQUIRED_UNITS * MICRO_UNIT;
+      const shortfallWeiOG =
+        requiredWeiOG > availableWeiOG ? requiredWeiOG - availableWeiOG : 0n;
+      const depositOG = Math.max(
+        0.2, // Increased minimum deposit
+        Number(shortfallWeiOG) / 1e18 + 0.1 // Add more buffer
+      );
+
+      console.log(
+        `Balance insufficient (${availableUnits} units) → depositing ${depositOG} OG...`
+      );
+
+      try {
+        await broker.ledger.depositFund(depositOG);
+
+        // Wait a moment for the deposit to process
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Refresh ledger after deposit
+        ledger = await broker.ledger.getLedger();
+        totalWeiOG = ledger[1] ?? 0n;
+        lockedWeiOG = ledger[2] ?? 0n;
+
+        // Recalculate with same logic
+        if (totalWeiOG >= lockedWeiOG) {
+          availableWeiOG = totalWeiOG - lockedWeiOG;
+        } else {
+          console.warn(
+            `Post-deposit: Locked (${lockedWeiOG}) > Total (${totalWeiOG})`
+          );
+          availableWeiOG = totalWeiOG;
+        }
+
+        availableUnits = availableWeiOG / MICRO_UNIT;
+        const totalOG = Number(totalWeiOG) / 1e18;
+
+        console.log(
+          `Ledger updated. Total = ${totalOG} OG, available = ${availableUnits} units`
+        );
+
+        // Final check
+        if (availableUnits < REQUIRED_UNITS) {
+          throw new Error(
+            `Still insufficient balance after deposit: ${availableUnits} units < ${REQUIRED_UNITS} required`
+          );
+        }
+      } catch (depositError) {
+        console.error("Deposit failed:", depositError);
+        throw new Error(`Failed to deposit funds: ${depositError}`);
+      }
+    } else {
+      const totalOG = Number(totalWeiOG) / 1e18;
+      console.log(
+        `Ledger sufficient: ${availableUnits} units / ${totalOG} OG total`
+      );
+    }
 
     // --- Discover available services ---
     const services = await broker.inference.listService();
@@ -83,7 +165,7 @@ export async function POST(req: NextRequest) {
       question
     );
 
-    // --- Send inference request ---
+    // --- Send inference request with fallbackFee ---
     const response = await fetch(`${endpoint}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...headers },
@@ -91,6 +173,7 @@ export async function POST(req: NextRequest) {
         messages: [{ role: "user", content: question }],
         model,
         response_format: { type: "json_object" },
+        fallbackFee: 0.01,
       }),
     });
 
@@ -107,7 +190,9 @@ export async function POST(req: NextRequest) {
         }). Body: ${raw.slice(0, 200)}`
       );
     }
-
+    if (!data.choices || !data.choices[0]) {
+      throw new Error(`Provider error: ${data.error ?? "No choices returned"}`);
+    }
     const aiOutput = data.choices[0].message.content;
     let category = "unassigned";
     let summary = aiOutput;

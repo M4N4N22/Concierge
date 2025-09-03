@@ -50,6 +50,5 @@ export const uploadFileSafe = async (
 };
 
 export const DUMMY_CONTENTS = [
-  `Netflix receipt for subscription renewal on 2025-10-01.
-`,
+  `Bank statement: ₹5,000 credited to your HDFC account on 2025-09-15.`,
 ];
