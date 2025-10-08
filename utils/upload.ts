@@ -50,5 +50,5 @@ export const uploadFileSafe = async (
 };
 
 export const DUMMY_CONTENTS = [
-  `Bank statement: ₹5,000 credited to your HDFC account on 2025-09-15.`,
+  `Bank statement: ₹5,000 credited to your SBI account on 2025-09-15.`,
 ];

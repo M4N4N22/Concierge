@@ -50,7 +50,7 @@ export default function DummyUploadButton({
           continue;
         }
 
-        // ✅ new file → write to vault
+        // new file write to vault
         const txHash = await addFile({
           rootHash,
           category: "unassigned",

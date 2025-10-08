@@ -37,7 +37,7 @@ const sections = [
     title: "My Agent (In Development)",
     icon: Brain,
     items: [
-      { name: "Overview (Soon)", href: "/dashboard/agent/overview", icon: User },
+      { name: "Overview ", href: "/dashboard/agent/overview", icon: User },
       { name: "Learning (Soon)", href: "/dashboard/agent/learning", icon: Brain },
       {
         name: "Recommendations (Soon)",

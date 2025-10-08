@@ -15,7 +15,7 @@ module.exports = {
   networks: {
     "0gGalileo": {
       url: process.env.GALILEO_RPC_URL || "https://evmrpc-testnet.0g.ai",
-      chainId: 16601,
+      chainId: 16602,
       accounts: [process.env.GALILEO_PRIVATE_KEY],
     },
   },

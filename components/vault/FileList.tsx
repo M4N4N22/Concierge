@@ -105,27 +105,50 @@ function FileRow({ file }: { file: VaultFile }) {
 export default function FileList() {
   const { files, loading, refetch } = useUserFiles();
   const { isConnected, address } = useAccount();
-
   const loadUserFiles = async () => {
     if (!isConnected || !address) {
-      console.log("Wallet not connected or address missing");
+      console.warn("Wallet not connected or address missing:", { isConnected, address });
       return;
     }
-
+  
     try {
-      console.log("Loading files for address:", address);
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, signer);
-
-      const rawFiles = await vault.getFiles(address);
-      console.log("Raw getFiles call result:", rawFiles);
-
+      console.log("=== Loading user files ===");
+      console.log("User address:", address);
+  
+      // Provider
+      const provider = new ethers.JsonRpcProvider("https://evmrpc-testnet.0g.ai");
+      console.log("Provider initialized:", provider);
+  
+      // Check chain ID
+      const network = await provider.getNetwork();
+      console.log("Connected network:", network);
+  
+      // Contract
+      const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, provider);
+      console.log("Vault contract instance created:", vault.address);
+  
+      // Optional: check if code exists
+      const code = await provider.getCode(VAULT_ADDRESS);
+      console.log("Vault contract code length:", code.length, code.length > 2 ? "✅ exists" : "❌ missing");
+  
+      // Call getFiles
+      console.log("Calling getFiles...");
+      const rawFiles = await vault.viewFilesByUser(address);
+      console.log("✅ getFiles call result:", rawFiles);
+  
+      // Refetch UI
       refetch?.();
-    } catch (err) {
-      console.error("Error fetching your files:", err);
+      console.log("Refetch triggered");
+  
+    } catch (err: any) {
+      console.error("❌ Error fetching user files:");
+      console.error("Error message:", err.message);
+      console.error("Error code:", err.code);
+      console.error("Error data:", err.data);
+      console.error("Full error object:", err);
     }
   };
+  
 
   return (
     <Accordion type="single" collapsible className="w-full">
