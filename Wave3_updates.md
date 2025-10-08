@@ -2,6 +2,8 @@
 
 This update introduces a fully integrated **Intelligent NFT (INFT) Agent** system leveraging **0G's INFT storage and AI compute infrastructure**. The implementation enables users to upload files, generate AI-powered insights, and mint domain-specific NFT agents through a modular and transparent architecture.
 
+[![Demo Video](https://img.shields.io/badge/Demo-Video-brightgreen?style=flat-square)](https://youtu.be/5yt7y6vwObw)
+
 ## Core Features
 
 ### User Interface Components
@@ -117,3 +119,4 @@ This implementation delivers a complete user journey from initial file upload th
 **Flexibility**: Domain-based aggregation enables logical organization of related content under unified agent entities
 
 **Transparency**: Every step of the process is traceable and auditable through the ledger management system
+
