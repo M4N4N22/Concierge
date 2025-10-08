@@ -1,5 +1,7 @@
 # Concierge
 
+**Wave 3 Updates:** [See full update details here](https://github.com/M4N4N22/Concierge/blob/main/Wave3_updates.md)
+
 **Your Data. Your AI. Your Control.**
 
 The world's first platform where your personal AI advisor learns exclusively from your own secure data vault. Built on 0G's decentralized AI blockchain with revolutionary INFT technology.
@@ -8,7 +10,6 @@ The world's first platform where your personal AI advisor learns exclusively fro
 [![INFT Powered](https://img.shields.io/badge/INFT-Powered-B42DE6?style=flat-square)](#inft-technology)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Demo](https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square)](https://concierge-sigma.vercel.app/)
-[![Wave 3 updates](https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square)](https://github.com/M4N4N22/Concierge/blob/main/Wave3_updates.md/)
 
 ---
 
