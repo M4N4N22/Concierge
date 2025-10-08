@@ -1,0 +1,16 @@
+await vault.getFiles("0x84948e317d312dD1808B49C280F814410E4De779");
+vault.runner.address
+const vault = await ethers.getContractAt("Vault", "0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81");
+await ethers.provider.getStorageAt("0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81", 0);
+await vault.callStatic.getFiles("0x84948e317d312dD1808B49C280F814410E4De779");
+  .filter(f => f.  .map(f => f.name);
+vaultFactory.interface.fragments
+typeof vaultFactory;
+vaultFactory = await ethers.getContractFactory("Vault");
+vaultFactory.interface.fragments.map(f => f.name);
+const vaultFactory = await ethers.getContractFactory
+const vaultFactory = await ethers.getContractFactovaultFactory.interface.fragments.map(f => f.name);
+code.length > 2 ? "✅ Contract exists" : "❌ No contract found";
+const code = await ethers.provider.getCode("0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81");
+await vault.callStatic.addFile("0x123...", "cat", "", "0x456...");
+const vault = await ethers.getContractAt("Vault", "0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81");

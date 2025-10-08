@@ -5,7 +5,7 @@ import { mainnet } from "wagmi/chains";
 
 
 const zeroGTestnet = {
-  id: 16601,
+  id: 16602,
   name: "0G-Galileo-Testnet",
   nativeCurrency: { name: "OG", symbol: "OG", decimals: 18 },
   rpcUrls: {

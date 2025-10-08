@@ -12,9 +12,9 @@ const client = createPublicClient({
 });
 
 export interface VaultFile {
-  rootHash: string;    // keep as hex
+  rootHash: string;    
   category: string;
-  insightsCID: string; // keep as hex
+  insightsCID: string; 
   timestamp: number;
 }
 
