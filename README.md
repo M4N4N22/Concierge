@@ -1,6 +1,6 @@
 # Concierge
 
-**Wave 3 Updates:** [See full update details here](https://github.com/M4N4N22/Concierge/blob/main/Wave3_updates.md)
+**Wave 4 Updates:** [See full update details here](https://github.com/M4N4N22/Concierge/blob/main/Wave4_updates.md)
 
 **Your Data. Your AI. Your Control.**
 
