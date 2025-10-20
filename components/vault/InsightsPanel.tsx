@@ -5,6 +5,7 @@ import { useUserFiles, VaultFile } from "@/hooks/useUserFiles";
 import { useAccount } from "wagmi";
 import { fetchFileContent } from "@/utils/fetchFileContent";
 import { Sparkles } from "lucide-react";
+import DemoVaultWizard from "./VaultComputeDemo";
 
 export default function AIInsights() {
   const { files, loading, refetch } = useUserFiles();

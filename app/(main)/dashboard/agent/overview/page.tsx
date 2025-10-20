@@ -32,7 +32,7 @@ export default function MyAgentPage() {
 
         {/* Demo Wizard Toggle */}
         <Button
-          variant="secondary"
+     
           size="sm"
           onClick={() => setShowDemo((prev) => !prev)}
           className="flex items-center gap-2"
