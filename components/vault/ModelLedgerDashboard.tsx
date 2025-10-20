@@ -135,7 +135,7 @@ export default function ModelDashboard() {
               onChange={(e) => setDepositAmount(parseFloat(e.target.value))}
               className="border rounded px-2 py-1 w-24"
             />
-            <Button onClick={depositLedger} disabled={loading}>
+            <Button className="secondary" onClick={depositLedger} disabled={loading}>
               Deposit
             </Button>
           </div>
@@ -148,7 +148,7 @@ export default function ModelDashboard() {
           const sufficient = availableOG >= minOG;
 
           return (
-            <Card key={m.model}>
+            <Card key={`${m.provider}-${m.model}`}>
               <CardHeader>
                 <CardTitle className="">
                   {/* Tags */}
@@ -184,7 +184,7 @@ export default function ModelDashboard() {
 
                 {!sufficient && ledger && (
                   <div className="space-y-2 mt-6">
-                    <p className="text-yellow-500 text-sm">
+                    <p className="text-yellow-700 text-sm">
                       You have {formatOG(availableOGtoFund)} OG available. Fund
                       this provider to use it.
                     </p>
@@ -218,8 +218,8 @@ export default function ModelDashboard() {
                         }}
                       />
                       <Button
-                        size="sm"
-                        variant="secondary"
+                      
+                        variant="default"
                         className="mt-4"
                         onClick={() => fetchLedger()}
                         disabled={loading}

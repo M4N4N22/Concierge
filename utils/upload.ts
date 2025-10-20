@@ -49,6 +49,4 @@ export const uploadFileSafe = async (
   }
 };
 
-export const DUMMY_CONTENTS = [
-  `Bank statement: ₹5,000 credited to your SBI account on 2025-09-15.`,
-];
+export const DUMMY_CONTENTS = [`Salary credited: $3,200 on 2025-09-30.`];
