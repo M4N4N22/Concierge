@@ -1,13 +1,17 @@
 # Concierge
 
+**Wave 4 Updates:** [See full update details here](https://github.com/M4N4N22/Concierge/blob/main/Wave4_updates.md)
+
 **Your Data. Your AI. Your Control.**
 
 The world's first platform where your personal AI advisor learns exclusively from your own secure data vault. Built on 0G's decentralized AI blockchain with revolutionary INFT technology.
 
 [![Built with 0G](https://img.shields.io/badge/Built%20with-0G-B42DE6?style=flat-square)](https://0g.ai)
-[![INFT Powered](https://img.shields.io/badge/INFT-Powered-B42DE6?style=flat-square)](#inft-technology)
+[![INFT Powered](https://img.shields.io/badge/INFT-Powered-B42DE6?style=flat-square)](https://docs.0g.ai/concepts/inft)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square)](https://concierge-sigma.vercel.app/)
+[![Demo Video](https://img.shields.io/badge/Demo-Video-brightgreen?style=flat-square)](https://youtu.be/5yt7y6vwObw)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square)](https://concierge-sigma.vercel.app/)
+
 
 ---
 
@@ -197,3 +201,4 @@ A: INFTs are the first functional AI agents you can actually own. Unlike traditi
 
 **Q: Can I trade my INFT agent?**
 A: Yes! You can trade agent configurations (personality, specialization)
+
