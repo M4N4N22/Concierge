@@ -37,7 +37,7 @@ const sections = [
     title: "My Agent (In Development)",
     icon: Brain,
     items: [
-      { name: "Overview ", href: "/dashboard/agent/overview", icon: User },
+      { name: "Mint Your INFT Agent", href: "/dashboard/agent/mint", icon: User },
       { name: "Learning (Soon)", href: "/dashboard/agent/learning", icon: Brain },
       {
         name: "Recommendations (Soon)",
