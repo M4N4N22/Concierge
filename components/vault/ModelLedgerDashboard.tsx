@@ -88,7 +88,11 @@ export default function ModelDashboard() {
     setLoading(true);
     await fetch("/api/ledger", {
       method: "POST",
-      body: JSON.stringify({ action: "fundSubAccount", subAccount: provider, amount }),
+      body: JSON.stringify({
+        action: "fundSubAccount",
+        subAccount: provider,
+        amount,
+      }),
     });
     await fetchLedger();
     setLoading(false);
@@ -105,7 +109,7 @@ export default function ModelDashboard() {
   };
 
   const availableOG = ledger ? Number(ledger.available) / 1e18 : 0;
-  const availableOGtoFund = ledger ? Number(ledger.locked) / 1e18 : 0;
+  const availableOGtoFund = ledger ? Number(ledger.available) / 1e18 : 0;
 
   const formatAddress = (addr: string) => {
     return addr.slice(0, 6) + "..." + addr.slice(-4);
@@ -113,8 +117,6 @@ export default function ModelDashboard() {
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Available Models</h2>
-
       {!ledger && (
         <Button onClick={createLedger} className="mb-4">
           Create Ledger (0.1 OG)
@@ -122,26 +124,32 @@ export default function ModelDashboard() {
       )}
 
       {ledger && (
-        <div className="mb-4 space-y-1">
-          <p>Total: {Number(ledger.total) / 1e18} OG</p>
-          <p>Locked: {Number(ledger.locked) / 1e18} OG</p>
-          <p>Available: {availableOG} OG</p>
-          <div className="flex items-center gap-2 mt-2">
+        <div className="mb-4  flex  items-center justify-between ">
+          <div className="flex gap-1">
+            <p className="bg-sky-300 rounded-full px-4 py-2 shadow-md font-medium">Total: {Number(ledger.total) / 1e18} OG</p>
+            <p className="bg-yellow-300 rounded-full px-4 py-2 shadow-md font-medium">Locked: {Number(ledger.locked) / 1e18} OG</p>
+            <p className="bg-green-300 rounded-full px-4 py-2 shadow-md font-medium">Available: {availableOG} OG</p>
+          </div>
+          <div className="flex items-center gap-2">
             <input
               type="number"
               min={0.1}
               step={0.1}
               value={depositAmount}
               onChange={(e) => setDepositAmount(parseFloat(e.target.value))}
-              className="border rounded px-2 py-1 w-24"
+              className="border rounded-full px-2 py-1 w-24"
             />
-            <Button className="secondary" onClick={depositLedger} disabled={loading}>
+            <Button
+              className="secondary"
+              onClick={depositLedger}
+              disabled={loading}
+            >
               Deposit
             </Button>
           </div>
         </div>
       )}
-
+      <h2 className="text-xl font-bold mb-4">Available Models</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
         {models.map((m) => {
           const minOG = Number(m.minUnits) / 1e18;
@@ -218,7 +226,6 @@ export default function ModelDashboard() {
                         }}
                       />
                       <Button
-                      
                         variant="default"
                         className="mt-4"
                         onClick={() => fetchLedger()}
