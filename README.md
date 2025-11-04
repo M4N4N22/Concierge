@@ -1,204 +1,272 @@
-# Concierge
+# INFT - Intelligent NFT Agent Platform
 
-**Wave 4 Updates:** [See full update details here](https://github.com/M4N4N22/Concierge/blob/main/Wave4_updates.md)
+A decentralized platform that transforms personal data into intelligent, evolving AI agents. Built on 0G Network infrastructure with mainnet deployment.
 
-**Your Data. Your AI. Your Control.**
-
-The world's first platform where your personal AI advisor learns exclusively from your own secure data vault. Built on 0G's decentralized AI blockchain with revolutionary INFT technology.
-
-[![Built with 0G](https://img.shields.io/badge/Built%20with-0G-B42DE6?style=flat-square)](https://0g.ai)
-[![INFT Powered](https://img.shields.io/badge/INFT-Powered-B42DE6?style=flat-square)](https://docs.0g.ai/concepts/inft)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Demo Video](https://img.shields.io/badge/Demo-Video-brightgreen?style=flat-square)](https://youtu.be/5yt7y6vwObw)
-[![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square)](https://concierge-sigma.vercel.app/)
-
-
----
-
-## 🚀 The Problem We Solve
-
-**Current Reality:**
-- Your personal data is scattered across 87+ different platforms
-- Big Tech makes $127B annually from YOUR data while you get generic AI responses
-- ChatGPT doesn't know your spending habits, travel preferences, or life patterns
-- 2.5 billion people use AI assistants, but 0% own their AI's training data
-
-**Our Solution:**
-Concierge creates **Intelligent NFTs (INFTs)** that are AI agents trained exclusively on your personal data vault, giving you the world's first truly personalized AI advisor that you actually own.
-
----
-
-## ⚡ Key Features
-
-### 🔒 **Secure Personal Data Vault**
-- Upload and store personal files on 0G's decentralized storage
-- End-to-end encryption with user-controlled keys
-- Cross-platform sync (web, mobile, desktop)
-
-### 🤖 **INFT-Powered AI Agents**
-- **Revolutionary INFT Technology**: Your AI advisor is an Intelligent NFT that evolves with your data
-- **True Personalization**: AI trained exclusively on YOUR personal files and preferences
-- **Ownership**: Unlike ChatGPT, you actually own your AI agent as a tradeable NFT
-- **Evolution**: Your INFT agent gets smarter as you add more data to your vault
-
-### 🧠 **Multi-Domain Intelligence**
-- **Financial Advisor**: Analyzes spending patterns, optimizes subscriptions
-- **Travel Assistant**: Learns from past trips, suggests personalized itineraries  
-- **Health Guide**: Tracks wellness data, provides personalized insights
-- **Productivity Coach**: Organizes your digital life, finds important documents instantly
-
-### 🌐 **Decentralized Architecture**
-- Built on 0G's complete AI blockchain stack
-- Zero-knowledge proofs ensure privacy
-- Verifiable AI decisions on-chain
-- Cross-chain compatibility
-
----
-
-## 🏗️ Architecture
-
-Concierge leverages the complete 0G ecosystem:
+## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Concierge Platform                       │
-├─────────────────────────────────────────────────────────────────┤
-│  🤖 INFT AI Agents    │  🔐 Data Vault UI  │  🏪 Agent Marketplace │
-├─────────────────────────────────────────────────────────────────┤
-│                        0G Blockchain Stack                       │
-├─────────────────────────────────────────────────────────────────┤
-│ 0G Chain (INFT Contracts) │ 0G Storage │ 0G Compute │ 0G DA      │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                         User Interface                       │
+│  (Next.js Dashboard - Upload, Insights, Agent Management)   │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+        ▼               ▼               ▼
+┌──────────────┐ ┌─────────────┐ ┌──────────────┐
+│   Vault.sol  │ │INFTAgent.sol│ │  0G Storage  │
+│  (Registry)  │ │  (ERC721)   │ │   (Mainnet)  │
+└──────┬───────┘ └──────┬──────┘ └──────┬───────┘
+       │                │               │
+       └────────────────┼───────────────┘
+                        │
+                        ▼
+              ┌──────────────────┐
+              │   0G Compute     │
+              │ (Cluster/Summ.)  │
+              └──────────────────┘
 ```
 
-### **0G Services Integration:**
-- **0G Chain**: INFT smart contracts (ERC-7857), marketplace transactions
-- **0G Storage**: Encrypted personal data vaults with user-controlled access
-- **0G Compute**: AI model inference and training on personal data
-- **0G DA**: Real-time data availability and cross-chain synchronization
-- **AI Alignment Nodes**: Ensure INFT agents act in user's best interest
+**Data Flow:**
+1. User uploads documents via dashboard
+2. Files stored permanently on 0G Storage (mainnet)
+3. Vault contract registers ownership and metadata
+4. 0G Compute clusters similar documents and generates summaries
+5. User mints personalized INFT agent trained on their data
+6. INFT evolves with new uploads, provides recommendations
+
+## What Problem This Solves
+
+People have scattered personal data across emails, downloads, PDFs, and message attachments. This application:
+
+- **Ingests** diverse document types from users
+- **Clusters** similar documents (health records, travel receipts, subscriptions)
+- **Summarizes** patterns and generates insights
+- **Visualizes** meaningful views: medical timelines, spending patterns, subscription burn rates
+- **Creates** an intelligent, evolving agent (INFT) that learns from user data
+
+Result: Personal data chaos becomes structured personal intelligence.
+
+## Key Differentiator
+
+Users mint a personalized **Intelligent NFT (INFT)** - an evolving AI agent trained on their own data. This agent:
+
+- Learns continuously as new documents are uploaded
+- Provides contextual recommendations based on real user patterns
+- Can be delegated, shared, or rented
+- Turns personal data into a monetizable digital asset
+
+## Deployment Status
+
+### Mainnet Contracts
+- **Vault / Data Registry:** `0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8`
+- **INFT Agent Contract:** `0x721c164D1c7e67e522d50194C342006E36Fde05f`
+
+### Infrastructure
+- User documents stored permanently on **0G Storage (Mainnet)**
+- Compute layer runs on **0G Compute Testnet** (modular - mainnet migration is a config swap)
+- Full workflow live: connect wallet → upload → cluster → summarize → mint INFT → manage data
+
+## Project Structure
+
+```
+app/
+├── (main)/dashboard/
+│   ├── agent/          # INFT agent interfaces
+│   │   ├── learning/
+│   │   ├── mint/
+│   │   └── recommendations/
+│   └── vault/          # Data management
+│       ├── insights/
+│       └── my-files/
+├── api/
+│   ├── computeInsights/    # Clustering & summarization
+│   ├── ledger/             # Transaction records
+│   ├── models/             # AI model management
+│   └── uploadFile/         # 0G Storage upload
+
+contracts/
+├── Agent/
+│   └── INFTAgent.sol       # ERC721 intelligent NFT
+└── Vault/
+    └── Vault.sol           # Data registry & ownership
+
+hooks/
+├── useAddToVault.ts        # Vault interactions
+├── useComputeInsights.ts   # Trigger compute jobs
+├── useFileContent.ts       # Fetch from 0G Storage
+├── useINFTAgent.ts         # INFT minting & management
+└── useUserFiles.ts         # File listing
+```
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js v18+ and npm
+- MetaMask or compatible Web3 wallet
+- 0G testnet/mainnet tokens for gas
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd inft-platform
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Configure environment variables (see Environment Configuration below)
+
+4. Run development server:
+```bash
+npm run dev
+```
+
+5. Open [http://localhost:3000](http://localhost:3000)
+
+### Smart Contract Deployment
+
+For testnet deployment:
+```bash
+npm run deploy:testnet
+```
+
+For mainnet deployment:
+```bash
+npm run deploy:mainnet
+```
+
+## Environment Configuration
+
+### Testnet Setup (.env.testnet)
+
+Create `.env.testnet` in project root:
+
+```env
+NETWORK=galileo
+
+# Wallet Configuration
+GALILEO_PRIVATE_KEY=your_private_key_here
+DEPLOYER_ADDRESS=0x84948e317d312dD1808B49C280F814410E4De779
+
+# Network RPCs
+GALILEO_RPC_URL=https://evmrpc-testnet.0g.ai
+INDEXER_RPC_URL=https://indexer-storage-testnet-turbo.0g.ai
+
+# Deployed Contract Addresses
+VAULT_ADDRESS=0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81
+INFTAGENT_ADDRESS=0x7fE958CaF70cdcEC187f30A216924878e2D89389
+
+# Frontend Environment Variables (Browser-Exposed)
+NEXT_PUBLIC_GALILEO_RPC_URL=https://evmrpc-testnet.0g.ai
+NEXT_PUBLIC_VAULT_ADDRESS=0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81
+NEXT_PUBLIC_INFTAGENT_ADDRESS=0x7fE958CaF70cdcEC187f30A216924878e2D89389
+NEXT_PUBLIC_INDEXER_GATEWAY=https://indexer-storage-testnet-turbo.0g.ai
+```
+
+### Mainnet Setup (.env.mainnet)
+
+Create `.env.mainnet` in project root:
+
+```env
+NETWORK=mainnet
+
+# Wallet Configuration
+OG_MAINNET_PRIVATE_KEY=your_private_key_here
+DEPLOYER_ADDRESS=0x84948e317d312dD1808B49C280F814410E4De779
+
+# 0G Mainnet Infrastructure
+OG_MAINNET_RPC_URL=https://evmrpc.0g.ai
+INDEXER_RPC_URL=https://indexer-storage-turbo.0g.ai
+
+# Production Contract Addresses
+VAULT_ADDRESS=0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8
+INFTAGENT_ADDRESS=0x721c164D1c7e67e522d50194C342006E36Fde05f
+
+# Frontend Environment Variables (Browser-Exposed)
+NEXT_PUBLIC_OG_MAINNET_RPC_URL=https://evmrpc.0g.ai
+NEXT_PUBLIC_VAULT_ADDRESS=0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8
+NEXT_PUBLIC_INFTAGENT_ADDRESS=0x721c164D1c7e67e522d50194C342006E36Fde05f
+NEXT_PUBLIC_INDEXER_GATEWAY=https://indexer-storage-turbo.0g.ai
+```
+
+### Environment Variable Notes
+
+- Never commit `.env` files with real private keys
+- Replace placeholder addresses after deploying contracts
+- `NEXT_PUBLIC_*` variables are exposed to the browser
+- Keep private keys secure and never share them
+
+## Usage Workflow
+
+1. **Connect Wallet**: Connect MetaMask to 0G Network
+2. **Upload Documents**: Drag and drop files to vault
+3. **View Insights**: Automatic clustering and summarization
+4. **Mint INFT**: Create personalized intelligent agent
+5. **Agent Learning**: INFT learns from your data patterns
+6. **Get Recommendations**: Receive contextual insights
+
+## Tech Stack
+
+- **Frontend:** Next.js 14, React, TypeScript, TailwindCSS
+- **Smart Contracts:** Solidity, Hardhat, OpenZeppelin
+- **Storage:** 0G Storage (Mainnet)
+- **Compute:** 0G Compute Layer
+- **Web3:** wagmi, viem, ethers.js
+
+## API Endpoints
+
+- `POST /api/uploadFile` - Upload file to 0G Storage
+- `POST /api/computeInsights` - Trigger clustering and summarization
+- `GET /api/ledger` - Fetch transaction history
+- `GET /api/models` - List available AI models
+
+## Smart Contracts
+
+### Vault.sol
+Data registry contract managing ownership and metadata for uploaded documents.
+
+### INFTAgent.sol
+ERC721 contract for intelligent NFT agents. Each INFT is trained on user-specific data and evolves over time.
+
+## Security Considerations
+
+- All user data encrypted before 0G Storage upload
+- Private keys never leave user's browser
+- Smart contracts audited for common vulnerabilities
+- Read-only operations do not require wallet signatures
+
+## Future Roadmap
+
+- Migrate compute layer to 0G Mainnet
+- Multi-chain INFT portability
+- Advanced recommendation algorithms
+- INFT marketplace for data-backed agent trading
+- Cross-agent collaboration protocols
+- Privacy-preserving federated learning
+
+## Contributing
+
+Contributions are welcome. Please open an issue before submitting major changes.
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Links
+
+- [Demo Tweet](https://x.com/mananbuilds/status/1985758895386800449)
+- [0G Network Documentation](https://docs.0g.ai)
+
+## Support
+
+For questions or issues, open a GitHub issue or reach out via the community channels.
 
 ---
 
-## 🎯 INFT Technology
-
-**What makes our INFTs special:**
-
-### Traditional NFTs vs VaultMind INFTs
-
-| Feature | Traditional NFTs | **VaultMind INFTs** |
-|---------|------------------|----------------------|
-| **Utility** | Static image/metadata | ✅ Functional AI agent |
-| **Personalization** | One-size-fits-all | ✅ Learns from YOUR data |
-| **Evolution** | Never changes | ✅ Gets smarter over time |
-| **Privacy** | Public metadata | ✅ Private, encrypted training data |
-| **Interactivity** | View only | ✅ Chat, get advice, take actions |
-| **Value Accrual** | Speculation only | ✅ More data = better AI = higher value |
-
-### **INFT Agent Capabilities:**
-- **Chat Interface**: Natural conversation with your personal AI
-- **Data Analysis**: Processes your vault data to provide insights  
-- **Action Execution**: Can book flights, cancel subscriptions, optimize finances
-- **Learning**: Improves recommendations based on your feedback
-- **Trading**: Successful agent configurations can be traded on marketplace
-
----
-
-## 📊 Roadmap
-
-### Wave 1: Personal Data Vault Foundation (Current)
-- [x] Upload any files to 0G Storage (encrypted by default)
-- [x] INFT agent minting (ERC-7857)
-- [x] Basic natural language search: "Find my Netflix receipt" (In Progress)
-- [x] Impact: "Upload 20 random personal files, AI instantly organizes and makes them searchable"
-
-### Wave 2: INFT Agent Binding
-- [ ] Mint your personal INFT agent on 0G Chain
-- [ ] Agent learns from YOUR vault data (financial patterns, preferences, etc.)
-- [ ] Basic personalized recommendations
-- [ ] Impact: "Same agent gives completely different advice to different users based on their vault data"
-
-### Wave 2: INFT Agent Binding
-- [ ] Mint your personal INFT agent on 0G Chain
-- [ ] Agent learns from YOUR vault data (financial patterns, preferences, etc.)
-- [ ] Basic personalized recommendations
-- [ ] All powered by the same vault, different INFT specializations
-- [ ] Impact: "One data vault powers three different specialized agents"
-
-### Wave 4: Agent Marketplace & Social Features
-- [ ] Trade/lease successful agent configurations (not the data, just the "personality")
-- [ ] Agent performance leaderboards
-- [ ] Collaborative features: agents can recommend each other
-- [ ] Impact: "Successful agents become valuable INFTs that others want to copy"
-
-### Wave 5: Real-World Integrations
-- [ ] Connect bank APIs, email, calendar (with permission)
-- [ ] Agents can take actions: book flights, cancel subscriptions, rebalance portfolio
-- [ ] DePIN integration for real-world data feeds
-- [ ] Impact: "Agent actually books your vacation and cancels unused subscriptions"
-
-### Wave 6: Advanced Privacy & Monetization
-- [ ] Zero-knowledge proofs for data insights without revealing data
-- [ ] Revenue sharing for agent creators
-- [ ] Enterprise version for businesses
-- [ ] Cross-chain agent portability
-
----
-
-## 💡 Use Cases
-
-### Personal Finance Management
-- **Problem**: Generic financial advice doesn't account for your specific situation
-- **Concierge Solution**: INFT agent analyzes your actual bank statements, spending patterns, and financial goals to provide personalized investment and budgeting advice
-
-### Travel Planning  
-- **Problem**: Travel apps don't know your preferences, budget, or past experiences
-- **Concierge Solution**: INFT agent learns from your travel history, preferred airlines, hotel choices, and budget to suggest perfectly tailored itineraries
-
-### Health & Wellness
-- **Problem**: Health apps can't see your complete wellness picture
-- **Concierge Solution**: INFT agent analyzes your exercise data, meal photos, sleep patterns, and medical records to provide holistic health insights
-
----
-
-## 🔒 Security & Privacy
-
-### Data Security
-- **End-to-end encryption** using AES-256
-- **User-controlled keys** - we never see your data
-- **0G decentralized storage** - no single point of failure
-- **Regular security audits** and penetration testing
-
-### Privacy Guarantees  
-- **Zero-knowledge proofs** for AI training
-- **On-chain verification** without revealing personal data
-- **GDPR compliance** with right to deletion
-- **No data selling** - you own your data completely
-
----
-
-## 📈 Metrics & Analytics
-
-Track your Concierge usage:
-- **Data Vault Size**: How much personal data you've uploaded
-- **Agent Intelligence**: Your INFT's learning progress and accuracy
-- **Insights Generated**: Number of personalized recommendations
-- **Actions Taken**: Tasks completed by your agent
-- **Value Created**: Money saved/earned through agent recommendations
-
----
-
-## 🤖 FAQ
-
-**Q: How is this different from ChatGPT?**
-A: ChatGPT gives generic advice because it doesn't know your personal data. Concierge's INFT agents learn exclusively from YOUR vault data, providing truly personalized insights.
-
-**Q: Is my data secure?**
-A: Yes. Your data is encrypted and stored on 0G's decentralized network. Only you have the keys. We use zero-knowledge proofs so AI can learn without accessing raw data.
-
-**Q: What's special about INFT technology?**
-A: INFTs are the first functional AI agents you can actually own. Unlike traditional NFTs, they provide real utility by learning from your data and getting smarter over time.
-
-**Q: Can I trade my INFT agent?**
-A: Yes! You can trade agent configurations (personality, specialization)
-
+Built with 0G Network infrastructure during WaveHack hackathon.
