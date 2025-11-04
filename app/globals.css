@@ -132,4 +132,11 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  .bg-brand-gradient {
+    background: radial-gradient(circle at 30% 20%, rgba(250, 255, 42, 0.25), transparent 40%),
+                radial-gradient(circle at 80% 60%, rgba(250, 255, 42, 0.15), transparent 50%),
+                linear-gradient(135deg, var(--primary) 0%, #111 70%);
+  }
+  
 }

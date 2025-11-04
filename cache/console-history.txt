@@ -1,3 +1,14 @@
+(await ethers.getSigners())[0].address
+(await ethers.getSigners())[0]
+await ethers.provider.getBalance((await ethers.get
+(await ethers.provider.getBalance((await ethers.get
+(await ethers.provider.getBalance((await ethers.getSigners())[0].address)).toString()
+(await ethers.provider.getBalance((await ethers.get
+(await ethers
+(await ethers.getSigners())[0].address
+cat ../.env.mainnet
+process.env.OG_
+await ethers.provider.getNetwork()
 await vault.getFiles("0x84948e317d312dD1808B49C280F814410E4De779");
 vault.runner.address
 const vault = await ethers.getContractAt("Vault", "0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81");
