@@ -1,4 +1,4 @@
-# INFT - Intelligent NFT Agent Platform
+# Concierge
 
 A decentralized platform that transforms personal data into intelligent, evolving AI agents. Built on 0G Network infrastructure with mainnet deployment.
 
@@ -112,7 +112,7 @@ hooks/
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd inft-platform
+cd next-app
 ```
 
 2. Install dependencies:
