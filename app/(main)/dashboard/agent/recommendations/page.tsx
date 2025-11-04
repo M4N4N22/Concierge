@@ -1,11 +1,10 @@
-"use client";
-
+import { Suspense } from "react";
 import AgentRecommendations from "@/components/MyAgent/AgentRecommendations";
 
-export default function RecommendationsPage() {
+export default function AgentRecommendationsPage() {
   return (
-    <main className="mx-auto p-6">
+    <Suspense fallback={<div>Loading...</div>}>
       <AgentRecommendations />
-    </main>
+    </Suspense>
   );
 }

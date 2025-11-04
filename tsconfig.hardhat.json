@@ -1,13 +1,12 @@
 {
-    "compilerOptions": {
-      "target": "ES2017",
-      "module": "commonjs",                // Hardhat needs CJS, not ESM
-      "esModuleInterop": true,
-      "resolveJsonModule": true,
-      "strict": true,
-      "skipLibCheck": true,
-      "outDir": "dist"
-    },
-    "include": ["hardhat.config.ts", "scripts", "test"]
-  }
-  
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["hardhat.config.cjs", "scripts", "test"]
+}

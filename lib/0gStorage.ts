@@ -4,9 +4,14 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const RPC_URL = process.env.GALILEO_RPC_URL!;
-const INDEXER_RPC = process.env.INDEXER_RPC_URL!;
-const PRIVATE_KEY = process.env.GALILEO_PRIVATE_KEY!;
+// --- MAINNET CONFIG ---
+const RPC_URL = process.env.OG_MAINNET_RPC_URL!;
+const INDEXER_RPC = process.env.OG_MAINNET_INDEXER_RPC_URL!;
+const PRIVATE_KEY = process.env.OG_MAINNET_PRIVATE_KEY!;
+
+//const RPC_URL = process.env.GALILEO_RPC_URL!;
+//const INDEXER_RPC = process.env.INDEXER_RPC_URL!;
+//const PRIVATE_KEY = process.env.GALILEO_PRIVATE_KEY!;
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const signer = new ethers.Wallet(PRIVATE_KEY, provider);
