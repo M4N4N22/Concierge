@@ -6,6 +6,7 @@ A decentralized platform that transforms personal data into intelligent, evolvin
 
 - [How it Works (Twitter/X Thread)](https://x.com/mananbuilds/status/1985758895386800449)
 - [Demo Video](https://youtu.be/PY_HBcew6oM)
+- [Try Concierge](http://concierge-sigma.vercel.app/)
 - [0G Network Documentation](https://docs.0g.ai)
 
 ## Architecture Overview
