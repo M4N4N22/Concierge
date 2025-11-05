@@ -1,4 +1,5 @@
 // app/api/upload/route.ts
+export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFileTo0G } from "@/lib/0gStorage";
 

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useUserFiles, VaultFile } from "@/hooks/useUserFiles";
-import { useAccount } from "wagmi";
+import { useAccount,useChainId } from "wagmi";
 import { ethers } from "ethers";
 import { VAULT_ABI } from "@/lib/vaultAbi";
-import { VAULT_ADDRESS } from "@/lib/contractClient";
+import { VAULT_ADDRESSES } from "@/lib/addresses";
 import { fetchFileContent } from "@/hooks/useFileContent";
 import { Loader2 } from "lucide-react";
 import {
@@ -105,6 +105,9 @@ function FileRow({ file }: { file: VaultFile }) {
 export default function FileList() {
   const { files, loading, refetch } = useUserFiles();
   const { isConnected, address } = useAccount();
+  const rawChainId = useChainId();
+  const chainId = Number(rawChainId); 
+  const vaultAddress = VAULT_ADDRESSES[chainId];
   const loadUserFiles = async () => {
     if (!isConnected || !address) {
       console.warn("Wallet not connected or address missing:", { isConnected, address });
@@ -116,7 +119,11 @@ export default function FileList() {
       console.log("User address:", address);
   
       // Provider
-      const provider = new ethers.JsonRpcProvider("https://evmrpc-testnet.0g.ai");
+      const provider = new ethers.JsonRpcProvider(
+        chainId === 16661
+          ? "https://evmrpc.0g.ai"
+          : "https://evmrpc-testnet.0g.ai"
+      );
       console.log("Provider initialized:", provider);
   
       // Check chain ID
@@ -124,11 +131,11 @@ export default function FileList() {
       console.log("Connected network:", network);
   
       // Contract
-      const vault = new ethers.Contract(VAULT_ADDRESS, VAULT_ABI, provider);
+      const vault = new ethers.Contract(vaultAddress, VAULT_ABI, provider);
       console.log("Vault contract instance created:", vault.address);
   
       // Optional: check if code exists
-      const code = await provider.getCode(VAULT_ADDRESS);
+      const code = await provider.getCode(vaultAddress);
       console.log("Vault contract code length:", code.length, code.length > 2 ? "✅ exists" : "❌ missing");
   
       // Call getFiles
