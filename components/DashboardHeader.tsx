@@ -6,6 +6,7 @@ import { ModeToggle } from "./ThemeToggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { ChainSwitcher } from "./ChainSwitcher";
 
 export function DashboardHeader() {
   return (
@@ -30,7 +31,7 @@ export function DashboardHeader() {
           <Bell className="h-5 w-5" />
         </Button>
         <ModeToggle />
-
+        <ChainSwitcher />
         {/* Wallet connect button */}
         <ConnectButton />
       </div>

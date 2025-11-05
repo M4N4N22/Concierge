@@ -4,14 +4,22 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-// --- MAINNET CONFIG ---
-const RPC_URL = process.env.OG_MAINNET_RPC_URL!;
-const INDEXER_RPC = process.env.OG_MAINNET_INDEXER_RPC_URL!;
-const PRIVATE_KEY = process.env.OG_MAINNET_PRIVATE_KEY!;
+const CHAIN_ID = Number(process.env.OG_CHAIN_ID ?? 16661);
 
-//const RPC_URL = process.env.GALILEO_RPC_URL!;
-//const INDEXER_RPC = process.env.INDEXER_RPC_URL!;
-//const PRIVATE_KEY = process.env.GALILEO_PRIVATE_KEY!;
+// --- CONFIG SELECTOR ---
+const isMainnet = CHAIN_ID === 16661;
+
+const RPC_URL = isMainnet
+  ? process.env.OG_MAINNET_RPC_URL!
+  : process.env.OG_TESTNET_RPC_URL!;
+
+const INDEXER_RPC = isMainnet
+  ? process.env.OG_MAINNET_INDEXER_RPC_URL!
+  : process.env.OG_TESTNET_INDEXER_RPC_URL!;
+
+const PRIVATE_KEY = isMainnet
+  ? process.env.OG_MAINNET_PRIVATE_KEY!
+  : process.env.OG_TESTNET_PRIVATE_KEY!;
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 const signer = new ethers.Wallet(PRIVATE_KEY, provider);

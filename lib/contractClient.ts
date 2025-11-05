@@ -2,7 +2,7 @@
 import type { Address, Hex } from "viem";
 import { hexToBytes, toHex } from "viem";
 import { VAULT_ABI } from "@/lib/vaultAbi"; // export ABI here
-export const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS as Address;
+export const VAULT_ADDRESS = process.env.NEXT_PUBLIC_MAINNET_VAULT_ADDRESS as Address;
 
 // If your 0G "rootHash" is a string/CID-ish value, we keep your earlier utf8→bytes32 padding.
 export function rootHashToBytes32(rootHash: string): Hex {
