@@ -6,7 +6,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 
 const CHAINS = [
   { id: zeroGMainnet.id, label: "Aristotle (Mainnet)" },
-  { id: zeroGTestnet.id, label: "Gaileelio (Testnet)" },
+  { id: zeroGTestnet.id, label: "Galileo (Testnet)" },
 ];
 
 export function ChainSwitcher() {
