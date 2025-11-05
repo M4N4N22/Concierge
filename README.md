@@ -2,6 +2,12 @@
 
 A decentralized platform that transforms personal data into intelligent, evolving AI agents. Built on 0G Network infrastructure with mainnet deployment.
 
+## Quick Link
+
+- [How it Works (Twitter/X Thread)](https://x.com/mananbuilds/status/1985758895386800449)
+- [Demo Video](https://youtu.be/PY_HBcew6oM)
+- [0G Network Documentation](https://docs.0g.ai)
+
 ## Architecture Overview
 
 ```
@@ -149,10 +155,11 @@ Create `.env.testnet` in project root:
 
 ```env
 NETWORK=galileo
+OG_TESTNET_CHAIN_ID=16602
 
 # Wallet Configuration
 GALILEO_PRIVATE_KEY=your_private_key_here
-DEPLOYER_ADDRESS=0x84948e317d312dD1808B49C280F814410E4De779
+DEPLOYER_ADDRESS=your_deploy_wallet_address
 
 # Network RPCs
 GALILEO_RPC_URL=https://evmrpc-testnet.0g.ai
@@ -175,10 +182,11 @@ Create `.env.mainnet` in project root:
 
 ```env
 NETWORK=mainnet
+OG_CHAIN_ID=16661
 
 # Wallet Configuration
 OG_MAINNET_PRIVATE_KEY=your_private_key_here
-DEPLOYER_ADDRESS=0x84948e317d312dD1808B49C280F814410E4De779
+DEPLOYER_ADDRESS=your_deploy_wallet_address
 
 # 0G Mainnet Infrastructure
 OG_MAINNET_RPC_URL=https://evmrpc.0g.ai
@@ -257,11 +265,6 @@ Contributions are welcome. Please open an issue before submitting major changes.
 ## License
 
 MIT License - see LICENSE file for details
-
-## Links
-
-- [Demo Tweet](https://x.com/mananbuilds/status/1985758895386800449)
-- [0G Network Documentation](https://docs.0g.ai)
 
 ## Support
 
