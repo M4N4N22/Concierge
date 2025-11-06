@@ -6,7 +6,7 @@ import { useAccount,useChainId } from "wagmi";
 import { ethers } from "ethers";
 import { VAULT_ABI } from "@/lib/vaultAbi";
 import { VAULT_ADDRESSES } from "@/lib/addresses";
-import { fetchFileContent } from "@/hooks/useFileContent";
+import { usefetchFileContent } from "@/hooks/useFileContent";
 import { Loader2 } from "lucide-react";
 import {
   Accordion,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/accordion";
 
 function FileRow({ file }: { file: VaultFile }) {
+  const { fetchFileContent } = usefetchFileContent();
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
