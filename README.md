@@ -71,6 +71,8 @@ Users mint a personalized **Intelligent NFT (INFT)** - an evolving AI agent trai
 
 ### Proof of Upload to 0gStorage Mainnet
 
+- [Check on 0g Explorer)](https://explorer.0g.ai/mainnet/storage/submissions/7322)
+
 ```
 Medical Bill: $3,000 on 2025-09-30.
 
