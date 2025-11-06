@@ -69,6 +69,57 @@ Users mint a personalized **Intelligent NFT (INFT)** - an evolving AI agent trai
 - **Vault / Data Registry:** `0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8`
 - **INFT Agent Contract:** `0x721c164D1c7e67e522d50194C342006E36Fde05f`
 
+### Proof of Upload to 0gStorage Mainnet
+
+Medical Bill: $3,000 on 2025-09-30.
+
+`Local Merkle root (deterministic): 0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d
+Starting upload to indexer...
+First selected node status : {
+  connectedPeers: 37,
+  logSyncHeight: 11750834,
+  logSyncBlock: '0x321b59839526c77c2b176d1b1b7c6467e4f3c13956dcfe5abf655326e3e7bc38',
+  nextTxSeq: 7322,
+  networkIdentity: {
+    chainId: 16661,
+    flowAddress: '0x62d4144db0f0a6fbbaeb6296c785c71b3d57c526',
+    p2pProtocolVersion: { major: 0, minor: 4, build: 0 }
+  }
+}
+Selected nodes: [
+  StorageNode {
+    url: 'http://218.94.159.101:30275',
+    timeout: 30000,
+    retry: 3
+  }
+]
+Data prepared to upload root=0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d size=35 numSegments=1 numChunks=1        
+Submitting transaction with storage fee: 30733644962n
+Sending transaction with gas price 4000000007
+Transaction hash: 0xaf20640b7d620580aa16b26387eecaad38ca91fce107c5d78867c77bdf3f1772
+Transaction sequence number: 7322
+Wait for log entry on storage node
+Log entry is unavailable yet, zgsNodeSyncHeight=11750843
+Log entry is unavailable yet, zgsNodeSyncHeight=11750850
+Log entry is unavailable yet, zgsNodeSyncHeight=11750850
+Log entry is unavailable yet, zgsNodeSyncHeight=11750851
+Tasks created: [
+  [
+    {
+      clientIndex: 0,
+      taskSize: 10,
+      segIndex: 0,
+      numShard: 1,
+      txSeq: 7322
+    }
+  ]
+]
+Processing tasks in parallel with  1  tasks...
+All tasks processed
+Wait for log entry on storage node
+Upload successful. Indexer response: 0xaf20640b7d620580aa16b26387eecaad38ca91fce107c5d78867c77bdf3f1772
+Final rootHash used: 0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d`
+
 ### Infrastructure
 - User documents stored permanently on **0G Storage (Mainnet)**
 - Compute layer runs on **0G Compute Testnet** (modular - mainnet migration is a config swap)
