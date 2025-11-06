@@ -71,9 +71,10 @@ Users mint a personalized **Intelligent NFT (INFT)** - an evolving AI agent trai
 
 ### Proof of Upload to 0gStorage Mainnet
 
+```
 Medical Bill: $3,000 on 2025-09-30.
 
-`Local Merkle root (deterministic): 0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d
+Local Merkle root (deterministic): 0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d
 Starting upload to indexer...
 First selected node status : {
   connectedPeers: 37,
@@ -118,7 +119,8 @@ Processing tasks in parallel with  1  tasks...
 All tasks processed
 Wait for log entry on storage node
 Upload successful. Indexer response: 0xaf20640b7d620580aa16b26387eecaad38ca91fce107c5d78867c77bdf3f1772
-Final rootHash used: 0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d`
+Final rootHash used: 0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d
+```
 
 ### Infrastructure
 - User documents stored permanently on **0G Storage (Mainnet)**
