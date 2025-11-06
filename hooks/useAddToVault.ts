@@ -1,8 +1,13 @@
 "use client";
 
-import { useAccount, useSwitchChain, usePublicClient, useWriteContract } from "wagmi";
-import { zeroGGalileo, VAULT_ADDRESS } from "@/lib/contractClient";
-import { keccak256, toHex } from "viem";
+import {
+  useAccount,
+  useSwitchChain,
+  usePublicClient,
+  useWriteContract,
+} from "wagmi";
+import { zeroGMainnet, zeroGTestnet } from "@/lib/wagmi/config";
+import { VAULT_ADDRESSES } from "@/lib/addresses";
 
 export function useAddToVault() {
   const { chainId, isConnected } = useAccount();
@@ -10,10 +15,19 @@ export function useAddToVault() {
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
-  const ensureChain = async () => {
+  // Select the current or fallback network
+  const getCurrentNetwork = () => {
+    if (chainId === zeroGMainnet.id) return zeroGMainnet;
+    if (chainId === zeroGTestnet.id) return zeroGTestnet;
+    return zeroGMainnet; // fallback
+  };
+
+  const ensureChain = async (targetChainId?: number) => {
     if (!isConnected) throw new Error("Wallet not connected");
-    if (chainId !== zeroGGalileo.id) {
-      await switchChainAsync({ chainId: zeroGGalileo.id });
+
+    const desiredChainId = targetChainId ?? getCurrentNetwork().id;
+    if (chainId !== desiredChainId) {
+      await switchChainAsync({ chainId: desiredChainId });
     }
   };
 
@@ -22,25 +36,37 @@ export function useAddToVault() {
     category = "unassigned",
     encryptedKey = "",
     insightsCID,
+    useTestnet = false,
   }: {
     rootHash: string;
     category?: string;
     encryptedKey?: string;
     insightsCID: string;
+    useTestnet?: boolean;
   }) => {
-    await ensureChain();
+    const network = useTestnet ? zeroGTestnet : zeroGMainnet;
+    await ensureChain(network.id);
 
-    const fileHashB32 = rootHash;  
-    const insightsB32 = insightsCID; 
-    
+    const { VAULT_ABI } = await import("@/lib/vaultAbi");
+
+    // Ensure chainId is defined before indexing
+    const activeChainId = chainId ?? network.id;
+    const vaultAddress = VAULT_ADDRESSES[activeChainId] as `0x${string}`;
+
+    if (!vaultAddress) {
+      throw new Error(`Vault address not found for chainId: ${activeChainId}`);
+    }
+
+    console.log("Network:", useTestnet ? "Testnet" : "Mainnet");
+    console.log("Vault Address:", vaultAddress);
     console.log("fileHashB32:", rootHash);
     console.log("insightsB32:", insightsCID);
 
     const txHash = await writeContractAsync({
-      abi: (await import("@/lib/vaultAbi")).VAULT_ABI,
-      address: (await import("@/lib/contractClient")).VAULT_ADDRESS,
+      abi: VAULT_ABI,
+      address: vaultAddress,
       functionName: "addFile",
-      args: [fileHashB32, category, encryptedKey, insightsB32],
+      args: [rootHash, category, encryptedKey, insightsCID],
     });
 
     console.log("Transaction hash:", txHash);

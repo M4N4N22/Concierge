@@ -49,4 +49,4 @@ export const uploadFileSafe = async (
   }
 };
 
-export const DUMMY_CONTENTS = [`Salary credited: $3,200 on 2025-09-30.`];
+export const DUMMY_CONTENTS = [`Travel Budget: $2000 on 2025-11-1.`];
