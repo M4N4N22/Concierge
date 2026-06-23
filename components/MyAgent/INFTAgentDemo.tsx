@@ -87,7 +87,7 @@ export default function INFTAgentWizardMock() {
     try {
       const agent = await mockMintAgent(mintData);
       setMintedAgent(agent);
-      toast.success(`Agent minted! Token ID: ${agent.tokenId}`);
+      toast.success(`Agentic ID minted! Token ID: ${agent.tokenId}`);
 
       setStep(4);
     } catch (err) {
@@ -105,7 +105,7 @@ export default function INFTAgentWizardMock() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 flex flex-col gap-6">
-      <h2 className="text-3xl font-bold text-center">INFT Agent Wizard Demo</h2>
+      <h2 className="text-3xl font-bold text-center">Agentic ID Wizard Demo</h2>
 
       {/* Stepper */}
       <Progress
@@ -190,7 +190,7 @@ export default function INFTAgentWizardMock() {
               onClick={() => setStep(3)}
               className="w-full flex items-center justify-center gap-2"
             >
-              <Zap className="w-5 h-5" /> Next: Mint Agent
+              <Zap className="w-5 h-5" /> Next: Mint Agentic ID
             </Button>
           </CardContent>
         </Card>
@@ -201,7 +201,7 @@ export default function INFTAgentWizardMock() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-primary" /> Mint Your INFT Agent
+              <Zap className="w-5 h-5 text-primary" /> Mint Your Agentic ID
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -226,7 +226,7 @@ export default function INFTAgentWizardMock() {
               ) : (
                 <CheckCircle2 className="w-5 h-5" />
               )}
-              {loading ? "Minting..." : "Mint Agent"}
+              {loading ? "Minting..." : "Mint Agentic ID"}
             </Button>
           </CardContent>
         </Card>

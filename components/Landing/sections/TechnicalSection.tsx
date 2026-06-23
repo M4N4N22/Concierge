@@ -19,9 +19,9 @@ export const TechnicalSection = () => {
     {
       icon: Shield,
       title: "0G Chain",
-      description: "INFT smart contracts for AI ownership",
+      description: "Agentic ID smart contracts",
       details:
-        "Blockchain-based ownership of your AI agent as a tradeable, upgradeable NFT asset.",
+        "Wallet-bound ERC-721 ownership of your personal agent — verifiable, transferable, and tied to your vault.",
     },
     {
       icon: Activity,
@@ -35,27 +35,33 @@ export const TechnicalSection = () => {
   const userJourney = [
     {
       step: "1",
-      title: "Data Upload",
+      title: "Upload",
       description:
-        "Securely upload your personal files, documents, and data to your encrypted vault on 0G Storage.",
+        "Add documents to your private vault on 0G Storage — encrypted and registered on-chain.",
     },
     {
       step: "2",
-      title: "AI Training",
+      title: "Insights",
       description:
-        "Your personal INFT agent learns from your data using privacy-preserving AI on 0G Compute.",
+        "0G Compute categorizes, groups, and summarizes your files with verifiable inference.",
     },
     {
       step: "3",
-      title: "Personal Insights",
+      title: "Chat",
       description:
-        "Get intelligent, personalized advice that only your AI agent can provide based on your data.",
+        "Ask natural-language questions across your vault — answers grounded only in your documents.",
     },
     {
       step: "4",
-      title: "Verifiable Results",
+      title: "Agentic ID",
       description:
-        "All AI operations are recorded on 0G Chain, providing transparent proof of privacy protection.",
+        "Mint your onchain personal agent bound to your vault on 0G Chain.",
+    },
+    {
+      step: "5",
+      title: "Ecosystem",
+      description:
+        "Train, trade, rent, and monetize specialized agents — built toward ERC-7857.",
     },
   ];
 
@@ -107,7 +113,7 @@ export const TechnicalSection = () => {
             How It Works: Your Data Journey
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {userJourney.map((journey, index) => (
               <div key={index} className="relative ">
                 {/* Connection Line */}

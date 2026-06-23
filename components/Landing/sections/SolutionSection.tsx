@@ -1,26 +1,30 @@
-import { Shield, Brain, Lightbulb, MessageSquare } from "lucide-react";
+import { Shield, Brain, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const SolutionSection = () => {
   const steps = [
     {
       icon: Shield,
       title: "Secure Vault",
-      description: "Upload your personal files to encrypted 0G storage",
-      details: "Bank-level encryption keeps your data completely private and secure on decentralized infrastructure."
-    },
-    {
-      icon: Brain,
-      title: "Personal AI",
-      description: "Mint an INFT agent that learns from YOUR data only",
-      details: "Your AI agent is unique, owned by you as an NFT, and gets smarter as you add more personal data."
+      description: "Upload your personal files to encrypted 0G Storage",
+      details:
+        "Documents are encrypted, registered on-chain, and stay under your wallet — not a Big Tech silo.",
     },
     {
       icon: Lightbulb,
       title: "Smart Insights",
-      description: "Get personalized advice only possible with your data",
-      details: "Make better decisions with AI that actually knows your financial history, preferences, and goals."
-    }
+      description: "0G Compute organizes and summarizes your vault",
+      details:
+        "Fund a compute ledger, run inference on your files, and get categories and summaries written back on-chain.",
+    },
+    {
+      icon: Brain,
+      title: "Agentic ID",
+      description: "Mint your onchain personal agent on 0G Chain",
+      details:
+        "Your Agentic ID fingerprints your data-backed intelligence — the gateway to domain learning, chat, and the agent ecosystem.",
+    },
   ];
 
   return (
@@ -31,8 +35,9 @@ export const SolutionSection = () => {
             <span className="text-primary">Concierge:</span> Your Data, Your AI, Your Control
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            The world&apos;s first platform that gives you an AI advisor trained exclusively on your personal data, 
-            while keeping everything completely private and secure.
+            Concierge is a personal intelligence platform on 0G: upload private data,
+            run verifiable compute, mint a wallet-owned Agentic ID, and build toward
+            a marketplace of data-backed agents.
           </p>
         </div>
 
@@ -117,9 +122,11 @@ export const SolutionSection = () => {
             <p className="text-sm text-muted-foreground mb-4">
               <strong>Only possible because Concierge knows your actual phone usage, budget, and financial goals</strong>
             </p>
-            <Button className="gradient-hero text-white">
-              Try Concierge Free
-            </Button>
+            <Link href="/dashboard/vault/my-files">
+              <Button className="gradient-hero text-white">
+                Launch App
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

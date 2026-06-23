@@ -104,16 +104,14 @@ export const HeroSection = () => {
               </span>
             </div>
             <p className="text-2xl md:text-7xl text-foreground/70 mb-6 drop-shadow-lg tracking-tight">
-              Personal AI Advisors Built On <br />
-              <strong className="text-white">Your Data, Owned by You</strong>
+              Your data. Your Agentic ID. <br />
+              <strong className="text-white">On 0G.</strong>
             </p>
 
             <p className="text-lg md:text-xl text-white/80 max-w-3xl mx-auto mb-12 leading-relaxed drop-shadow-md">
-              Your AI learns exclusively from{" "}
-              <strong className="text-white/95">YOUR life</strong>, powered by a
-              decentralized, encrypted data vault and backed by{" "}
-              <strong className="text-white/95">INFT ownership</strong>.
-              Private. Personalized. Transferable.
+              Turn scattered personal data into a wallet-owned Agentic ID on 0G —
+              encrypted vault, private compute, and onchain ownership. Upload,
+              organize, chat, mint, and grow your personal intelligence stack.
             </p>
           </div>
 
@@ -181,16 +179,16 @@ export const HeroSection = () => {
           {/* Trust Indicators */}
           <div className="fade-in-up mt-16 flex flex-wrap justify-center gap-8 text-sm text-white">
             <div className="flex items-center gap-2 backdrop-blur-sm bg-white/5 px-5 py-1 rounded-full shadow-md">
-              <span>--SOC2 Compliant--</span>
+              <span>0G Storage · Compute · Chain</span>
             </div>
             <div className="flex items-center gap-2 backdrop-blur-sm bg-white/5 px-5 py-1 rounded-full shadow-md">
-              <span>--Built on 0G AI--</span>
+              <span>Wallet-Owned Agentic ID</span>
             </div>
             <div className="flex items-center gap-2 backdrop-blur-sm bg-white/5 px-5 py-1 rounded-full shadow-md">
-              <span>--End-to-End Encrypted--</span>
+              <span>End-to-End Encrypted</span>
             </div>
             <div className="flex items-center gap-2 backdrop-blur-sm bg-white/5 px-5 py-1 rounded-full shadow-md">
-              <span>--INFT-Backed Data Ownership--</span>
+              <span>Verifiable Onchain Registry</span>
             </div>
           </div>
         </div>
