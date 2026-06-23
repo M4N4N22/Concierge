@@ -40,7 +40,7 @@ export default function INFTAgentUI() {
         embeddingURI,
         aiSignature,
       });
-      alert(`Agent minted successfully!\nTx: ${tx}`);
+      alert(`Agentic ID minted successfully!\nTx: ${tx}`);
     } catch (err) {
       console.error(err);
       alert("Mint failed — check console for details.");
@@ -101,18 +101,18 @@ export default function INFTAgentUI() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-xl mx-auto">
-      <h2 className="text-xl font-bold text-center">INFT Agent Manager</h2>
+      <h2 className="text-xl font-bold text-center">Agentic ID Manager</h2>
 
-      {/* Mint Agent */}
+      {/* Mint Agentic ID */}
       <div className="space-y-2 border p-4 rounded-xl">
-        <h3 className="font-semibold">Mint New Agent</h3>
+        <h3 className="font-semibold">Mint Agentic ID</h3>
         <Input placeholder="Vault Address" value={vault} onChange={(e) => setVault(e.target.value)} />
         <Input placeholder="Encrypted Hash (0x...)" value={encryptedHash} onChange={(e) => setEncryptedHash(e.target.value)} />
         <Input placeholder="Domain" value={domain} onChange={(e) => setDomain(e.target.value)} />
         <Input placeholder="Embedding URI" value={embeddingURI} onChange={(e) => setEmbeddingURI(e.target.value)} />
         <Input placeholder="AI Signature" value={aiSignature} onChange={(e) => setAiSignature(e.target.value)} />
         <Button onClick={handleMint} disabled={loading}>
-          {loading ? "Minting..." : "Mint Agent"}
+          {loading ? "Minting..." : "Mint Agentic ID"}
         </Button>
       </div>
 

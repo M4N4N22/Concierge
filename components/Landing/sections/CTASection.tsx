@@ -3,22 +3,23 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Check, Shield, Users, Zap } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export const CTASection = () => {
   const [email, setEmail] = useState("");
 
   const benefits = [
-    "Free premium features for early adopters",
-    "Priority access to INFT agent minting", 
-    "Exclusive community Discord access",
-    "$50 credit for first month"
+    "Full vault upload and onchain registration",
+    "Priority access to Agentic ID minting", 
+    "0G Compute insights on your files",
+    "Early access to vault chat and ecosystem features"
   ];
 
   const trustSignals = [
-    { icon: Shield, text: "Built on 0G blockchain" },
-    { icon: Users, text: "SOC2 compliant" },
-    { icon: Zap, text: "End-to-end encrypted" }
+    { icon: Shield, text: "Built on 0G Storage, Compute & Chain" },
+    { icon: Users, text: "Wallet-owned Agentic ID" },
+    { icon: Zap, text: "End-to-end encrypted vault" }
   ];
 
   return (
@@ -32,15 +33,15 @@ export const CTASection = () => {
       <div className="section-container relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-5xl md:text-6xl font-medium mb-6">
-            Join the Data Ownership Revolution
+            Start Your Agentic ID on 0G
           </h2>
           
           <p className="text-xl md:text-2xl mb-4 text-foreground/90">
-            Be among the first to own your AI future.
+            Upload, compute, mint — your personal intelligence stack is live on testnet.
           </p>
           
           <p className="text-lg mb-12 text-foreground/80">
-            Limited spots available for early access.
+            Join the 0G Bridge Buildathon journey or jump straight into the app.
           </p>
 
           {/* Email Signup */}
@@ -48,7 +49,7 @@ export const CTASection = () => {
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <Input
                 type="email"
-                placeholder="Enter your email address"
+                placeholder="Enter your email for updates"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className=""
@@ -57,10 +58,17 @@ export const CTASection = () => {
                 size="lg"
                 className="bg-card text-primary hover:bg-white/90 font-semibold px-8 py-6 text-lg"
               >
-                Get Early Access
+                Get Updates
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </div>
+
+            <Link href="/dashboard/vault/my-files" className="block mb-6">
+              <Button size="lg" variant="outline" className="w-full font-semibold">
+                Launch App
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
             
             {/* Benefits */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">

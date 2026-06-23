@@ -132,8 +132,9 @@ export const MarketSection = () => {
             </h3>
             <p className="text-lg text-muted-foreground">
               AI adoption is exploding, privacy concerns are at an all-time high, and consumers want control of their data. 
-              VaultMind sits at the intersection of these massive trends, positioned to capture significant market share 
-              as the first-mover in personal AI ownership.
+              Concierge sits at the intersection of these massive trends — personal data vaults,
+              verifiable AI compute, and wallet-owned Agentic IDs on 0G — positioned as a
+              first-mover in decentralized personal intelligence.
             </p>
           </div>
         </div>

@@ -38,8 +38,8 @@ export const CompetitiveSection = () => {
     },
     {
       title: "Data Network Effects", 
-      description: "More users = better AI models = more valuable INFTs",
-      detail: "Data stays private but insights improve collectively"
+      description: "More vault data = smarter agents = more valuable Agentic IDs",
+      detail: "Data stays private but domain agents improve with richer context"
     },
     {
       title: "First-Mover Advantage",
@@ -52,9 +52,9 @@ export const CompetitiveSection = () => {
       detail: "Conflicts with their surveillance business model"
     },
     {
-      title: "INFT Ecosystem", 
-      description: "Create new asset class: valuable, evolving AI agents",
-      detail: "Network effects from agent marketplace"
+      title: "Agentic ID Ecosystem", 
+      description: "A new asset class: wallet-owned, data-backed personal agents",
+      detail: "Network effects from agent marketplace, delegation, and trade"
     }
   ];
 
@@ -117,7 +117,7 @@ export const CompetitiveSection = () => {
             Our <span className="text-gradient">Competitive Moats</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Five reasons why VaultMind can&apos;t be copied by competitors.
+            Five reasons why Concierge can&apos;t be copied by competitors.
           </p>
         </div>
 
