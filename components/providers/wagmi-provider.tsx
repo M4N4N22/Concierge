@@ -1,7 +1,7 @@
 'use client'
 
 import { WagmiProvider as BaseWagmiProvider } from 'wagmi'
-import { config } from '@/lib/wagmi/config'
+import { config, zeroGTestnet } from '@/lib/wagmi/config'
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -11,7 +11,7 @@ export function WagmiProvider({ children }: { children: React.ReactNode }) {
   return (
     <BaseWagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        <RainbowKitProvider initialChain={zeroGTestnet}>
           {children}
         </RainbowKitProvider>
       </QueryClientProvider>

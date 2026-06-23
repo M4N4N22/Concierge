@@ -60,11 +60,12 @@ export default function AgentLearning() {
 
   return (
     <div className="mx-auto p-6 flex flex-col gap-6">
-      <h2 className="text-3xl font-bold text-center">Agentic ID Learning</h2>
-      <p className="text-center text-muted-foreground max-w-2xl mx-auto">
-        One vault powers three domain agents. Progress reflects how many of your
-        uploaded files map to each domain via 0G Compute categorization.
-      </p>
+      <div className="flex flex-col gap-2">
+        <h2 className="text-xl font-semibold">Agentic ID learning</h2>
+        <p className="text-sm text-muted-foreground">
+          Sync vault data to update each domain agent
+        </p>
+      </div>
 
       <Button
         onClick={handleSyncVault}

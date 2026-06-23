@@ -78,7 +78,7 @@ export default function ModelDashboard() {
     setLoading(true);
     await fetch("/api/ledger", {
       method: "POST",
-      body: JSON.stringify({ action: "create", amount: 0.1 }),
+      body: JSON.stringify({ action: "create", amount: 3 }),
     });
     await fetchLedger();
     setLoading(false);
@@ -119,7 +119,7 @@ export default function ModelDashboard() {
     <div className="p-4">
       {!ledger && (
         <Button onClick={createLedger} className="mb-4">
-          Create Ledger (0.1 OG)
+          Create Ledger (3 OG)
         </Button>
       )}
 
