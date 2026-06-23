@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useAccount,
-  useSwitchChain,
-  usePublicClient,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useSwitchChain, usePublicClient, useWriteContract } from "wagmi";
 import { zeroGMainnet, zeroGTestnet } from "@/lib/wagmi/config";
 import { VAULT_ADDRESSES } from "@/lib/addresses";
 
@@ -15,19 +10,10 @@ export function useAddToVault() {
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
-  // Select the current or fallback network
-  const getCurrentNetwork = () => {
-    if (chainId === zeroGMainnet.id) return zeroGMainnet;
-    if (chainId === zeroGTestnet.id) return zeroGTestnet;
-    return zeroGMainnet; // fallback
-  };
-
-  const ensureChain = async (targetChainId?: number) => {
+  const ensureChain = async (targetChainId: number) => {
     if (!isConnected) throw new Error("Wallet not connected");
-
-    const desiredChainId = targetChainId ?? getCurrentNetwork().id;
-    if (chainId !== desiredChainId) {
-      await switchChainAsync({ chainId: desiredChainId });
+    if (chainId !== targetChainId) {
+      await switchChainAsync({ chainId: targetChainId });
     }
   };
 
@@ -36,7 +22,7 @@ export function useAddToVault() {
     category = "unassigned",
     encryptedKey = "",
     insightsCID,
-    useTestnet = false,
+    useTestnet = true,
   }: {
     rootHash: string;
     category?: string;
@@ -47,33 +33,22 @@ export function useAddToVault() {
     const network = useTestnet ? zeroGTestnet : zeroGMainnet;
     await ensureChain(network.id);
 
-    const { VAULT_ABI } = await import("@/lib/vaultAbi");
-
-    // Ensure chainId is defined before indexing
-    const activeChainId = chainId ?? network.id;
-    const vaultAddress = VAULT_ADDRESSES[activeChainId] as `0x${string}`;
-
+    const vaultAddress = VAULT_ADDRESSES[network.id] as `0x${string}` | undefined;
     if (!vaultAddress) {
-      throw new Error(`Vault address not found for chainId: ${activeChainId}`);
+      throw new Error(`Vault not configured for chain ${network.id}`);
     }
 
-    console.log("Network:", useTestnet ? "Testnet" : "Mainnet");
-    console.log("Vault Address:", vaultAddress);
-    console.log("fileHashB32:", rootHash);
-    console.log("insightsB32:", insightsCID);
+    const { VAULT_ABI } = await import("@/lib/vaultAbi");
 
     const txHash = await writeContractAsync({
       abi: VAULT_ABI,
       address: vaultAddress,
       functionName: "addFile",
       args: [rootHash, category, encryptedKey, insightsCID],
+      chainId: network.id,
     });
 
-    console.log("Transaction hash:", txHash);
-
     await publicClient!.waitForTransactionReceipt({ hash: txHash });
-    console.log("Transaction confirmed:", txHash);
-
     return txHash;
   };
 

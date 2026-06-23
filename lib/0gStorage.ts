@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const CHAIN_ID = Number(process.env.OG_CHAIN_ID ?? 16661);
+const CHAIN_ID = Number(process.env.OG_CHAIN_ID ?? 16602);
 
 const isMainnet = CHAIN_ID === 16661;
 

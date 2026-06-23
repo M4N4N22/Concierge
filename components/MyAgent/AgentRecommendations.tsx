@@ -15,6 +15,7 @@ import {
   matchFileToDomain,
   type AgentDomain,
 } from "@/lib/domains";
+import { JourneyStepHeader } from "@/components/dashboard/JourneyStepHeader";
 import { toast } from "sonner";
 
 interface RecommendationData {
@@ -97,28 +98,26 @@ export default function AgentRecommendations() {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 max-w-5xl mx-auto"
+      className="max-w-5xl mx-auto space-y-8"
     >
-      <div className="text-center space-y-3">
-        <h1 className="text-4xl font-bold tracking-tight flex justify-center items-center gap-2">
-          {data ? (
-            <>
-              <Sparkles className="w-6 h-6 text-primary" />
-              {data.title} Recommendations
-            </>
-          ) : domain ? (
-            "Loading recommendations..."
-          ) : (
-            "Agentic ID Recommendations"
-          )}
-        </h1>
-        <p className="text-foreground/70 max-w-2xl mx-auto">
-          {data?.summary ||
-            (domain
-              ? "Powered by 0G Compute from your vault data"
-              : "Select a domain from Learning to view specialized insights.")}
-        </p>
-      </div>
+      <JourneyStepHeader
+        step={4}
+        journeyId="agentic-id"
+        title={
+          data
+            ? `${data.title} recommendations`
+            : domain
+            ? "Loading recommendations…"
+            : "Agent recommendations"
+        }
+        tagline="Domain insights"
+        description={
+          data?.summary ||
+          (domain
+            ? "Powered by 0G Compute from your vault data."
+            : "Select a domain from Learning to view specialized insights.")
+        }
+      />
 
       {loading && (
         <div className="flex justify-center py-12">
@@ -164,7 +163,7 @@ export default function AgentRecommendations() {
         </Card>
       )}
 
-      <div className="flex justify-center gap-3 pt-8">
+      <div className="flex justify-center gap-3 pt-4">
         {domain && (
           <Button variant="secondary" onClick={loadRecommendations} disabled={loading}>
             Refresh
@@ -172,12 +171,11 @@ export default function AgentRecommendations() {
         )}
         <Button
           variant="outline"
-          size="lg"
           onClick={() => router.push("/dashboard/agent/learning")}
-          className="flex items-center gap-2"
+          className="gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Learning
+          Domain learning
         </Button>
       </div>
     </motion.div>

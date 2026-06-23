@@ -1,79 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import AIInsights from "@/components/vault/InsightsPanel";
-import ModelDashboard from "@/components/vault/ModelLedgerDashboard";
-import DemoVaultWizard from "@/components/vault/VaultComputeDemo";
+import Link from "next/link";
+import { ComputeLedgerProvider } from "@/components/vault/ComputeLedgerContext";
+import ComputeSetupPanel from "@/components/vault/ComputeSetupPanel";
+import InsightsWorkspace from "@/components/vault/InsightsWorkspace";
+import { JourneyStepHeader } from "@/components/dashboard/JourneyStepHeader";
 import { Button } from "@/components/ui/button";
+import { Fingerprint, BrainCircuit } from "lucide-react";
 
 export default function InsightsPage() {
-  const [showInsights, setShowInsights] = useState(false);
-  const [showDemoWizard, setShowDemoWizard] = useState(false);
-
   return (
-    <main className="p-6 relative">
-      <div className="flex justify-between items-start mb-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold flex items-baseline gap-4">
-            AI-Powered File Insights & Organization
-          </h1>
-          <p className="text-lg text-muted font-medium mt-2">
-            Powered by{" "}
-            <span className="font-semibold text-primary">0G Storage</span> and{" "}
-            <span className="font-semibold text-primary">0G Compute</span>.
-          </p>
-          <p className="text-lg text-muted font-medium mt-2">
-            Click on{" "}
-            <span className="font-semibold text-primary">Get Insights</span> to
-            let AI categorize your files into folders based on type or content,
-            and generate a concise summary for each file.
-          </p>
-          <p className="text-sm text-muted mt-2">
-            Note: Insights will not be generated for files that are on-chain but
-            have not yet been uploaded or indexed on 0G Storage.
+    <main className="max-w-5xl mx-auto space-y-8">
+      <JourneyStepHeader
+        step={2}
+        journeyId="insights"
+        title="AI organizes your vault"
+        tagline="0G Compute"
+        description="Set up your compute ledger, fund an AI model, then run verifiable inference on your vault files. Categories and summaries are stored on 0G and written back to your on-chain registry."
+      />
+
+      {/* How compute works */}
+      <section className="rounded-2xl border bg-card overflow-hidden">
+        <div className="border-b bg-muted/30 px-5 py-3.5 flex items-center gap-2">
+          <BrainCircuit className="h-4 w-4 text-primary" />
+          <p className="text-sm font-medium">How 0G Compute works here</p>
+        </div>
+        <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border p-5 gap-4 sm:gap-0">
+          {[
+            {
+              title: "Verifiable inference",
+              body: "AI runs through 0G Compute providers with on-chain settlement and proof verification.",
+            },
+            {
+              title: "Ledger billing",
+              body: "You fund a compute ledger and provider sub-accounts — fees are deducted per inference call.",
+            },
+            {
+              title: "Results on-chain",
+              body: "Category + summary CIDs are uploaded to 0G Storage and your vault contract is updated.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="sm:px-4 first:pl-0 last:pr-0">
+              <p className="text-sm font-semibold">{item.title}</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <ComputeLedgerProvider>
+        <div className="space-y-8">
+          <ComputeSetupPanel />
+          <InsightsWorkspace />
+        </div>
+      </ComputeLedgerProvider>
+
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="text-sm">
+          <p className="font-medium">Ready for your Agentic ID?</p>
+          <p className="text-muted-foreground mt-0.5">
+            Once insights are generated, mint an agent trained on your vault data.
           </p>
         </div>
-
-        {/* Try Demo Wizard Button */}
-        <Button
-          variant="default"
-          onClick={() => setShowDemoWizard(true)}
-        >
-          Try Demo Wizard
+        <Button asChild>
+          <Link href="/dashboard/agent/mint" className="gap-2">
+            <Fingerprint className="h-4 w-4" />
+            Mint Agentic ID
+          </Link>
         </Button>
       </div>
-
-      {/* Main Content */}
-      {!showInsights && (
-        <div className="space-y-4">
-          <ModelDashboard />
-          <Button
-            variant="default"
-            className="flex justify-center w-72 mx-auto"
-            onClick={() => setShowInsights(true)}
-          >
-            Continue
-          </Button>
-        </div>
-      )}
-      {showInsights && <AIInsights />}
-
-      {/* Custom Modal for Demo Wizard */}
-      {showDemoWizard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-card backdrop-blur-xl rounded-3xl shadow-xl relative max-w-5xl max-h-[90vh] overflow-y-auto ">
-
-            <Button
-              variant="ghost"
-              className="absolute top-4 right-4"
-              onClick={() => setShowDemoWizard(false)}
-            >
-              ✕
-            </Button>
-            <DemoVaultWizard />
-          </div>
-        </div>
-      )}
     </main>
   );
 }

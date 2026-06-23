@@ -7,7 +7,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { AGENT_ADDRESSES, ZERO_G_CHAIN_IDS } from "@/lib/addresses";
-import { zeroGMainnet } from "@/lib/wagmi/config";
+import { zeroGTestnet } from "@/lib/wagmi/config";
 import { INFT_AGENT_ABI } from "@/lib/INFTAgentAbi";
 
 export function useINFTAgent() {
@@ -20,14 +20,13 @@ export function useINFTAgent() {
     if (!isConnected) throw new Error("Wallet not connected");
     const supported = ZERO_G_CHAIN_IDS as readonly number[];
     if (!chainId || !supported.includes(chainId)) {
-      await switchChainAsync({ chainId: zeroGMainnet.id });
+      await switchChainAsync({ chainId: zeroGTestnet.id });
     }
   };
 
   const getAgentAddress = () => {
-    const activeChain = chainId && AGENT_ADDRESSES[chainId]
-      ? chainId
-      : zeroGMainnet.id;
+    const activeChain =
+      chainId && AGENT_ADDRESSES[chainId] ? chainId : zeroGTestnet.id;
     const address = AGENT_ADDRESSES[activeChain] as `0x${string}` | undefined;
     if (!address) throw new Error(`No Agentic ID contract for chain ${activeChain}`);
     return address;

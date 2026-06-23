@@ -74,7 +74,6 @@ export function useUserFiles() {
 
       if (!result || result.length === 0) {
         setFiles([]);
-        toast.info("No files uploaded yet.");
         return [];
       }
 
@@ -85,9 +84,29 @@ export function useUserFiles() {
         timestamp: Number(f.timestamp),
       }));
 
-      console.log("Mapped files:", mapped);
-      setFiles(mapped);
-      return mapped;
+      // Same file can be registered multiple times on-chain — keep newest entry per hash
+      const byHash = new Map<string, VaultFile>();
+      for (const file of mapped) {
+        const existing = byHash.get(file.rootHash);
+        if (!existing || file.timestamp >= existing.timestamp) {
+          if (
+            existing &&
+            file.timestamp === existing.timestamp &&
+            existing.category !== "unassigned" &&
+            file.category === "unassigned"
+          ) {
+            continue;
+          }
+          byHash.set(file.rootHash, file);
+        }
+      }
+      const deduped = Array.from(byHash.values()).sort(
+        (a, b) => b.timestamp - a.timestamp
+      );
+
+      console.log("Mapped files:", deduped);
+      setFiles(deduped);
+      return deduped;
     } catch (err: any) {
       console.error("Error fetching user files:", err);
       toast.error(err?.reason || "Failed to fetch files.");

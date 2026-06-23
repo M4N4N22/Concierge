@@ -29,7 +29,7 @@ export const zeroGMainnet = {
 };
 
 export const config = createConfig({
-  chains: [zeroGMainnet, zeroGTestnet], // order matters → mainnet default
+  chains: [zeroGTestnet, zeroGMainnet],
   connectors: [
     injected(),
     walletConnect({ projectId: "4f5debd278149b12b8dbfe62a53aa9e0" }),

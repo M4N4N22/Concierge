@@ -1,10 +1,13 @@
 "use client";
 
-import { Upload } from "lucide-react";
-import { useAccount } from "wagmi";
-import { uploadFileSafe } from "@/utils/upload";
+import { useState, useRef, useCallback } from "react";
+import { Upload, FileText, X, CloudUpload } from "lucide-react";
+import { useAccount, useChainId } from "wagmi";
+import { uploadAndRegisterOnVault } from "@/utils/upload";
 import { useAddToVault } from "@/hooks/useAddToVault";
-import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 type UploadedFile = {
   file: File;
@@ -12,101 +15,176 @@ type UploadedFile = {
   txHash?: string;
 };
 
-type FolderPreview = {
-  folderName: string;
-  files: File[];
+export type UploadProgressState = {
+  current: number;
+  total: number;
+  fileName: string;
+  phase: "storage" | "vault" | "done";
 };
 
-export default function UploadButton({ onUpload, loading, setLoading }: any) {
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function phaseLabel(phase: UploadProgressState["phase"]) {
+  if (phase === "storage") return "Uploading to 0G Storage…";
+  if (phase === "vault") return "Confirm transaction in wallet…";
+  return "Finishing…";
+}
+
+export default function UploadButton({
+  onUpload,
+  loading,
+  setLoading,
+  onProgress,
+  onComplete,
+}: {
+  onUpload: (files: UploadedFile[]) => void;
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+  onProgress?: (progress: UploadProgressState | null) => void;
+  onComplete?: () => void;
+}) {
   const { isConnected } = useAccount();
   const { addFile } = useAddToVault();
-  const [folderPreviews, setFolderPreviews] = useState<FolderPreview[]>([]);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const groupFilesByFolder = (files: FileList | File[]) => {
-    const arrayFiles = Array.from(files);
-    const folders: Record<string, File[]> = {};
+  const updateProgress = useCallback(
+    (p: UploadProgressState | null) => {
+      setUploadProgress(p);
+      onProgress?.(p);
+    },
+    [onProgress]
+  );
 
-    arrayFiles.forEach((file) => {
-      const fullPath = (file as any).webkitRelativePath || file.name;
-      const parts = fullPath.split("/");
-      const folderName = parts.length > 1 ? parts[0] : "Root";
-      if (!folders[folderName]) folders[folderName] = [];
-      folders[folderName].push(file);
+  const addFiles = useCallback((incoming: FileList | File[]) => {
+    const next = Array.from(incoming);
+    setStagedFiles((prev) => {
+      const names = new Set(prev.map((f) => f.name + f.size));
+      return [...prev, ...next.filter((f) => !names.has(f.name + f.size))];
     });
+  }, []);
 
-    const folderArray: FolderPreview[] = Object.entries(folders).map(([folderName, files]) => ({
-      folderName,
-      files,
-    }));
-
-    setFolderPreviews(folderArray);
+  const removeFile = (index: number) => {
+    setStagedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    groupFilesByFolder(e.target.files);
+    if (e.target.files) addFiles(e.target.files);
+    e.target.value = "";
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (e.dataTransfer.files) {
-      groupFilesByFolder(e.dataTransfer.files);
-    }
+    setIsDragging(false);
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
   };
 
   const handleUpload = async () => {
-    if (!isConnected) {
-      alert("Please connect your wallet before uploading.");
-      return;
-    }
+    if (!isConnected || stagedFiles.length === 0) return;
 
     setLoading(true);
     const uploaded: UploadedFile[] = [];
+    const total = stagedFiles.length;
 
-    const allFiles = folderPreviews.flatMap((f) => f.files);
+    for (let i = 0; i < stagedFiles.length; i++) {
+      const file = stagedFiles[i];
+      updateProgress({
+        current: i + 1,
+        total,
+        fileName: file.name,
+        phase: "storage",
+      });
 
-    for (const file of allFiles) {
-      try {
-        const result = await uploadFileSafe(file);
-        if (!result) continue;
-
-        const { rootHash, alreadyExists } = result;
-        if (alreadyExists) {
-          uploaded.push({ file, rootHash });
-          continue;
+      const result = await uploadAndRegisterOnVault(
+        file,
+        addFile,
+        (rootHash) => rootHash,
+        {
+          onProgress: (phase) =>
+            updateProgress({
+              current: i + 1,
+              total,
+              fileName: file.name,
+              phase,
+            }),
         }
+      );
 
-        const txHash = await addFile({
-          rootHash,
-          category: "unassigned",
-          encryptedKey: "",
-          insightsCID: rootHash,
+      if (result) {
+        uploaded.push({
+          file,
+          rootHash: result.rootHash,
+          txHash: result.txHash,
         });
-
-        uploaded.push({ file, rootHash, txHash });
-      } catch (err) {
-        console.error("Upload error:", err);
       }
     }
 
+    updateProgress(null);
     onUpload(uploaded);
-    setFolderPreviews([]);
+    setStagedFiles([]);
     setLoading(false);
+    if (uploaded.length > 0) onComplete?.();
   };
 
+  const disabled = !isConnected || loading;
+  const progressPercent = uploadProgress
+    ? Math.round(
+        ((uploadProgress.current - 1) +
+          (uploadProgress.phase === "vault" ? 0.55 : uploadProgress.phase === "done" ? 1 : 0.25)) /
+          uploadProgress.total *
+          100
+      )
+    : 0;
+
   return (
-    <div>
+    <div className="space-y-4">
+      {uploadProgress && (
+        <div className="rounded-xl border bg-muted/20 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium truncate pr-4">
+              {uploadProgress.fileName}
+            </span>
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {uploadProgress.current} of {uploadProgress.total}
+            </span>
+          </div>
+          <Progress value={progressPercent} className="h-1.5" />
+          <p className="text-xs text-muted-foreground">
+            {phaseLabel(uploadProgress.phase)}
+          </p>
+        </div>
+      )}
+
       <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        onDragEnter={(e) => e.preventDefault()}
-        className={`border-2 border-dashed rounded-2xl hover:border-primary p-12 text-center transition mb-4 ${
-          isConnected ? "cursor-pointer hover:bg-card" : "opacity-50 cursor-not-allowed"
-        }`}
-        onClick={() => inputRef.current?.click()}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === "Enter" || e.key === " ")) inputRef.current?.click();
+        }}
+        onDrop={disabled ? undefined : handleDrop}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setIsDragging(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+        }}
+        onClick={() => !disabled && inputRef.current?.click()}
+        className={cn(
+          "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-all",
+          disabled
+            ? "cursor-not-allowed border-border/60 bg-muted/20 opacity-60"
+            : "cursor-pointer border-border hover:border-primary/50 hover:bg-primary/[0.02]",
+          isDragging && "border-primary bg-primary/[0.05] scale-[1.005]"
+        )}
       >
         <input
           ref={inputRef}
@@ -114,46 +192,106 @@ export default function UploadButton({ onUpload, loading, setLoading }: any) {
           multiple
           className="hidden"
           onChange={handleChange}
-          disabled={!isConnected}
+          disabled={disabled}
+          accept=".pdf,.txt,.csv,.json,.png,.jpg,.jpeg,.doc,.docx"
         />
-        <div className="flex flex-col items-center">
-          <Upload className="h-8 w-8 mb-2" />
-          <span className="font-medium mt-4">
-            {!isConnected
-              ? "Connect Wallet to Upload"
-              : loading
-              ? "Uploading..."
-              : "Drag & Drop or Click to Upload Files"}
-          </span>
+
+        <div
+          className={cn(
+            "mb-4 flex h-16 w-16 items-center justify-center rounded-2xl transition-colors",
+            isDragging ? "bg-primary/15 text-primary" : "bg-muted/60 text-muted-foreground"
+          )}
+        >
+          {isDragging ? (
+            <CloudUpload className="h-8 w-8" />
+          ) : (
+            <Upload className="h-8 w-8" />
+          )}
         </div>
+
+        <p className="text-base font-medium text-foreground">
+          {!isConnected
+            ? "Connect your wallet to upload"
+            : loading
+            ? "Uploading to 0G…"
+            : isDragging
+            ? "Drop files to add to your vault"
+            : "Drag files here or click to browse"}
+        </p>
+        <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
+          {isConnected
+            ? "Receipts, bills, exports — encrypted on 0G Storage, registered on-chain"
+            : "Your wallet signs storage & vault transactions"}
+        </p>
+
+        {isConnected && !loading && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-5 pointer-events-none"
+            tabIndex={-1}
+          >
+            Select files
+          </Button>
+        )}
       </div>
 
-      {folderPreviews.length > 0 && (
-        <div className="mb-4 p-4 border rounded-lg bg-card space-y-4">
-          {folderPreviews.map((folder, idx) => (
-            <div key={idx} className="border p-3 rounded-lg">
-              <h4 className="font-semibold">
-                {folder.folderName} ({folder.files.length} files)
-              </h4>
-              <ul className="mt-2 space-y-1 max-h-48 overflow-auto">
-                {folder.files.slice(0, 10).map((file, i) => (
-                  <li key={i} className="flex justify-between text-sm">
-                    <span>{file.name}</span>
-                    <span className="text-muted">{(file.size / 1024).toFixed(2)} KB</span>
-                  </li>
-                ))}
-                {folder.files.length > 10 && (
-                  <li className="text-gray-400 text-sm">...and {folder.files.length - 10} more</li>
-                )}
-              </ul>
-            </div>
-          ))}
-          <button
-            onClick={handleUpload}
-            className="mt-4 px-4 py-2 bg-foreground w-full text-background font-semibold rounded-2xl hover:bg-foreground/90 transition"
-          >
-            Ready to Upload
-          </button>
+      {stagedFiles.length > 0 && (
+        <div className="overflow-hidden rounded-xl border bg-background">
+          <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2.5">
+            <p className="text-sm font-medium">
+              {stagedFiles.length} file{stagedFiles.length !== 1 ? "s" : ""} ready
+            </p>
+            <button
+              type="button"
+              onClick={() => setStagedFiles([])}
+              className="text-xs text-muted-foreground hover:text-foreground"
+              disabled={loading}
+            >
+              Clear all
+            </button>
+          </div>
+
+          <ul className="max-h-52 divide-y overflow-y-auto">
+            {stagedFiles.map((file, i) => (
+              <li
+                key={`${file.name}-${file.size}-${i}`}
+                className="flex items-center gap-3 px-4 py-2.5"
+              >
+                <FileText className="h-4 w-4 shrink-0 text-primary/70" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFile(i);
+                  }}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  disabled={loading}
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          <div className="border-t bg-muted/20 px-4 py-3">
+            <Button
+              type="button"
+              className="w-full"
+              onClick={handleUpload}
+              disabled={loading || !isConnected}
+            >
+              {loading
+                ? "Uploading to 0G Storage & vault…"
+                : `Upload ${stagedFiles.length} file${stagedFiles.length !== 1 ? "s" : ""} to vault`}
+            </Button>
+          </div>
         </div>
       )}
     </div>

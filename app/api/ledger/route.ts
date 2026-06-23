@@ -1,5 +1,6 @@
 // app/api/ledger/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { MIN_LEDGER_CREATE_OG, MIN_PROVIDER_FUND_OG } from "@/lib/computeConstants";
 import { createZGComputeNetworkBroker } from "@0gfoundation/0g-compute-ts-sdk";
 import { ethers } from "ethers";
 
@@ -83,7 +84,16 @@ export async function POST(req: NextRequest) {
 
       case "create": {
         console.log(color.cyan(`[ACTION] Creating new ledger...`));
-        await broker.ledger.addLedger(amount ?? 0.1);
+        const createAmount = amount ?? MIN_LEDGER_CREATE_OG;
+        if (createAmount < MIN_LEDGER_CREATE_OG) {
+          return NextResponse.json(
+            {
+              error: `Minimum balance to create a ledger is ${MIN_LEDGER_CREATE_OG} OG. Use broker.ledger.addLedger(${MIN_LEDGER_CREATE_OG}).`,
+            },
+            { status: 400 }
+          );
+        }
+        await broker.ledger.addLedger(createAmount);
         const newLedger = await broker.ledger.getLedger();
         logLedgerSummary(newLedger);
         console.log(color.green(`[SUCCESS] Ledger created successfully`));
@@ -115,6 +125,14 @@ export async function POST(req: NextRequest) {
         if (!subAccount || !amount) {
           return NextResponse.json(
             { error: "Missing subAccount or amount" },
+            { status: 400 }
+          );
+        }
+        if (amount < MIN_PROVIDER_FUND_OG) {
+          return NextResponse.json(
+            {
+              error: `Minimum ${MIN_PROVIDER_FUND_OG} OG required per provider sub-account.`,
+            },
             { status: 400 }
           );
         }
