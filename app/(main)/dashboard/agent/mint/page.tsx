@@ -16,16 +16,15 @@ export default function MyAgentPage() {
       <div className="flex justify-between items-center gap-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">
-            My <span className="text-primary">INFT</span> Agent
+            Mint Your <span className="text-primary">Agentic ID</span>
           </h1>
           <p className="text-foreground/70">
-  Your personalized Intelligent NFT (INFT) Agent aggregates your files, generates AI-powered insights, 
-  and lets you mint and manage domain-specific NFT agents.
-</p>
+            Mint your personal Agentic ID on 0G Chain — an onchain AI agent bound to
+            your vault, trained on your private data.
+          </p>
 <p className="text-foreground/60">
-  Powered by <span className="font-semibold text-primary">0G</span>, files are securely stored in their INFT-based vaults 
-  and processed with AI compute to generate insights. Each file can become an NFT, and multiple NFTs of the same domain 
-  can be aggregated into a single INFT Agent.
+  Powered by <span className="font-semibold text-primary">0G</span> Storage and Compute.
+  Your agent evolves as you upload documents and generate insights.
 </p>
 
         </div>

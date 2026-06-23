@@ -1,7 +1,7 @@
 // app/api/computeInsights/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFileTo0G } from "@/lib/0gStorage";
-import { createZGComputeNetworkBroker } from "@0glabs/0g-serving-broker";
+import { createZGComputeNetworkBroker } from "@0gfoundation/0g-compute-ts-sdk";
 import { VAULT_ABI } from "@/lib/vaultAbi";
 import { ethers } from "ethers";
 

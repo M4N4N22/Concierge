@@ -34,13 +34,13 @@ const sections = [
     ],
   },
   {
-    title: "My Agent (In Development)",
+    title: "My Agentic ID",
     icon: Brain,
     items: [
-      { name: "Mint Your INFT Agent", href: "/dashboard/agent/mint", icon: User },
-      { name: "Learning (Soon)", href: "/dashboard/agent/learning", icon: Brain },
+      { name: "Mint Agentic ID", href: "/dashboard/agent/mint", icon: User },
+      { name: "Domain Learning", href: "/dashboard/agent/learning", icon: Brain },
       {
-        name: "Recommendations (Soon)",
+        name: "Recommendations",
         href: "/dashboard/agent/recommendations",
         icon: LineChart,
       },
@@ -63,7 +63,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
     Vault: true,
-    "My Agent": true,
+    "My Agentic ID": true,
   });
 
   const toggleSection = (title: string) => {

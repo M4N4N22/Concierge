@@ -1,4 +1,4 @@
-import { ZgFile, Indexer } from "@0glabs/0g-ts-sdk";
+import { ZgFile, Indexer } from "@0gfoundation/0g-storage-ts-sdk";
 import { ethers } from "ethers";
 import fs from "fs";
 import path from "path";
@@ -6,24 +6,38 @@ import os from "os";
 
 const CHAIN_ID = Number(process.env.OG_CHAIN_ID ?? 16661);
 
-// --- CONFIG SELECTOR ---
 const isMainnet = CHAIN_ID === 16661;
 
-const RPC_URL = isMainnet
-  ? process.env.OG_MAINNET_RPC_URL!
-  : process.env.GALILEO_RPC_URL!;
+function getStorageConfig() {
+  const rpcUrl = isMainnet
+    ? process.env.OG_MAINNET_RPC_URL
+    : process.env.GALILEO_RPC_URL;
+  const indexerRpc = isMainnet
+    ? process.env.OG_MAINNET_INDEXER_RPC_URL
+    : process.env.INDEXER_RPC_URL;
+  const privateKey = isMainnet
+    ? process.env.OG_MAINNET_PRIVATE_KEY
+    : process.env.GALILEO_PRIVATE_KEY;
 
-const INDEXER_RPC = isMainnet
-  ? process.env.OG_MAINNET_INDEXER_RPC_URL!
-  : process.env.INDEXER_RPC_URL!;
+  if (!rpcUrl || !indexerRpc || !privateKey) {
+    throw new Error(
+      `Missing 0G Storage env for chain ${CHAIN_ID}. Check RPC, indexer, and private key vars.`
+    );
+  }
 
-const PRIVATE_KEY = isMainnet
-  ? process.env.OG_MAINNET_PRIVATE_KEY!
-  : process.env.GALILEO_PRIVATE_KEY!;
+  return { rpcUrl, indexerRpc, privateKey };
+}
 
-const provider = new ethers.JsonRpcProvider(RPC_URL);
-const signer = new ethers.Wallet(PRIVATE_KEY, provider);
-const indexer = new Indexer(INDEXER_RPC);
+function getSigner() {
+  const { rpcUrl, privateKey } = getStorageConfig();
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  return new ethers.Wallet(privateKey, provider);
+}
+
+function getIndexer() {
+  const { indexerRpc } = getStorageConfig();
+  return new Indexer(indexerRpc);
+}
 
 export interface UploadResult {
   fileName: string;
@@ -32,10 +46,13 @@ export interface UploadResult {
 }
 
 export async function uploadFileTo0G(file: File): Promise<UploadResult> {
+  const { rpcUrl } = getStorageConfig();
+  const signer = getSigner();
+  const indexer = getIndexer();
+
   const tempFilePath = path.join(os.tmpdir(), file.name);
   const arrayBuffer = await file.arrayBuffer();
 
-  //  Log file content (assuming it's UTF-8 text)
   const fileContent = Buffer.from(arrayBuffer).toString("utf-8");
   console.log(`\n=== Uploading file: ${file.name} ===`);
   console.log(`File content:\n${fileContent}\n`);
@@ -50,21 +67,18 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
       throw new Error(`Merkle tree error for ${file.name}: ${treeErr}`);
     if (!tree) throw new Error(`Merkle tree is null for ${file.name}`);
 
-    // Deterministic root hash from file content
     const rootHash = tree.rootHash();
     if (!rootHash) throw new Error(`Root hash is null for ${file.name}`);
 
     console.log(`Local Merkle root (deterministic): ${rootHash}`);
 
-    // Try uploading
     console.log("Starting upload to indexer...");
     const [uploadedData, uploadErr] = await indexer.upload(
       zgFile,
-      RPC_URL,
+      rpcUrl,
       signer
     );
 
-    // --- Handle "Data already exists" gracefully ---
     if (uploadErr) {
       let errMsg = "Unknown upload error";
 
@@ -72,7 +86,7 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
         errMsg = uploadErr;
       } else if (typeof uploadErr === "object" && uploadErr !== null) {
         errMsg = JSON.stringify(uploadErr);
-        if ("message" in uploadErr) errMsg = (uploadErr as any).message;
+        if ("message" in uploadErr) errMsg = (uploadErr as Error).message;
       }
 
       console.error(`Upload error: ${errMsg}`);
@@ -80,21 +94,20 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
       if (errMsg.includes("Data already exists")) {
         console.warn(`File already exists, skipping upload: ${file.name}`);
         return { fileName: file.name, rootHash, alreadyExists: true };
-      } else {
-        throw new Error(`Upload failed for ${file.name}: ${errMsg}`);
       }
+
+      throw new Error(`Upload failed for ${file.name}: ${errMsg}`);
     }
 
     console.log("Upload successful. Indexer response:", uploadedData);
 
-    // --- Check indexer root hash ---
     let indexerRoot: string | null = null;
     if (
       uploadedData &&
       typeof uploadedData === "object" &&
       "dataMerkleRoot" in uploadedData
     ) {
-      indexerRoot = (uploadedData as any).dataMerkleRoot;
+      indexerRoot = (uploadedData as { dataMerkleRoot: string }).dataMerkleRoot;
       console.log(`Indexer returned rootHash: ${indexerRoot}`);
     } else {
       console.warn(
@@ -102,15 +115,11 @@ export async function uploadFileTo0G(file: File): Promise<UploadResult> {
       );
     }
 
-    // --- Compare and decide ---
     const finalRootHash = indexerRoot ?? rootHash;
 
     if (indexerRoot && indexerRoot !== rootHash) {
       console.warn(
-        `⚠️ Root hash mismatch!\n` +
-          `  Local Merkle root:   ${rootHash}\n` +
-          `  Indexer root:        ${indexerRoot}\n` +
-          `  Final root used:     ${finalRootHash}`
+        `Root hash mismatch — local: ${rootHash}, indexer: ${indexerRoot}`
       );
     } else {
       console.log(`Final rootHash used: ${finalRootHash}`);

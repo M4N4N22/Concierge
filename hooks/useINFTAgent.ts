@@ -1,4 +1,3 @@
-// hooks/useINFTAgent.ts
 "use client";
 
 import {
@@ -7,8 +6,9 @@ import {
   usePublicClient,
   useWriteContract,
 } from "wagmi";
-import { zeroGGalileo } from "@/lib/contractClient";
-import { INFT_AGENT_ABI,INFT_AGENT_ADDRESS } from "@/lib/INFTAgentAbi";
+import { AGENT_ADDRESSES, ZERO_G_CHAIN_IDS } from "@/lib/addresses";
+import { zeroGMainnet } from "@/lib/wagmi/config";
+import { INFT_AGENT_ABI } from "@/lib/INFTAgentAbi";
 
 export function useINFTAgent() {
   const { chainId, isConnected } = useAccount();
@@ -18,12 +18,21 @@ export function useINFTAgent() {
 
   const ensureChain = async () => {
     if (!isConnected) throw new Error("Wallet not connected");
-    if (chainId !== zeroGGalileo.id) {
-      await switchChainAsync({ chainId: zeroGGalileo.id });
+    const supported = ZERO_G_CHAIN_IDS as readonly number[];
+    if (!chainId || !supported.includes(chainId)) {
+      await switchChainAsync({ chainId: zeroGMainnet.id });
     }
   };
 
-  //Mint Agent
+  const getAgentAddress = () => {
+    const activeChain = chainId && AGENT_ADDRESSES[chainId]
+      ? chainId
+      : zeroGMainnet.id;
+    const address = AGENT_ADDRESSES[activeChain] as `0x${string}` | undefined;
+    if (!address) throw new Error(`No Agentic ID contract for chain ${activeChain}`);
+    return address;
+  };
+
   const mintAgent = async ({
     vault,
     encryptedHash,
@@ -32,16 +41,17 @@ export function useINFTAgent() {
     aiSignature,
   }: {
     vault: `0x${string}`;
-    encryptedHash: `0x${string}`; // bytes32 hash
+    encryptedHash: `0x${string}`;
     domain: string;
     embeddingURI: string;
     aiSignature: string;
   }) => {
     await ensureChain();
+    const address = getAgentAddress();
 
     const txHash = await writeContractAsync({
       abi: INFT_AGENT_ABI,
-      address: INFT_AGENT_ADDRESS,
+      address,
       functionName: "mintAgent",
       args: [vault, encryptedHash, domain, embeddingURI, aiSignature],
     });
@@ -50,56 +60,48 @@ export function useINFTAgent() {
     return txHash;
   };
 
-  //Read Agent Profile
   const getAgentProfile = async (tokenId: bigint) => {
     return await publicClient!.readContract({
       abi: INFT_AGENT_ABI,
-      address: INFT_AGENT_ADDRESS,
+      address: getAgentAddress(),
       functionName: "getAgentProfile",
       args: [tokenId],
     });
   };
 
-  // Read Encrypted Metadata
   const getEncryptedMetadata = async (tokenId: bigint) => {
     return await publicClient!.readContract({
       abi: INFT_AGENT_ABI,
-      address: INFT_AGENT_ADDRESS,
+      address: getAgentAddress(),
       functionName: "getEncryptedMetadata",
       args: [tokenId],
     });
   };
 
-  // Update Metadata
   const updateMetadata = async (tokenId: bigint, newEncryptedHash: `0x${string}`) => {
     await ensureChain();
-
     const txHash = await writeContractAsync({
       abi: INFT_AGENT_ABI,
-      address: INFT_AGENT_ADDRESS,
+      address: getAgentAddress(),
       functionName: "updateMetadata",
       args: [tokenId, newEncryptedHash],
     });
-
     await publicClient!.waitForTransactionReceipt({ hash: txHash });
     return txHash;
   };
 
-  // ✅ Update Profile
   const updateProfile = async (
     tokenId: bigint,
     embeddingURI: string,
     aiSignature: string
   ) => {
     await ensureChain();
-
     const txHash = await writeContractAsync({
       abi: INFT_AGENT_ABI,
-      address: INFT_AGENT_ADDRESS,
+      address: getAgentAddress(),
       functionName: "updateProfile",
       args: [tokenId, embeddingURI, aiSignature],
     });
-
     await publicClient!.waitForTransactionReceipt({ hash: txHash });
     return txHash;
   };

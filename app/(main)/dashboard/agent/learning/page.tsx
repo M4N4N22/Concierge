@@ -14,11 +14,11 @@ export default function LearningPage() {
       <div className="flex justify-between items-center gap-8">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">
-            My <span className="text-primary">INFT</span> Agent Learning
+            My <span className="text-primary">Agentic ID</span> Learning
           </h1>
           <p className="text-foreground/70">
-            Here you can track the learning progress of your INFT Agent across multiple domains. 
-            Each agent domain uses your vault data to generate insights and recommendations.
+            Track domain agent learning across finance, travel, and subscriptions —
+            all powered by your vault on 0G.
           </p>
           <p className="text-foreground/60">
             Powered by <span className="font-semibold text-primary">0G</span>, your vault data is securely 

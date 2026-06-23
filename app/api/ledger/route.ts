@@ -1,6 +1,6 @@
 // app/api/ledger/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createZGComputeNetworkBroker } from "@0glabs/0g-serving-broker";
+import { createZGComputeNetworkBroker } from "@0gfoundation/0g-compute-ts-sdk";
 import { ethers } from "ethers";
 
 const RPC_URL = process.env.GALILEO_RPC_URL!;
