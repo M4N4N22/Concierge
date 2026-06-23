@@ -1,13 +1,16 @@
 # Concierge
 
-A decentralized platform that transforms personal data into intelligent, evolving AI agents. Built on 0G Network infrastructure with mainnet deployment.
+A decentralized platform that transforms personal data into intelligent, evolving **Agentic IDs** (onchain AI agents). Built on 0G infrastructure with mainnet deployment. Participating in the **0G Bridge Buildathon** by AKINDO.
 
-## Quick Link
+> See [OG_BRIDGE.md](./OG_BRIDGE.md) for buildathon submission summary.
+
+## Quick Links
 
 - [How it Works (Twitter/X Thread)](https://x.com/mananbuilds/status/1985758895386800449)
 - [Demo Video](https://youtu.be/PY_HBcew6oM)
 - [Try Concierge](http://concierge-sigma.vercel.app/)
-- [0G Network Documentation](https://docs.0g.ai)
+- [0G Documentation](https://docs.0g.ai)
+- [Agentic ID (ERC-7857)](https://docs.0g.ai/concepts/agentic-id)
 
 ## Architecture Overview
 
@@ -22,7 +25,7 @@ A decentralized platform that transforms personal data into intelligent, evolvin
         ▼               ▼               ▼
 ┌──────────────┐ ┌─────────────┐ ┌──────────────┐
 │   Vault.sol  │ │INFTAgent.sol│ │  0G Storage  │
-│  (Registry)  │ │  (ERC721)   │ │   (Mainnet)  │
+│  (Registry)  │ │ (Agentic ID)│ │   (Mainnet)  │
 └──────┬───────┘ └──────┬──────┘ └──────┬───────┘
        │                │               │
        └────────────────┼───────────────┘
@@ -39,8 +42,8 @@ A decentralized platform that transforms personal data into intelligent, evolvin
 2. Files stored permanently on 0G Storage (mainnet)
 3. Vault contract registers ownership and metadata
 4. 0G Compute clusters similar documents and generates summaries
-5. User mints personalized INFT agent trained on their data
-6. INFT evolves with new uploads, provides recommendations
+5. User mints a personal **Agentic ID** trained on their data
+6. Domain agents (finance, travel, subscription) provide recommendations via 0G Compute
 
 ## What Problem This Solves
 
@@ -50,24 +53,24 @@ People have scattered personal data across emails, downloads, PDFs, and message 
 - **Clusters** similar documents (health records, travel receipts, subscriptions)
 - **Summarizes** patterns and generates insights
 - **Visualizes** meaningful views: medical timelines, spending patterns, subscription burn rates
-- **Creates** an intelligent, evolving agent (INFT) that learns from user data
-
-Result: Personal data chaos becomes structured personal intelligence.
+- **Creates** an intelligent, evolving **Agentic ID** that learns from user data
 
 ## Key Differentiator
 
-Users mint a personalized **Intelligent NFT (INFT)** - an evolving AI agent trained on their own data. This agent:
+Users mint a personalized **Agentic ID** (ERC-7857 path) — an evolving AI agent trained on their own data. This agent:
 
 - Learns continuously as new documents are uploaded
 - Provides contextual recommendations based on real user patterns
 - Can be delegated, shared, or rented
 - Turns personal data into a monetizable digital asset
 
+Result: Personal data chaos becomes structured personal intelligence.
+
 ## Deployment Status
 
 ### Mainnet Contracts
 - **Vault / Data Registry:** `0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8`
-- **INFT Agent Contract:** `0x721c164D1c7e67e522d50194C342006E36Fde05f`
+- **Agentic ID (INFTAgent.sol):** `0x721c164D1c7e67e522d50194C342006E36Fde05f`
 
 ### Proof of Upload to 0gStorage Mainnet
 
@@ -277,17 +280,18 @@ NEXT_PUBLIC_INDEXER_GATEWAY=https://indexer-storage-turbo.0g.ai
 
 ## Tech Stack
 
-- **Frontend:** Next.js 14, React, TypeScript, TailwindCSS
-- **Smart Contracts:** Solidity, Hardhat, OpenZeppelin
-- **Storage:** 0G Storage (Mainnet)
-- **Compute:** 0G Compute Layer
+- **Frontend:** Next.js 15, React 19, TypeScript, TailwindCSS
+- **Smart Contracts:** Solidity 0.8.28, Hardhat, OpenZeppelin 5.6
+- **0G Storage:** `@0gfoundation/0g-storage-ts-sdk` (mainnet)
+- **0G Compute:** `@0gfoundation/0g-compute-ts-sdk` (Galileo testnet)
 - **Web3:** wagmi, viem, ethers.js
 
 ## API Endpoints
 
 - `POST /api/uploadFile` - Upload file to 0G Storage
-- `POST /api/computeInsights` - Trigger clustering and summarization
-- `GET /api/ledger` - Fetch transaction history
+- `POST /api/computeInsights` - Categorize and summarize files via 0G Compute
+- `POST /api/agentRecommendations` - Domain-specific agent recommendations
+- `GET /api/ledger` - Ledger balance and funding
 - `GET /api/models` - List available AI models
 
 ## Smart Contracts
@@ -295,8 +299,8 @@ NEXT_PUBLIC_INDEXER_GATEWAY=https://indexer-storage-turbo.0g.ai
 ### Vault.sol
 Data registry contract managing ownership and metadata for uploaded documents.
 
-### INFTAgent.sol
-ERC721 contract for intelligent NFT agents. Each INFT is trained on user-specific data and evolves over time.
+### INFTAgent.sol (Agentic ID)
+ERC721 upgradeable contract for personal AI agents. Bound to user vault. ERC-7857 migration on roadmap.
 
 ## Security Considerations
 
@@ -328,4 +332,4 @@ For questions or issues, open a GitHub issue or reach out via the community chan
 
 ---
 
-Built with 0G Network infrastructure during WaveHack hackathon.
+Built with 0G infrastructure. Continuing development via the 0G Bridge Buildathon (AKINDO).

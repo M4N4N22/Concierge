@@ -1,116 +1,77 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { Loader2, RefreshCw, BarChart } from "lucide-react";
+import { useUserFiles } from "@/hooks/useUserFiles";
+import { useAccount } from "wagmi";
+import { fetchFileContent } from "@/utils/fetchFileContent";
 import {
-  Loader2,
-  Cpu,
-  RefreshCw,
-  CheckCircle2,
-  Copy,
-  BarChart,
-} from "lucide-react";
-
-const mockSyncVault = async () => {
-  await new Promise((res) => setTimeout(res, 1500));
-  return {
-    finance: Math.floor(Math.random() * 100),
-    travel: Math.floor(Math.random() * 100),
-    subscription: Math.floor(Math.random() * 100),
-  };
-};
-
-const mockGenerateDomainInsights = async (domain: string) => {
-  await new Promise((res) => setTimeout(res, 1000));
-  return `Latest insights for ${domain} agent based on your vault data.`;
-};
+  AGENT_DOMAINS,
+  DOMAIN_META,
+  domainProgress,
+  type AgentDomain,
+} from "@/lib/domains";
 
 export default function AgentLearning() {
   const [loading, setLoading] = useState(false);
-  const [learningProgress, setLearningProgress] = useState({
-    finance: 0,
-    travel: 0,
-    subscription: 0,
-  });
-  const [insights, setInsights] = useState({
-    finance: "",
-    travel: "",
-    subscription: "",
-  });
+  const [summaries, setSummaries] = useState<Record<string, string>>({});
+  const { files, refetch, loading: filesLoading } = useUserFiles();
+  const { isConnected } = useAccount();
   const router = useRouter();
 
-  const handleSyncVault = async () => {
+  useEffect(() => {
+    if (isConnected) refetch();
+  }, [isConnected, refetch]);
+
+  const handleSyncVault = useCallback(async () => {
+    if (!isConnected) {
+      toast.error("Connect your wallet first");
+      return;
+    }
     setLoading(true);
     try {
-      const progress = await mockSyncVault();
-      setLearningProgress(progress);
+      const syncedFiles = await refetch();
 
-      const financeInsight = await mockGenerateDomainInsights("Finance");
-      const travelInsight = await mockGenerateDomainInsights("Travel");
-      const subscriptionInsight = await mockGenerateDomainInsights(
-        "Subscription"
-      );
+      const newSummaries: Record<string, string> = {};
+      for (const file of syncedFiles) {
+        if (!file.insightsCID || file.insightsCID === "0x" + "0".repeat(64)) continue;
+        try {
+          const text = await fetchFileContent(file.insightsCID);
+          newSummaries[file.rootHash] = text.slice(0, 500);
+        } catch {
+          newSummaries[file.rootHash] = file.category;
+        }
+      }
 
-      setInsights({
-        finance: financeInsight,
-        travel: travelInsight,
-        subscription: subscriptionInsight,
-      });
-
-      toast.success("Vault synced and insights updated!");
+      setSummaries(newSummaries);
+      toast.success("Vault synced from on-chain data");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update learning");
+      toast.error("Failed to sync vault");
     } finally {
       setLoading(false);
     }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied!");
-  };
-
-  // Define domains as keyof typeof learningProgress to satisfy TypeScript
-  const domains: Array<keyof typeof learningProgress> = [
-    "finance",
-    "travel",
-    "subscription",
-  ];
-
-  const domainTitles = {
-    finance: "Finance Agent",
-    travel: "Travel Agent",
-    subscription: "Subscription Agent",
-  };
-
-  const domainDescriptions = {
-    finance:
-      "Analyzes your spending patterns and offers optimization insights.",
-    travel: "Learns from your past trips to personalize future travel advice.",
-    subscription:
-      "Tracks recurring payments and suggests smart cancellations or alternatives.",
-  };
-
-  const handleViewRecommendations = (domain: keyof typeof learningProgress) => {
-    router.push(`/dashboard/agent/recommendations?domain=${domain}`);
-  };
+  }, [isConnected, refetch]);
 
   return (
-    <div className=" mx-auto p-6 flex flex-col gap-6">
-      <h2 className="text-3xl font-bold text-center">Agent Learning</h2>
+    <div className="mx-auto p-6 flex flex-col gap-6">
+      <h2 className="text-3xl font-bold text-center">Agentic ID Learning</h2>
+      <p className="text-center text-muted-foreground max-w-2xl mx-auto">
+        One vault powers three domain agents. Progress reflects how many of your
+        uploaded files map to each domain via 0G Compute categorization.
+      </p>
 
-      {/* Sync Vault Button */}
       <Button
         onClick={handleSyncVault}
-        disabled={loading}
+        disabled={loading || filesLoading}
         className="w-fit mx-auto flex items-center justify-center gap-2"
       >
-        {loading ? (
+        {loading || filesLoading ? (
           <Loader2 className="animate-spin w-5 h-5" />
         ) : (
           <RefreshCw className="w-5 h-5" />
@@ -118,49 +79,46 @@ export default function AgentLearning() {
         {loading ? "Syncing Vault..." : "Sync Vault & Update Learning"}
       </Button>
 
-      {/* Learning Progress */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
-        {domains.map((domain) => (
-          <Card key={domain}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart className="w-5 h-5 text-primary" />{" "}
-                {domain.charAt(0).toUpperCase() + domain.slice(1)} Agent
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {domainDescriptions[domain]}
-              </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {AGENT_DOMAINS.map((domain) => {
+          const progress = domainProgress(files, domain);
+          const meta = DOMAIN_META[domain];
+          const domainFiles = files.filter(
+            (f) => f.category.toLowerCase().includes(domain) ||
+              summaries[f.rootHash]
+          );
 
-              <div className="space-y-1">
-                <Progress
-                  value={learningProgress[domain]}
-                  className="h-2 rounded-lg bg-muted/20"
-                />
+          return (
+            <Card key={domain}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart className="w-5 h-5 text-primary" />
+                  {meta.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">{meta.description}</p>
+                <Progress value={progress} className="h-2" />
                 <p className="text-sm text-muted-foreground">
-                  Learning Progress: {learningProgress[domain]}%
+                  Learning progress: {progress}% · {files.length} vault file(s)
                 </p>
-              </div>
-              {insights[domain] && (
-                <div className="bg-muted/10 p-3 rounded-lg space-y-1">
-                  <p>{insights[domain]}</p>
-                </div>
-              )}
-              <Button
-                variant="default"
-                className="w-full flex items-center justify-center gap-2"
-                onClick={() =>
-                  router.push(
-                    `/dashboard/agent/recommendations?domain=${domain}`
-                  )
-                }
-              >
-                View Recommendations
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+                {domainFiles.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Latest: {domainFiles[0].category}
+                  </p>
+                )}
+                <Button
+                  className="w-full"
+                  onClick={() =>
+                    router.push(`/dashboard/agent/recommendations?domain=${domain}`)
+                  }
+                >
+                  View Recommendations
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
