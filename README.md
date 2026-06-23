@@ -1,8 +1,9 @@
 # Concierge
 
-A decentralized platform that transforms personal data into intelligent, evolving **Agentic IDs** (onchain AI agents). Built on 0G infrastructure with mainnet deployment. Participating in the **0G Bridge Buildathon** by AKINDO.
+A decentralized platform that transforms personal data into intelligent, evolving **Agentic IDs** (onchain AI agents). Built on 0G Storage, Compute, and Chain. Participating in the **0G Bridge Buildathon** by AKINDO.
 
-> See [OG_BRIDGE.md](./OG_BRIDGE.md) for buildathon submission summary.
+> **Wave 1 changelog:** [WAVE1_UPDATES.md](./WAVE1_UPDATES.md)  
+> **Buildathon summary:** [OG_BRIDGE.md](./OG_BRIDGE.md)
 
 ## Quick Links
 
@@ -17,7 +18,7 @@ A decentralized platform that transforms personal data into intelligent, evolvin
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         User Interface                       │
-│  (Next.js Dashboard - Upload, Insights, Agent Management)   │
+│  (Next.js Dashboard — Journey: Upload → Insights → Agentic ID) │
 └───────────────────────┬─────────────────────────────────────┘
                         │
         ┌───────────────┼───────────────┐
@@ -25,7 +26,7 @@ A decentralized platform that transforms personal data into intelligent, evolvin
         ▼               ▼               ▼
 ┌──────────────┐ ┌─────────────┐ ┌──────────────┐
 │   Vault.sol  │ │INFTAgent.sol│ │  0G Storage  │
-│  (Registry)  │ │ (Agentic ID)│ │   (Mainnet)  │
+│  (Registry)  │ │ (Agentic ID)│ │ Testnet/Main │
 └──────┬───────┘ └──────┬──────┘ └──────┬───────┘
        │                │               │
        └────────────────┼───────────────┘
@@ -38,12 +39,11 @@ A decentralized platform that transforms personal data into intelligent, evolvin
 ```
 
 **Data Flow:**
-1. User uploads documents via dashboard
-2. Files stored permanently on 0G Storage (mainnet)
-3. Vault contract registers ownership and metadata
-4. 0G Compute clusters similar documents and generates summaries
-5. User mints a personal **Agentic ID** trained on their data
-6. Domain agents (finance, travel, subscription) provide recommendations via 0G Compute
+1. User uploads documents via dashboard (encrypted on **0G Storage**, registered in **Vault.sol**)
+2. User sets up **0G Compute** ledger (3 OG min), funds a provider, runs inference
+3. Insights (category + summary) stored on 0G and written back to the vault on-chain
+4. User mints a personal **Agentic ID** trained on vault data
+5. Domain agents (finance, travel, subscription) provide recommendations via 0G Compute
 
 ## What Problem This Solves
 
@@ -68,11 +68,22 @@ Result: Personal data chaos becomes structured personal intelligence.
 
 ## Deployment Status
 
-### Mainnet Contracts
-- **Vault / Data Registry:** `0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8`
-- **Agentic ID (INFTAgent.sol):** `0x721c164D1c7e67e522d50194C342006E36Fde05f`
+### Development default: Galileo testnet
 
-### Proof of Upload to 0gStorage Mainnet
+The app defaults to **0G Galileo Testnet** (chain `16602`) for wallet connections and vault transactions. Switch to mainnet via RainbowKit when ready.
+
+| Contract | Testnet (Galileo) | Mainnet (Aristotle) |
+|----------|-------------------|---------------------|
+| **Vault** | `0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81` | `0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8` |
+| **Agentic ID** | `0x7fE958CaF70cdcEC187f30A216924878e2D89389` | `0x721c164D1c7e67e522d50194C342006E36Fde05f` |
+
+### Infrastructure
+
+- **0G Storage** — testnet indexer for dev; mainnet deployment proven (see below)
+- **0G Compute** — Galileo testnet (`GALILEO_RPC_URL`, server-side broker wallet)
+- **Compute ledger** — minimum **3 OG** to create; **1 OG** min per provider ([docs](https://docs.0g.ai/developer-hub/building-on-0g/compute-network/inference))
+
+### Mainnet storage proof (prior upload)
 
 - [Check on 0g Explorer](https://explorer.0g.ai/mainnet/storage/submissions/7322)
 
@@ -127,41 +138,53 @@ Upload successful. Indexer response: 0xaf20640b7d620580aa16b26387eecaad38ca91fce
 Final rootHash used: 0xbfb478f01278128a81a782e78b8cea36dcfa4edfc8536a2ab08392a028adf31d
 ```
 
-### Infrastructure
-- User documents stored permanently on **0G Storage (Mainnet)**
-- Compute layer runs on **0G Compute Testnet** (modular - mainnet migration is a config swap)
-- Full workflow live: connect wallet → upload → cluster → summarize → mint INFT → manage data
+### Infrastructure (summary)
+
+- Local dev: connect wallet on Galileo → upload → fund compute ledger → run insights → mint Agentic ID
+- Mainnet contracts deployed; testnet used for active buildathon development
 
 ## Project Structure
 
 ```
 app/
 ├── (main)/dashboard/
-│   ├── agent/          # INFT agent interfaces
+│   ├── page.tsx            # Journey overview hub
+│   ├── agent/              # Agentic ID
 │   │   ├── learning/
 │   │   ├── mint/
 │   │   └── recommendations/
-│   └── vault/          # Data management
-│       ├── insights/
-│       └── my-files/
+│   └── vault/
+│       ├── my-files/       # Upload
+│       ├── insights/       # 0G Compute setup + AI insights
+│       └── chat/           # Coming soon
 ├── api/
-│   ├── computeInsights/    # Clustering & summarization
-│   ├── ledger/             # Transaction records
-│   ├── models/             # AI model management
-│   └── uploadFile/         # 0G Storage upload
+│   ├── uploadFile/
+│   ├── computeInsights/
+│   ├── agentRecommendations/
+│   ├── ledger/             # POST — create, deposit, fund provider
+│   └── models/
 
-contracts/
-├── Agent/
-│   └── INFTAgent.sol       # ERC721 intelligent NFT
-└── Vault/
-    └── Vault.sol           # Data registry & ownership
+components/
+├── dashboard/JourneyStepHeader.tsx
+├── vault/
+│   ├── UploadArea.tsx
+│   ├── FileList.tsx
+│   ├── ComputeSetupPanel.tsx
+│   └── InsightsWorkspace.tsx
+└── Sidebar.tsx
+
+lib/
+├── journey.ts              # 5-step user journey
+├── addresses.ts            # Chain-aware contract addresses
+├── computeConstants.ts     # Ledger minimums (3 OG / 1 OG)
+└── explorer.ts             # Chainscan + StorageScan helpers
 
 hooks/
-├── useAddToVault.ts        # Vault interactions
-├── useComputeInsights.ts   # Trigger compute jobs
-├── useFileContent.ts       # Fetch from 0G Storage
-├── useINFTAgent.ts         # INFT minting & management
-└── useUserFiles.ts         # File listing
+├── useAddToVault.ts
+├── useComputeLedger.ts
+├── useFileContent.ts
+├── useINFTAgent.ts
+└── useUserFiles.ts
 ```
 
 ## Setup Instructions
@@ -176,16 +199,19 @@ hooks/
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd next-app
+git clone https://github.com/M4N4N22/Concierge.git
+cd Concierge
 ```
 
 2. Install dependencies:
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
-3. Configure environment variables (see Environment Configuration below)
+3. Copy environment template and fill secrets:
+```bash
+cp .env.example .env
+```
 
 4. Run development server:
 ```bash
@@ -208,91 +234,45 @@ npm run deploy:mainnet
 
 ## Environment Configuration
 
-### Testnet Setup (.env.testnet)
+Copy `.env.example` to `.env`. Key variables:
 
-Create `.env.testnet` in project root:
+| Variable | Purpose |
+|----------|---------|
+| `OG_CHAIN_ID` | Server-side storage default chain (`16602` testnet) |
+| `GALILEO_PRIVATE_KEY` | Server wallet for storage upload + compute broker (needs ≥3 OG for ledger) |
+| `GALILEO_RPC_URL` | Galileo testnet RPC |
+| `INDEXER_RPC_URL` | 0G Storage testnet indexer |
+| `VAULT_ADDRESS` / `NEXT_PUBLIC_VAULT_ADDRESS` | Vault contract (per network) |
+| `NEXT_PUBLIC_INFTAGENT_*` | Agentic ID contract addresses |
 
-```env
-NETWORK=galileo
-OG_TESTNET_CHAIN_ID=16602
-
-# Wallet Configuration
-GALILEO_PRIVATE_KEY=your_private_key_here
-DEPLOYER_ADDRESS=your_deploy_wallet_address
-
-# Network RPCs
-GALILEO_RPC_URL=https://evmrpc-testnet.0g.ai
-INDEXER_RPC_URL=https://indexer-storage-testnet-turbo.0g.ai
-
-# Deployed Contract Addresses
-VAULT_ADDRESS=0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81
-INFTAGENT_ADDRESS=0x7fE958CaF70cdcEC187f30A216924878e2D89389
-
-# Frontend Environment Variables (Browser-Exposed)
-NEXT_PUBLIC_GALILEO_RPC_URL=https://evmrpc-testnet.0g.ai
-NEXT_PUBLIC_VAULT_ADDRESS=0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81
-NEXT_PUBLIC_INFTAGENT_ADDRESS=0x7fE958CaF70cdcEC187f30A216924878e2D89389
-NEXT_PUBLIC_INDEXER_GATEWAY=https://indexer-storage-testnet-turbo.0g.ai
-```
-
-### Mainnet Setup (.env.mainnet)
-
-Create `.env.mainnet` in project root:
-
-```env
-NETWORK=mainnet
-OG_CHAIN_ID=16661
-
-# Wallet Configuration
-OG_MAINNET_PRIVATE_KEY=your_private_key_here
-DEPLOYER_ADDRESS=your_deploy_wallet_address
-
-# 0G Mainnet Infrastructure
-OG_MAINNET_RPC_URL=https://evmrpc.0g.ai
-INDEXER_RPC_URL=https://indexer-storage-turbo.0g.ai
-
-# Production Contract Addresses
-VAULT_ADDRESS=0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8
-INFTAGENT_ADDRESS=0x721c164D1c7e67e522d50194C342006E36Fde05f
-
-# Frontend Environment Variables (Browser-Exposed)
-NEXT_PUBLIC_OG_MAINNET_RPC_URL=https://evmrpc.0g.ai
-NEXT_PUBLIC_VAULT_ADDRESS=0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8
-NEXT_PUBLIC_INFTAGENT_ADDRESS=0x721c164D1c7e67e522d50194C342006E36Fde05f
-NEXT_PUBLIC_INDEXER_GATEWAY=https://indexer-storage-turbo.0g.ai
-```
-
-### Environment Variable Notes
-
-- Never commit `.env` files with real private keys
-- Replace placeholder addresses after deploying contracts
-- `NEXT_PUBLIC_*` variables are exposed to the browser
-- Keep private keys secure and never share them
+See `.env.example` for the full list. Never commit `.env` with real private keys.
 
 ## Usage Workflow
 
-1. **Connect Wallet**: Connect MetaMask to 0G Network
-2. **Upload Documents**: Drag and drop files to vault
-3. **View Insights**: Automatic clustering and summarization
-4. **Mint INFT**: Create personalized intelligent agent
-5. **Agent Learning**: INFT learns from your data patterns
-6. **Get Recommendations**: Receive contextual insights
+1. **Connect wallet** — RainbowKit on **0G Galileo Testnet** (default)
+2. **Upload** — Add files to vault (0G Storage + on-chain registry)
+3. **Set up compute** — Create ledger (3 OG), fund provider (1 OG min)
+4. **Run insights** — 0G Compute categorizes and summarizes vault files
+5. **Mint Agentic ID** — Personal on-chain agent bound to your vault
+6. **Domain learning & recommendations** — Finance, travel, subscription agents
+
+See [WAVE1_UPDATES.md](./WAVE1_UPDATES.md) for the full Wave 1 feature list.
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15, React 19, TypeScript, TailwindCSS
+- **Frontend:** Next.js 15.5, React 19, TypeScript, TailwindCSS, RainbowKit
 - **Smart Contracts:** Solidity 0.8.28, Hardhat, OpenZeppelin 5.6
-- **0G Storage:** `@0gfoundation/0g-storage-ts-sdk` (mainnet)
-- **0G Compute:** `@0gfoundation/0g-compute-ts-sdk` (Galileo testnet)
+- **0G Storage:** `@0gfoundation/0g-storage-ts-sdk` ^1.2
+- **0G Compute:** `@0gfoundation/0g-compute-ts-sdk` ^0.8
 - **Web3:** wagmi, viem, ethers.js
 
 ## API Endpoints
 
-- `POST /api/uploadFile` - Upload file to 0G Storage
-- `POST /api/computeInsights` - Categorize and summarize files via 0G Compute
-- `POST /api/agentRecommendations` - Domain-specific agent recommendations
-- `GET /api/ledger` - Ledger balance and funding
-- `GET /api/models` - List available AI models
+- `POST /api/uploadFile` — Upload file to 0G Storage
+- `POST /api/computeInsights` — Categorize and summarize via 0G Compute; update vault
+- `POST /api/agentRecommendations` — Domain-specific agent recommendations
+- `POST /api/ledger` — Ledger create / deposit / fund provider (`action` in body)
+- `GET /api/models` — List available 0G Compute inference services
 
 ## Smart Contracts
 
@@ -300,7 +280,7 @@ NEXT_PUBLIC_INDEXER_GATEWAY=https://indexer-storage-turbo.0g.ai
 Data registry contract managing ownership and metadata for uploaded documents.
 
 ### INFTAgent.sol (Agentic ID)
-ERC721 upgradeable contract for personal AI agents. Bound to user vault. ERC-7857 migration on roadmap.
+ERC721 upgradeable contract for personal AI agents, bound to user vault. ERC-7857 migration on roadmap.
 
 ## Security Considerations
 
@@ -311,11 +291,10 @@ ERC721 upgradeable contract for personal AI agents. Bound to user vault. ERC-785
 
 ## Future Roadmap
 
-- Migrate compute layer to 0G Mainnet
-- Multi-chain INFT portability
-- Advanced recommendation algorithms
-- INFT marketplace for data-backed agent trading
-- Cross-agent collaboration protocols
+- Vault chat (Step 3) over 0G Compute
+- Migrate compute + storage defaults to mainnet for production
+- ERC-7857 Agentic ID alignment
+- Agent marketplace and delegation (Step 5)
 - Privacy-preserving federated learning
 
 ## Contributing
@@ -332,4 +311,4 @@ For questions or issues, open a GitHub issue or reach out via the community chan
 
 ---
 
-Built with 0G infrastructure. Continuing development via the 0G Bridge Buildathon (AKINDO).
+Built with 0G infrastructure. [Wave 1 updates](./WAVE1_UPDATES.md) · [0G Bridge Buildathon](https://app.akindo.io/wave-hacks/Z4MlX4vreI72ol6pd) (AKINDO).

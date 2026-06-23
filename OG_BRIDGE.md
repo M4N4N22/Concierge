@@ -44,7 +44,7 @@ User Dashboard (Next.js)
 
 | Wave | Goal | Concierge focus |
 |------|------|-----------------|
-| **1** (now) | Scoping + integration plan | SDK migration, Agentic ID rebrand, domain agent API |
+| **1** (done) | Scoping + integration | SDK migration, journey UX, compute ledger flow, Agentic ID — see [WAVE1_UPDATES.md](./WAVE1_UPDATES.md) |
 | **2** | Testnet demo + video | End-to-end demo, polish compute flow |
 | **3** | Mainnet depth | ERC-7857 alignment, fresh on-chain activity |
 | **4** | Traction | Users, X posts, metrics |
@@ -64,7 +64,7 @@ cp .env.example .env   # or use .env — fill private keys
 npm run dev
 ```
 
-See [README.md](./README.md) for full environment variable reference.
+See [README.md](./README.md) and [WAVE1_UPDATES.md](./WAVE1_UPDATES.md) for environment and feature details.
 
 ## Links
 
