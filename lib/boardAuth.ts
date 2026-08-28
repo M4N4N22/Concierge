@@ -8,13 +8,21 @@ const MAX_QUESTION_CHARS = 2_000;
 const MAX_EVIDENCE_PACKS = 20;
 const MAX_FACTS_PER_PACK = 40;
 const SIGNATURE_TTL_MS = 5 * 60 * 1000;
+/** Live swarm / auto (may fall back to live) share the stricter wallet quota. */
+const LIVE_OR_AUTO_LIMIT = 3;
+const OTHER_MODE_LIMIT = 8;
 
 type Bucket = { count: number; resetAt: number };
 
 const ipBuckets = new Map<string, Bucket>();
 const walletBuckets = new Map<string, Bucket>();
 
-function hit(map: Map<string, Bucket>, key: string, limit: number, windowMs: number) {
+function hit(
+  map: Map<string, Bucket>,
+  key: string,
+  limit: number,
+  windowMs: number
+) {
   const now = Date.now();
   const cur = map.get(key);
   if (!cur || now >= cur.resetAt) {
@@ -107,7 +115,7 @@ export async function authorizeBoardRequest(
       item &&
       typeof item === "object" &&
       Array.isArray((item as { facts?: unknown }).facts) &&
-      ((item as { facts: unknown[] }).facts.length > MAX_FACTS_PER_PACK)
+      (item as { facts: unknown[] }).facts.length > MAX_FACTS_PER_PACK
     ) {
       return {
         ok: false,
@@ -129,22 +137,6 @@ export async function authorizeBoardRequest(
     return { ok: false, status: 400, error: "Invalid mode" };
   }
 
-  // Live swarm is most expensive — stricter wallet quota
-  const walletKey = walletRaw.toLowerCase();
-  const walletLimit = hit(
-    walletBuckets,
-    walletKey,
-    mode === "live" ? 3 : 8,
-    60_000
-  );
-  if (!walletLimit.ok) {
-    return {
-      ok: false,
-      status: 429,
-      error: `Wallet rate limit exceeded. Retry in ${Math.ceil(walletLimit.retryAfterMs / 1000)}s`,
-    };
-  }
-
   const message = boardAuthMessage({
     wallet: walletRaw,
     timestamp,
@@ -164,6 +156,20 @@ export async function authorizeBoardRequest(
 
   if (!valid) {
     return { ok: false, status: 401, error: "Invalid wallet signature" };
+  }
+
+  // Quota only after a valid signature — prevents unauth wallet DoS
+  // auto can fall back to live swarm, so use the stricter live limit
+  const walletKey = walletRaw.toLowerCase();
+  const walletCap =
+    mode === "live" || mode === "auto" ? LIVE_OR_AUTO_LIMIT : OTHER_MODE_LIMIT;
+  const walletLimit = hit(walletBuckets, walletKey, walletCap, 60_000);
+  if (!walletLimit.ok) {
+    return {
+      ok: false,
+      status: 429,
+      error: `Wallet rate limit exceeded. Retry in ${Math.ceil(walletLimit.retryAfterMs / 1000)}s`,
+    };
   }
 
   return {
