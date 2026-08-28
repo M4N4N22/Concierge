@@ -1,10 +1,14 @@
-// components/INFTAgentUI.tsx
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useChainId } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useINFTAgent } from "@/hooks/useINFTAgent";
+import { useAgenticId } from "@/hooks/useAgenticId";
+import { VAULT_ADDRESSES } from "@/lib/addresses";
+import { zeroGTestnet } from "@/lib/wagmi/config";
 
 export default function INFTAgentUI() {
   const {
@@ -14,22 +18,25 @@ export default function INFTAgentUI() {
     updateMetadata,
     updateProfile,
   } = useINFTAgent();
+  const { agent, hasAgent, loading: agentLoading, refetch } = useAgenticId();
+  const chainId = useChainId();
 
-  const [vault, setVault] = useState("");
-  const [encryptedHash, setEncryptedHash] = useState("");
-  const [domain, setDomain] = useState("");
-  const [embeddingURI, setEmbeddingURI] = useState("");
-  const [aiSignature, setAiSignature] = useState("");
+  const defaultVault =
+    (VAULT_ADDRESSES[chainId] || VAULT_ADDRESSES[zeroGTestnet.id]) ?? "";
+
+  const [vault, setVault] = useState(defaultVault);
+  const [encryptedHash, setEncryptedHash] = useState("0x" + "11".repeat(32));
+  const [domain, setDomain] = useState("concierge.board");
+  const [embeddingURI, setEmbeddingURI] = useState("0g://board/pending");
+  const [aiSignature, setAiSignature] = useState("chair_v1");
 
   const [agentId, setAgentId] = useState("");
   const [newEncryptedHash, setNewEncryptedHash] = useState("");
   const [newEmbeddingURI, setNewEmbeddingURI] = useState("");
   const [newAiSignature, setNewAiSignature] = useState("");
-  const [agentData, setAgentData] = useState<any>(null);
-
+  const [agentData, setAgentData] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🧠 Mint new agent
   const handleMint = async () => {
     setLoading(true);
     try {
@@ -40,7 +47,10 @@ export default function INFTAgentUI() {
         embeddingURI,
         aiSignature,
       });
-      alert(`Agentic ID minted successfully!\nTx: ${tx}`);
+      await refetch();
+      alert(
+        `Board Chair minted!\nTx: ${tx}\nOpen the War Room to bind sessions.`
+      );
     } catch (err) {
       console.error(err);
       alert("Mint failed — check console for details.");
@@ -49,12 +59,16 @@ export default function INFTAgentUI() {
     }
   };
 
-  // 🧩 Read agent profile and metadata
+  const resolveId = () =>
+    agentId || (agent ? agent.tokenId.toString() : "");
+
   const handleRead = async () => {
     setLoading(true);
     try {
-      const profile = await getAgentProfile(BigInt(agentId));
-      const metadata = await getEncryptedMetadata(BigInt(agentId));
+      const id = resolveId();
+      if (!id) throw new Error("Enter token id");
+      const profile = await getAgentProfile(BigInt(id));
+      const metadata = await getEncryptedMetadata(BigInt(id));
       setAgentData({ profile, metadata });
     } catch (err) {
       console.error(err);
@@ -64,12 +78,12 @@ export default function INFTAgentUI() {
     }
   };
 
-  // ✏️ Update encrypted metadata
   const handleUpdateMetadata = async () => {
     setLoading(true);
     try {
+      const id = resolveId();
       const tx = await updateMetadata(
-        BigInt(agentId),
+        BigInt(id),
         newEncryptedHash as `0x${string}`
       );
       alert(`Metadata updated successfully!\nTx: ${tx}`);
@@ -81,15 +95,12 @@ export default function INFTAgentUI() {
     }
   };
 
-  // 🧬 Update profile
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      const tx = await updateProfile(
-        BigInt(agentId),
-        newEmbeddingURI,
-        newAiSignature
-      );
+      const id = resolveId();
+      const tx = await updateProfile(BigInt(id), newEmbeddingURI, newAiSignature);
+      await refetch();
       alert(`Profile updated successfully!\nTx: ${tx}`);
     } catch (err) {
       console.error(err);
@@ -100,53 +111,123 @@ export default function INFTAgentUI() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-xl mx-auto">
-      <h2 className="text-xl font-bold text-center">Agentic ID Manager</h2>
+    <div className="flex flex-col gap-6 max-w-xl mx-auto">
+      {agentLoading ? (
+        <div className="rounded-xl border px-4 py-3 text-sm text-muted-foreground">
+          Checking Agentic ID…
+        </div>
+      ) : hasAgent && agent ? (
+        <div className="rounded-xl border border-primary/25 bg-primary/[0.03] px-4 py-4 space-y-2">
+          <p className="text-sm font-semibold">
+            Board Chair active · Token #{agent.tokenId.toString()}
+          </p>
+          <p className="text-xs text-muted-foreground break-all">
+            Domain: {agent.domain || "—"} · Profile:{" "}
+            {agent.embeddingURI || "not bound yet"}
+          </p>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/dashboard/vault/chat">Open War Room</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
+          Mint once per wallet. This token chairs board sessions and stores the
+          latest firewall seal.
+        </div>
+      )}
 
-      {/* Mint Agentic ID */}
       <div className="space-y-2 border p-4 rounded-xl">
-        <h3 className="font-semibold">Mint Agentic ID</h3>
-        <Input placeholder="Vault Address" value={vault} onChange={(e) => setVault(e.target.value)} />
-        <Input placeholder="Encrypted Hash (0x...)" value={encryptedHash} onChange={(e) => setEncryptedHash(e.target.value)} />
-        <Input placeholder="Domain" value={domain} onChange={(e) => setDomain(e.target.value)} />
-        <Input placeholder="Embedding URI" value={embeddingURI} onChange={(e) => setEmbeddingURI(e.target.value)} />
-        <Input placeholder="AI Signature" value={aiSignature} onChange={(e) => setAiSignature(e.target.value)} />
-        <Button onClick={handleMint} disabled={loading}>
-          {loading ? "Minting..." : "Mint Agentic ID"}
+        <h3 className="font-semibold">Mint Agentic ID (Board Chair)</h3>
+        <Input
+          placeholder="Vault Address"
+          value={vault}
+          onChange={(e) => setVault(e.target.value)}
+          disabled={hasAgent}
+        />
+        <Input
+          placeholder="Encrypted Hash (0x...)"
+          value={encryptedHash}
+          onChange={(e) => setEncryptedHash(e.target.value)}
+          disabled={hasAgent}
+        />
+        <Input
+          placeholder="Domain"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          disabled={hasAgent}
+        />
+        <Input
+          placeholder="Embedding URI"
+          value={embeddingURI}
+          onChange={(e) => setEmbeddingURI(e.target.value)}
+          disabled={hasAgent}
+        />
+        <Input
+          placeholder="AI Signature"
+          value={aiSignature}
+          onChange={(e) => setAiSignature(e.target.value)}
+          disabled={hasAgent}
+        />
+        <Button onClick={handleMint} disabled={loading || hasAgent}>
+          {hasAgent
+            ? "Already minted"
+            : loading
+              ? "Minting..."
+              : "Mint Agentic ID"}
         </Button>
       </div>
 
-      {/* Read Agent */}
       <div className="space-y-2 border p-4 rounded-xl">
-        <h3 className="font-semibold">Read Agent Data</h3>
-        <Input placeholder="Agent ID" value={agentId} onChange={(e) => setAgentId(e.target.value)} />
+        <h3 className="font-semibold">Read Agent</h3>
+        <Input
+          placeholder={
+            agent
+              ? `Token ID (default #${agent.tokenId.toString()})`
+              : "Token ID"
+          }
+          value={agentId}
+          onChange={(e) => setAgentId(e.target.value)}
+        />
         <Button onClick={handleRead} disabled={loading}>
-          {loading ? "Fetching..." : "Get Agent Info"}
+          Read Agent Data
         </Button>
-
-        {agentData && (
-          <pre className="bg-gray-900 text-white p-3 rounded-lg text-sm overflow-auto max-h-64">
-            {JSON.stringify(agentData, null, 2)}
+        {agentData != null && (
+          <pre className="text-xs overflow-auto rounded-lg bg-muted p-3 max-h-48">
+            {JSON.stringify(
+              agentData,
+              (_, v) => (typeof v === "bigint" ? v.toString() : v),
+              2
+            )}
           </pre>
         )}
       </div>
 
-      {/* Update Metadata */}
       <div className="space-y-2 border p-4 rounded-xl">
-        <h3 className="font-semibold">Update Encrypted Metadata</h3>
-        <Input placeholder="New Encrypted Hash (0x...)" value={newEncryptedHash} onChange={(e) => setNewEncryptedHash(e.target.value)} />
+        <h3 className="font-semibold">Update Metadata</h3>
+        <Input
+          placeholder="New encrypted hash"
+          value={newEncryptedHash}
+          onChange={(e) => setNewEncryptedHash(e.target.value)}
+        />
         <Button onClick={handleUpdateMetadata} disabled={loading}>
-          {loading ? "Updating..." : "Update Metadata"}
+          Update Metadata
         </Button>
       </div>
 
-      {/* Update Profile */}
       <div className="space-y-2 border p-4 rounded-xl">
         <h3 className="font-semibold">Update Profile</h3>
-        <Input placeholder="New Embedding URI" value={newEmbeddingURI} onChange={(e) => setNewEmbeddingURI(e.target.value)} />
-        <Input placeholder="New AI Signature" value={newAiSignature} onChange={(e) => setNewAiSignature(e.target.value)} />
+        <Input
+          placeholder="Embedding URI"
+          value={newEmbeddingURI}
+          onChange={(e) => setNewEmbeddingURI(e.target.value)}
+        />
+        <Input
+          placeholder="AI Signature"
+          value={newAiSignature}
+          onChange={(e) => setNewAiSignature(e.target.value)}
+        />
         <Button onClick={handleUpdateProfile} disabled={loading}>
-          {loading ? "Updating..." : "Update Profile"}
+          Update Profile
         </Button>
       </div>
     </div>

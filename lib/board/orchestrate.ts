@@ -12,6 +12,7 @@ import {
   buildFallbackSession,
   parseJsonLoose,
 } from "./fallback";
+import { sealBoardSession } from "./guard";
 import {
   createBoardSessionId,
   type BoardConsensus,
@@ -77,6 +78,13 @@ function toConsensus(
         ? Math.max(0, Math.min(1, payload.confidence))
         : 0.5,
   };
+}
+
+function finalize(
+  session: BoardSession,
+  bind?: { agentTokenId?: string; wallet?: string }
+): BoardSession {
+  return sealBoardSession(session, bind);
 }
 
 async function runLiveBoard(
@@ -145,49 +153,56 @@ export async function runBoardSession(input: {
   question: string;
   evidence: VaultEvidence[];
   mode?: "auto" | "live" | "fast" | "fallback";
+  agentTokenId?: string;
+  wallet?: string;
 }): Promise<BoardSession> {
-  const question = input.question.trim() || "Review my vault evidence and recommend next actions.";
+  const question =
+    input.question.trim() ||
+    "Review my vault evidence and recommend next actions.";
   const evidence = input.evidence ?? [];
   const mode = input.mode ?? "auto";
+  const bind = {
+    agentTokenId: input.agentTokenId,
+    wallet: input.wallet,
+  };
 
   if (mode === "fallback") {
-    return buildFallbackSession(question, evidence);
+    return finalize(buildFallbackSession(question, evidence), bind);
   }
 
   if (mode === "live") {
     try {
-      return await runLiveBoard(question, evidence);
+      return finalize(await runLiveBoard(question, evidence), bind);
     } catch (err) {
       const fallback = buildFallbackSession(question, evidence);
       fallback.modelNotes = `Live compute failed (${err instanceof Error ? err.message : "error"}); used offline fallback.`;
-      return fallback;
+      return finalize(fallback, bind);
     }
   }
 
   if (mode === "fast") {
     try {
-      return await runFastBoard(question, evidence);
+      return finalize(await runFastBoard(question, evidence), bind);
     } catch (err) {
       const fallback = buildFallbackSession(question, evidence);
       fallback.modelNotes = `Fast compute failed (${err instanceof Error ? err.message : "error"}); used offline fallback.`;
-      return fallback;
+      return finalize(fallback, bind);
     }
   }
 
-  // auto: prefer fast (1 call), then live, then fallback
   try {
-    return await runFastBoard(question, evidence);
+    return finalize(await runFastBoard(question, evidence), bind);
   } catch (fastErr) {
     try {
       const live = await runLiveBoard(question, evidence);
       live.modelNotes = `Fast mode failed (${fastErr instanceof Error ? fastErr.message : "error"}); completed via live sequential agents.`;
-      return live;
+      return finalize(live, bind);
     } catch (liveErr) {
       const fallback = buildFallbackSession(question, evidence);
       fallback.modelNotes = `Compute unavailable (fast: ${
         fastErr instanceof Error ? fastErr.message : "error"
       }; live: ${liveErr instanceof Error ? liveErr.message : "error"}). Offline fallback.`;
-      return fallback;
+      return finalize(fallback, bind);
     }
   }
 }
