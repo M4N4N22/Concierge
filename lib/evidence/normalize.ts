@@ -7,8 +7,15 @@ import {
   type VaultEvidence,
 } from "./types";
 
-const AMOUNT_RE =
-  /(?:(?:USD|OG|ETH|EUR|GBP)\s*)?(?:\$|€|£)\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|-?\d+(?:\.\d{1,8})?)|(?:(-?\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|-?\d+(?:\.\d{1,8})?)\s*(?:USD|OG|ETH|EUR|GBP|\$|€|£))\b|(?:\b(?:spent|amount|total|price|cost|paid|charge)\b[:\s]+)(-?\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|-?\d+(?:\.\d{1,8})?)/gi;
+const NUM =
+  "(-?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{1,8})?|-?\\d+(?:\\.\\d{1,8})?)";
+const CODE = "(?:USD|OG|ETH|EUR|GBP)";
+const SYM = "(?:\\$|€|£)";
+/** Currency symbol/code before or after amount, or spend-keyword + amount. Dates stripped first. */
+const AMOUNT_RE = new RegExp(
+  `(?:${CODE}\\s+${NUM})|(?:${SYM}\\s*${NUM})|(?:${NUM}\\s*(?:${CODE}|${SYM})\\b)|(?:\\b(?:spent|amount|total|price|cost|paid|charge)\\b[:\\s]+${NUM})`,
+  "gi"
+);
 const DATE_RE =
   /\b(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4})\b/gi;
 
@@ -32,7 +39,7 @@ function extractAmounts(text: string): number[] {
   const scrubbed = stripDates(text);
   let m: RegExpExecArray | null;
   while ((m = re.exec(scrubbed)) !== null) {
-    const raw = m[1] ?? m[2] ?? m[3];
+    const raw = m[1] ?? m[2] ?? m[3] ?? m[4];
     if (!raw) continue;
     const n = Number(raw.replace(/,/g, ""));
     if (!Number.isNaN(n) && Math.abs(n) > 0) amounts.push(n);
