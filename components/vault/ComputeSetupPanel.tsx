@@ -233,8 +233,7 @@ export default function ComputeSetupPanel() {
               <p className="text-sm font-medium">No compute ledger yet</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
                 Create a ledger on 0G Compute to pay for AI inference. The network
-                requires a minimum deposit of {MIN_LEDGER_CREATE_OG} OG from the server
-                wallet (contract rule, not a UI conversion).
+                requires a minimum deposit of {MIN_LEDGER_CREATE_OG}.
               </p>
               <Button
                 className="mt-4 gap-2"
