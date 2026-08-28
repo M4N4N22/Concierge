@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runBoardSession } from "@/lib/board/orchestrate";
+import { authorizeBoardRequest } from "@/lib/boardAuth";
 import type { VaultEvidence } from "@/lib/evidence";
 
 export const maxDuration = 120;
@@ -17,29 +18,32 @@ function isEvidence(x: unknown): x is VaultEvidence {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const question = typeof body.question === "string" ? body.question : "";
-    const mode = body.mode as "auto" | "live" | "fast" | "fallback" | undefined;
-    const agentTokenId =
-      typeof body.agentTokenId === "string" ? body.agentTokenId : undefined;
-    const wallet = typeof body.wallet === "string" ? body.wallet : undefined;
+    const body = (await req.json()) as Record<string, unknown>;
+    const auth = await authorizeBoardRequest(req, body);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const evidence = Array.isArray(body.evidence)
       ? body.evidence.filter(isEvidence)
       : [];
 
-    if (!question.trim() && evidence.length === 0) {
+    if (!auth.question.trim() && evidence.length === 0) {
       return NextResponse.json(
         { error: "Provide a question and/or evidence packs" },
         { status: 400 }
       );
     }
 
+    const agentTokenId =
+      typeof body.agentTokenId === "string" ? body.agentTokenId : undefined;
+
     const session = await runBoardSession({
-      question,
+      question: auth.question,
       evidence,
-      mode,
+      mode: auth.mode,
       agentTokenId,
-      wallet,
+      wallet: auth.wallet,
     });
     return NextResponse.json({ session });
   } catch (err) {

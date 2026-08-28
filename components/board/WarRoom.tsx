@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAccount, useSignMessage } from "wagmi";
 import {
   Loader2,
   Scale,
@@ -30,6 +30,7 @@ import type {
   BoardVerdict,
   GuardStatus,
 } from "@/lib/board";
+import { boardAuthMessage } from "@/lib/boardAuthMessage";
 import { uploadAndRegisterOnVault } from "@/utils/upload";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -75,6 +76,7 @@ type LoadedPack = {
 
 export default function WarRoom() {
   const { isConnected, address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const { files, loading: filesLoading, refetch } = useUserFiles();
   const { fetchFileContent } = usefetchFileContent();
   const { addFile } = useAddToVault();
@@ -148,7 +150,7 @@ export default function WarRoom() {
   };
 
   const runBoard = async () => {
-    if (!isConnected) {
+    if (!isConnected || !address) {
       toast.error("Connect wallet first");
       return;
     }
@@ -156,6 +158,14 @@ export default function WarRoom() {
     setSavedRoot(null);
     setBoundTx(null);
     try {
+      const timestamp = Date.now();
+      const message = boardAuthMessage({
+        wallet: address,
+        timestamp,
+        question,
+      });
+      const signature = await signMessageAsync({ message });
+
       const res = await fetch("/api/boardSession", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -165,6 +175,8 @@ export default function WarRoom() {
           mode,
           agentTokenId: agent ? agent.tokenId.toString() : undefined,
           wallet: address,
+          timestamp,
+          signature,
         }),
       });
       const data = await res.json();
