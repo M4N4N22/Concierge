@@ -8,7 +8,7 @@ import {
 } from "./types";
 
 const AMOUNT_RE =
-  /(?:USD|OG|ETH|\$|€|£)?\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|-?\d+(?:\.\d{1,8})?)\s*(?:USD|OG|ETH|\$|€|£)?/gi;
+  /(?:(?:USD|OG|ETH|EUR|GBP)\s*)?(?:\$|€|£)\s*(-?\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|-?\d+(?:\.\d{1,8})?)|(?:(-?\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|-?\d+(?:\.\d{1,8})?)\s*(?:USD|OG|ETH|EUR|GBP|\$|€|£))\b|(?:\b(?:spent|amount|total|price|cost|paid|charge)\b[:\s]+)(-?\d{1,3}(?:,\d{3})*(?:\.\d{1,8})?|-?\d+(?:\.\d{1,8})?)/gi;
 const DATE_RE =
   /\b(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4})\b/gi;
 
@@ -21,12 +21,20 @@ function firstLine(text: string, max = 80): string {
   return line.length > max ? `${line.slice(0, max - 1)}…` : line;
 }
 
+/** Strip date tokens so ISO dates are not parsed as monetary amounts. */
+function stripDates(text: string): string {
+  return text.replace(DATE_RE, " ");
+}
+
 function extractAmounts(text: string): number[] {
   const amounts: number[] = [];
-  const re = new RegExp(AMOUNT_RE);
+  const re = new RegExp(AMOUNT_RE.source, "gi");
+  const scrubbed = stripDates(text);
   let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    const n = Number(m[1].replace(/,/g, ""));
+  while ((m = re.exec(scrubbed)) !== null) {
+    const raw = m[1] ?? m[2] ?? m[3];
+    if (!raw) continue;
+    const n = Number(raw.replace(/,/g, ""));
     if (!Number.isNaN(n) && Math.abs(n) > 0) amounts.push(n);
   }
   return amounts;
@@ -218,6 +226,7 @@ export function normalizeCsvEvidence(
     "value",
     "price",
     "usd",
+    "charge",
   ]);
 
   const isSubscriptionish = /subscription|recurring|plan|billing/.test(
@@ -235,10 +244,12 @@ export function normalizeCsvEvidence(
 
   for (const row of rows.slice(0, 50)) {
     const rawAmount = amountCol ? row[amountCol] : "";
-    const amount = Number(String(rawAmount).replace(/[$,]/g, ""));
-    if (!Number.isNaN(amount)) {
-      total += amount;
-      parsedAmounts++;
+    if (amountCol && String(rawAmount).trim() !== "") {
+      const amount = Number(String(rawAmount).replace(/[$,]/g, ""));
+      if (!Number.isNaN(amount)) {
+        total += amount;
+        parsedAmounts++;
+      }
     }
     const desc = descCol ? row[descCol] : Object.values(row).slice(0, 2).join(" ");
     const date = dateCol ? row[dateCol] : "";

@@ -2,7 +2,15 @@
 
 import { useCallback, useState } from "react";
 import { useAccount, useChainId, usePublicClient } from "wagmi";
-import { formatEther, parseAbiItem, type Address, type Hash } from "viem";
+import {
+  erc20Abi,
+  formatEther,
+  formatUnits,
+  parseAbiItem,
+  type Address,
+  type Hash,
+  type PublicClient,
+} from "viem";
 import {
   normalizeWalletEvidence,
   type WalletTransfer,
@@ -17,6 +25,38 @@ const MAX_LOGS = 40;
 
 function padTopicAddress(address: Address): Hash {
   return `0x${address.slice(2).toLowerCase().padStart(64, "0")}` as Hash;
+}
+
+async function tokenDecimals(
+  client: PublicClient,
+  token: Address,
+  cache: Map<string, number>
+): Promise<number> {
+  const key = token.toLowerCase();
+  if (cache.has(key)) return cache.get(key)!;
+  try {
+    const decimals = await client.readContract({
+      address: token,
+      abi: erc20Abi,
+      functionName: "decimals",
+    });
+    const n = Number(decimals);
+    cache.set(key, Number.isFinite(n) ? n : 18);
+  } catch {
+    cache.set(key, 18);
+  }
+  return cache.get(key)!;
+}
+
+function formatTokenValue(value: bigint, decimals: number): string {
+  try {
+    const formatted = formatUnits(value, decimals);
+    const n = Number(formatted);
+    if (!Number.isFinite(n)) return formatted;
+    return n.toFixed(Math.min(6, decimals));
+  } catch {
+    return value.toString();
+  }
 }
 
 export function useWalletEvidence() {
@@ -58,7 +98,6 @@ export function useWalletEvidence() {
         }),
       ]);
 
-      // Fallback if indexed args filter is unsupported — scan both topic positions
       let outbound = outLogs;
       let inbound = inLogs;
       if (outLogs.length === 0 && inLogs.length === 0) {
@@ -75,31 +114,35 @@ export function useWalletEvidence() {
         );
       }
 
+      const decimalsCache = new Map<string, number>();
       const transfers: WalletTransfer[] = [];
 
-      for (const log of outbound.slice(-MAX_LOGS)) {
+      const pushLog = async (
+        log: (typeof outbound)[number],
+        direction: "in" | "out"
+      ) => {
         const value = log.args.value ?? 0n;
+        const decimals = await tokenDecimals(
+          publicClient,
+          log.address,
+          decimalsCache
+        );
         transfers.push({
           txHash: log.transactionHash ?? "0x",
           blockNumber: Number(log.blockNumber ?? 0n),
-          from: address,
-          to: (log.args.to as string) ?? "",
-          value: formatEther(value),
+          from: direction === "out" ? address : ((log.args.from as string) ?? ""),
+          to: direction === "in" ? address : ((log.args.to as string) ?? ""),
+          value: formatTokenValue(value, decimals),
           tokenAddress: log.address,
-          direction: "out",
+          direction,
         });
+      };
+
+      for (const log of outbound.slice(-MAX_LOGS)) {
+        await pushLog(log, "out");
       }
       for (const log of inbound.slice(-MAX_LOGS)) {
-        const value = log.args.value ?? 0n;
-        transfers.push({
-          txHash: log.transactionHash ?? "0x",
-          blockNumber: Number(log.blockNumber ?? 0n),
-          from: (log.args.from as string) ?? "",
-          to: address,
-          value: formatEther(value),
-          tokenAddress: log.address,
-          direction: "in",
-        });
+        await pushLog(log, "in");
       }
 
       transfers.sort((a, b) => b.blockNumber - a.blockNumber);
