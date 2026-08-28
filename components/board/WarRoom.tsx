@@ -13,17 +13,23 @@ import {
   Save,
   CheckCircle2,
   AlertTriangle,
+  Fingerprint,
+  ShieldCheck,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useUserFiles } from "@/hooks/useUserFiles";
 import { usefetchFileContent } from "@/hooks/useFileContent";
 import { useAddToVault } from "@/hooks/useAddToVault";
-import {
-  isEvidenceCategory,
-  type VaultEvidence,
-} from "@/lib/evidence";
-import type { BoardSession, BoardTurn, BoardVerdict } from "@/lib/board";
+import { useAgenticId } from "@/hooks/useAgenticId";
+import { isEvidenceCategory, type VaultEvidence } from "@/lib/evidence";
+import type {
+  BoardSession,
+  BoardTurn,
+  BoardVerdict,
+  GuardStatus,
+} from "@/lib/board";
 import { uploadAndRegisterOnVault } from "@/utils/upload";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -36,6 +42,12 @@ function verdictTone(v: BoardVerdict): string {
   if (v === "reject") return "text-red-600 dark:text-red-400";
   if (v === "abstain") return "text-muted-foreground";
   return "text-amber-600 dark:text-amber-400";
+}
+
+function guardTone(s: GuardStatus): string {
+  if (s === "pass") return "border-emerald-500/30 bg-emerald-500/5";
+  if (s === "block") return "border-red-500/30 bg-red-500/5";
+  return "border-amber-500/30 bg-amber-500/5";
 }
 
 function RoleIcon({ role }: { role: BoardTurn["role"] }) {
@@ -62,20 +74,30 @@ type LoadedPack = {
 };
 
 export default function WarRoom() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { files, loading: filesLoading, refetch } = useUserFiles();
   const { fetchFileContent } = usefetchFileContent();
   const { addFile } = useAddToVault();
+  const {
+    agent,
+    loading: agentLoading,
+    hasAgent,
+    bindBoardSession,
+    refetch: refetchAgent,
+  } = useAgenticId();
 
   const [packs, setPacks] = useState<LoadedPack[]>([]);
   const [loadingPacks, setLoadingPacks] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [question, setQuestion] = useState(DEFAULT_QUESTION);
-  const [mode, setMode] = useState<"auto" | "fast" | "live" | "fallback">("auto");
+  const [mode, setMode] = useState<"auto" | "fast" | "live" | "fallback">(
+    "auto"
+  );
   const [running, setRunning] = useState(false);
   const [session, setSession] = useState<BoardSession | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedRoot, setSavedRoot] = useState<string | null>(null);
+  const [boundTx, setBoundTx] = useState<string | null>(null);
 
   const loadPacks = useCallback(async () => {
     if (!isConnected) {
@@ -132,6 +154,7 @@ export default function WarRoom() {
     }
     setRunning(true);
     setSavedRoot(null);
+    setBoundTx(null);
     try {
       const res = await fetch("/api/boardSession", {
         method: "POST",
@@ -140,12 +163,21 @@ export default function WarRoom() {
           question,
           evidence: selectedEvidence,
           mode,
+          agentTokenId: agent ? agent.tokenId.toString() : undefined,
+          wallet: address,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Board failed");
       setSession(data.session as BoardSession);
-      toast.success("Board session complete");
+      const g = (data.session as BoardSession).guard?.status;
+      toast.success(
+        g === "block"
+          ? "Board complete — Agentic Firewall blocked unsafe actions"
+          : g === "review"
+            ? "Board complete — firewall requires human review"
+            : "Board session sealed"
+      );
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Board failed");
     } finally {
@@ -153,12 +185,21 @@ export default function WarRoom() {
     }
   };
 
-  const saveSession = async () => {
+  const saveAndBind = async () => {
     if (!session || !isConnected) return;
+    if (session.guard?.status === "block") {
+      toast.error("Cannot bind a blocked session as executable guidance");
+      // still allow vault archive
+    }
     setSaving(true);
     try {
+      const sealedSession: BoardSession = {
+        ...session,
+        agentTokenId: agent?.tokenId.toString() ?? session.agentTokenId,
+        chairWallet: address ?? session.chairWallet,
+      };
       const file = new File(
-        [JSON.stringify(session, null, 2)],
+        [JSON.stringify(sealedSession, null, 2)],
         `${session.id}.json`,
         { type: "application/json" }
       );
@@ -172,8 +213,42 @@ export default function WarRoom() {
           successMessage: "Board transcript saved to vault",
         }
       );
-      if (result) {
-        setSavedRoot(result.rootHash);
+      if (!result) return;
+
+      setSavedRoot(result.rootHash);
+      setSession({
+        ...sealedSession,
+        transcriptRootHash: result.rootHash,
+      });
+
+      if (agent && session.guard?.sealHash) {
+        try {
+          const tx = await bindBoardSession({
+            tokenId: agent.tokenId,
+            transcriptRootHash: result.rootHash,
+            sealHash: session.guard.sealHash,
+          });
+          setBoundTx(tx);
+          setSession((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  transcriptRootHash: result.rootHash,
+                  boundToAgent: true,
+                }
+              : prev
+          );
+          toast.success("Agentic ID profile bound to this board session");
+          await refetchAgent();
+        } catch (err: unknown) {
+          toast.error(
+            err instanceof Error
+              ? `Saved to vault, but Agentic ID bind failed: ${err.message}`
+              : "Saved to vault; Agentic ID bind failed"
+          );
+        }
+      } else if (!agent) {
+        toast.message("Transcript saved — mint an Agentic ID to bind as Board Chair");
       }
     } finally {
       setSaving(false);
@@ -182,6 +257,46 @@ export default function WarRoom() {
 
   return (
     <div className="space-y-6">
+      <section
+        className={cn(
+          "rounded-2xl border px-5 py-4",
+          hasAgent
+            ? "border-primary/25 bg-primary/[0.03]"
+            : "border-dashed bg-muted/20"
+        )}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Fingerprint className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Board Chair · Agentic ID</p>
+              {agentLoading ? (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Checking on-chain agent…
+                </p>
+              ) : hasAgent && agent ? (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Token #{agent.tokenId.toString()} · {agent.domain || "no domain"}{" "}
+                  · sessions bind to this chair on save
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  No Agentic ID yet — board still runs; mint to own & seal sessions
+                  onchain.
+                </p>
+              )}
+            </div>
+          </div>
+          {!hasAgent && (
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/agent/mint">Mint Agentic ID</Link>
+            </Button>
+          )}
+        </div>
+      </section>
+
       <section className="rounded-2xl border bg-card overflow-hidden">
         <div className="border-b px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -191,7 +306,7 @@ export default function WarRoom() {
             <div>
               <h2 className="text-lg font-semibold">Concierge Board</h2>
               <p className="text-sm text-muted-foreground">
-                Analyst · Risk · Security debate your vault evidence on 0G Compute
+                Analyst · Risk · Security debate → Agentic Firewall seals actions
               </p>
             </div>
           </div>
@@ -341,6 +456,9 @@ export default function WarRoom() {
               <p className="text-sm font-medium">Debate transcript</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {session.id} · mode {session.computeMode}
+                {session.agentTokenId
+                  ? ` · chair #${session.agentTokenId}`
+                  : ""}
                 {session.modelNotes ? ` · ${session.modelNotes}` : ""}
               </p>
             </div>
@@ -358,7 +476,7 @@ export default function WarRoom() {
                 size="sm"
                 variant="outline"
                 className="gap-2"
-                onClick={() => void saveSession()}
+                onClick={() => void saveAndBind()}
                 disabled={saving}
               >
                 {saving ? (
@@ -366,10 +484,64 @@ export default function WarRoom() {
                 ) : (
                   <Save className="h-4 w-4" />
                 )}
-                Save to vault
+                {hasAgent ? "Save & bind to Agentic ID" : "Save to vault"}
               </Button>
             </div>
           </div>
+
+          {session.guard && (
+            <div
+              className={cn(
+                "border-b px-5 py-4 space-y-2",
+                guardTone(session.guard.status)
+              )}
+            >
+              <div className="flex items-center gap-2">
+                {session.guard.status === "block" ? (
+                  <Ban className="h-4 w-4 text-red-600" />
+                ) : session.guard.status === "review" ? (
+                  <ShieldAlert className="h-4 w-4 text-amber-600" />
+                ) : (
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                )}
+                <p className="text-sm font-semibold">
+                  Agentic Firewall · {session.guard.status}
+                </p>
+              </div>
+              <p className="text-[11px] font-mono text-muted-foreground break-all">
+                seal {session.guard.sealHash}
+              </p>
+              <ul className="text-xs space-y-1 list-disc pl-5 text-muted-foreground">
+                {session.guard.reasons.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+              {session.guard.blockedActions.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-red-600/80 mb-1">
+                    Blocked actions
+                  </p>
+                  <ul className="text-xs list-disc pl-5 space-y-0.5">
+                    {session.guard.blockedActions.map((a) => (
+                      <li key={a}>{a}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {session.guard.allowedActions.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-medium uppercase text-emerald-700/80 dark:text-emerald-400/80 mb-1">
+                    Allowed (non-executing) actions
+                  </p>
+                  <ul className="text-xs list-disc pl-5 space-y-0.5">
+                    {session.guard.allowedActions.map((a) => (
+                      <li key={a}>{a}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="divide-y">
             {session.turns.map((turn) => (
@@ -418,18 +590,6 @@ export default function WarRoom() {
               </span>
             </div>
             <p className="text-sm leading-relaxed">{session.consensus.summary}</p>
-            {session.consensus.actions.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
-                  Actions
-                </p>
-                <ul className="text-sm space-y-1 list-disc pl-5">
-                  {session.consensus.actions.map((a) => (
-                    <li key={a}>{a}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {session.consensus.dissent.length > 0 && (
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
@@ -444,7 +604,8 @@ export default function WarRoom() {
             )}
             {savedRoot && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                Saved as evidence:board · {savedRoot.slice(0, 18)}…
+                Vault transcript · {savedRoot.slice(0, 18)}…
+                {boundTx ? ` · Agentic ID bound (${boundTx.slice(0, 12)}…)` : ""}
               </p>
             )}
           </div>

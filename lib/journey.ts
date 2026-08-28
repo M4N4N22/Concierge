@@ -74,11 +74,11 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   {
     id: "agentic-id",
     step: 4,
-    title: "Mint your Agentic ID",
+    title: "Mint your Board Chair",
     shortTitle: "Agentic ID",
-    tagline: "Your onchain AI agent, trained on you",
+    tagline: "Own the war room onchain",
     description:
-      "Tokenize your personal agent on 0G Chain. One vault powers domain agents that learn from your data.",
+      "Mint an Agentic ID bound to your vault. Board transcripts and firewall seals bind back to this token — ownership layer for the multi-agent board.",
     href: "/dashboard/agent/mint",
     icon: Fingerprint,
     status: "live",
@@ -87,7 +87,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
         id: "mint",
         name: "Mint Agent",
         href: "/dashboard/agent/mint",
-        description: "Create your Agentic ID bound to your vault",
+        description: "Create your Agentic ID / Board Chair",
       },
       {
         id: "learning",

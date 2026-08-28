@@ -18,9 +18,11 @@ function isEvidence(x: unknown): x is VaultEvidence {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const question =
-      typeof body.question === "string" ? body.question : "";
+    const question = typeof body.question === "string" ? body.question : "";
     const mode = body.mode as "auto" | "live" | "fast" | "fallback" | undefined;
+    const agentTokenId =
+      typeof body.agentTokenId === "string" ? body.agentTokenId : undefined;
+    const wallet = typeof body.wallet === "string" ? body.wallet : undefined;
     const evidence = Array.isArray(body.evidence)
       ? body.evidence.filter(isEvidence)
       : [];
@@ -32,7 +34,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await runBoardSession({ question, evidence, mode });
+    const session = await runBoardSession({
+      question,
+      evidence,
+      mode,
+      agentTokenId,
+      wallet,
+    });
     return NextResponse.json({ session });
   } catch (err) {
     console.error("[boardSession]", err);

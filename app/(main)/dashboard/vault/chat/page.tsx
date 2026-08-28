@@ -11,7 +11,7 @@ export default function VaultChatPage() {
         journeyId="chat"
         title="AI War Room"
         tagline="Multi-agent board on your evidence"
-        description="Analyst, Risk, and Security agents debate selected vault evidence packs on 0G Compute, then the Chair records consensus, dissent, and actions — saved back to Storage as a verifiable transcript."
+        description="Analyst, Risk, and Security debate your evidence on 0G Compute. An Agentic Firewall seals unsafe actions, then you bind the transcript to your Agentic ID as Board Chair."
       />
 
       <WarRoom />
