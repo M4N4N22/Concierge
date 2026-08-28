@@ -59,9 +59,15 @@ export async function uploadAndRegisterOnVault(
   insightsCID: string | ((rootHash: string) => string),
   options?: {
     onProgress?: (phase: "storage" | "vault") => void;
+    category?: string;
+    encryptedKey?: string;
+    useTestnet?: boolean;
+    toastId?: string | number;
+    successMessage?: string;
   }
 ): Promise<{ rootHash: string; txHash?: string; alreadyExists?: boolean } | null> {
-  const toastId = toast.loading(`Uploading ${file.name} to 0G Storage…`);
+  const toastId =
+    options?.toastId ?? toast.loading(`Uploading ${file.name} to 0G Storage…`);
 
   try {
     options?.onProgress?.("storage");
@@ -74,13 +80,12 @@ export async function uploadAndRegisterOnVault(
     }
 
     if (stored.alreadyExists) {
-      toast.info(`${file.name} already on 0G Storage — skipped duplicate upload`, {
+      toast.info(`${file.name} already on 0G Storage — registering on vault…`, {
         id: toastId,
       });
-      return { rootHash: stored.rootHash, alreadyExists: true };
+    } else {
+      toast.loading(`Confirm vault transaction in your wallet…`, { id: toastId });
     }
-
-    toast.loading(`Confirm vault transaction in your wallet…`, { id: toastId });
 
     options?.onProgress?.("vault");
 
@@ -91,14 +96,17 @@ export async function uploadAndRegisterOnVault(
 
     const txHash = await addFile({
       rootHash: stored.rootHash,
-      category: "unassigned",
-      encryptedKey: "",
+      category: options?.category ?? "unassigned",
+      encryptedKey: options?.encryptedKey ?? "",
       insightsCID: resolvedInsightsCID,
-      useTestnet: true,
+      useTestnet: options?.useTestnet ?? true,
     });
 
-    toast.success(`${file.name} is in your vault`, { id: toastId });
-    return { rootHash: stored.rootHash, txHash };
+    toast.success(
+      options?.successMessage ?? `${file.name} is in your vault`,
+      { id: toastId }
+    );
+    return { rootHash: stored.rootHash, txHash, alreadyExists: stored.alreadyExists };
   } catch (err: unknown) {
     if (isUserRejectedError(err)) {
       toast.error(`Transaction cancelled — ${file.name} not added to vault`, {

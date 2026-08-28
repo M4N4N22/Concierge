@@ -8,6 +8,11 @@ import { useAddToVault } from "@/hooks/useAddToVault";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import {
+  evidenceCategory,
+  evidenceToFile,
+  normalizeFromFileContent,
+} from "@/lib/evidence";
 
 type UploadedFile = {
   file: File;
@@ -47,7 +52,8 @@ export default function UploadButton({
   onProgress?: (progress: UploadProgressState | null) => void;
   onComplete?: () => void;
 }) {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const chainId = useChainId();
   const { addFile } = useAddToVault();
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -102,11 +108,40 @@ export default function UploadButton({
         phase: "storage",
       });
 
+      // Prefer schema-first evidence packs for text/csv; fall back to raw blob.
+      let uploadFile = file;
+      let category = "unassigned";
+      const lower = file.name.toLowerCase();
+      const canNormalize =
+        lower.endsWith(".txt") ||
+        lower.endsWith(".csv") ||
+        lower.endsWith(".json") ||
+        file.type.startsWith("text") ||
+        file.type === "application/json";
+
+      if (canNormalize) {
+        try {
+          const content = await file.text();
+          if (content.trim()) {
+            const pack = normalizeFromFileContent(file.name, content, {
+              wallet: address,
+              chainId,
+              source: "upload",
+            });
+            uploadFile = evidenceToFile(pack);
+            category = evidenceCategory(pack.type);
+          }
+        } catch {
+          // keep raw file
+        }
+      }
+
       const result = await uploadAndRegisterOnVault(
-        file,
+        uploadFile,
         addFile,
         (rootHash) => rootHash,
         {
+          category,
           onProgress: (phase) =>
             updateProgress({
               current: i + 1,
@@ -119,7 +154,7 @@ export default function UploadButton({
 
       if (result) {
         uploaded.push({
-          file,
+          file: uploadFile,
           rootHash: result.rootHash,
           txHash: result.txHash,
         });
@@ -220,7 +255,7 @@ export default function UploadButton({
         </p>
         <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
           {isConnected
-            ? "Receipts, bills, exports — encrypted on 0G Storage, registered on-chain"
+            ? "Receipts, CSVs, notes — text types become evidence packs on 0G"
             : "Your wallet signs storage & vault transactions"}
         </p>
 

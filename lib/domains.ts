@@ -3,9 +3,32 @@ export type AgentDomain = "finance" | "travel" | "subscription";
 export const AGENT_DOMAINS: AgentDomain[] = ["finance", "travel", "subscription"];
 
 const DOMAIN_KEYWORDS: Record<AgentDomain, string[]> = {
-  finance: ["finance", "financial", "medical", "bill", "spending", "payment", "invoice", "bank", "tax"],
-  travel: ["travel", "flight", "trip", "hotel", "airline", "booking", "itinerary"],
-  subscription: ["subscription", "recurring", "streaming", "saas", "membership", "renewal"],
+  finance: [
+    "finance",
+    "financial",
+    "medical",
+    "bill",
+    "spending",
+    "payment",
+    "invoice",
+    "bank",
+    "tax",
+    "evidence:spend",
+    "evidence:wallet",
+    "evidence:tx",
+    "evidence:board",
+    "evidence:briefing",
+  ],
+  travel: ["travel", "flight", "trip", "hotel", "airline", "booking", "itinerary", "evidence:travel"],
+  subscription: [
+    "subscription",
+    "recurring",
+    "streaming",
+    "saas",
+    "membership",
+    "renewal",
+    "evidence:subscription",
+  ],
 };
 
 export function matchFileToDomain(category: string): AgentDomain | null {

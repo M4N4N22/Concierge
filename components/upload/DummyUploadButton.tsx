@@ -1,11 +1,16 @@
 "use client";
 
-import { useAccount } from "wagmi";
-import { DUMMY_CONTENTS, uploadAndRegisterOnVault } from "@/utils/upload";
+import { useAccount, useChainId } from "wagmi";
+import { DUMMY_CONTENTS } from "@/utils/upload";
 import { useAddToVault } from "@/hooks/useAddToVault";
 import { Button } from "@/components/ui/button";
 import { FileStack } from "lucide-react";
 import type { UploadProgressState } from "./UploadButton";
+import {
+  evidenceToFile,
+  normalizeTextEvidence,
+  registerEvidencePack,
+} from "@/lib/evidence";
 
 export default function DummyUploadButton({
   onUpload,
@@ -20,9 +25,9 @@ export default function DummyUploadButton({
   onProgress?: (progress: UploadProgressState | null) => void;
   onComplete?: () => void;
 }) {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
+  const chainId = useChainId();
   const { addFile } = useAddToVault();
-  const emptyBytes32 = "0x" + "00".repeat(32);
 
   const handleDummyUpload = async () => {
     if (!isConnected) return;
@@ -32,23 +37,28 @@ export default function DummyUploadButton({
 
     for (let i = 0; i < DUMMY_CONTENTS.length; i++) {
       const content = DUMMY_CONTENTS[i];
-      const file = new File([content], `sample_receipt_${i + 1}.txt`, {
-        type: "text/plain",
+      const pack = normalizeTextEvidence(content, {
+        source: "sample",
+        fileName: `sample_receipt_${i + 1}.txt`,
+        type: "spend",
+        wallet: address,
+        chainId,
       });
+      const file = evidenceToFile(pack);
 
       onProgress?.({
         current: i + 1,
         total: DUMMY_CONTENTS.length,
-        fileName: file.name,
+        fileName: pack.title,
         phase: "storage",
       });
 
-      const result = await uploadAndRegisterOnVault(file, addFile, emptyBytes32, {
+      const result = await registerEvidencePack(pack, addFile, {
         onProgress: (phase) =>
           onProgress?.({
             current: i + 1,
             total: DUMMY_CONTENTS.length,
-            fileName: file.name,
+            fileName: pack.title,
             phase,
           }),
       });

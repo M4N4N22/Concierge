@@ -26,8 +26,34 @@ import {
   truncateHash,
 } from "@/lib/explorer";
 import { toast } from "sonner";
+import { isEvidenceCategory } from "@/lib/evidence";
+
+function parseEvidenceTitle(content: string | null): string | null {
+  if (!content || content.includes("File not found")) return null;
+  try {
+    const parsed = JSON.parse(content) as {
+      title?: string;
+      type?: string;
+      question?: string;
+      consensus?: { verdict?: string };
+    };
+    if (parsed?.title) return parsed.title;
+    if (parsed?.consensus?.verdict && parsed?.question) {
+      return `Board · ${parsed.consensus.verdict} · ${parsed.question.slice(0, 40)}`;
+    }
+  } catch {
+    // not JSON
+  }
+  return null;
+}
 
 function displayName(file: VaultFile, content: string | null): string {
+  const evidenceTitle = parseEvidenceTitle(content);
+  if (evidenceTitle) return evidenceTitle;
+
+  if (isEvidenceCategory(file.category)) {
+    return file.category.replace("evidence:", "Evidence · ");
+  }
   if (file.category && file.category !== "unassigned") {
     return file.category.charAt(0).toUpperCase() + file.category.slice(1);
   }
@@ -108,6 +134,8 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
               "rounded-full px-2 py-0.5 text-[10px] font-medium",
               file.category === "unassigned"
                 ? "bg-muted text-muted-foreground"
+                : isEvidenceCategory(file.category)
+                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                 : "bg-primary/10 text-primary"
             )}
           >

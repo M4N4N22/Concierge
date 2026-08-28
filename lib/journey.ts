@@ -40,9 +40,9 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     step: 1,
     title: "Upload your data",
     shortTitle: "Upload",
-    tagline: "Manual upload or connect external sources",
+    tagline: "Wallet sync, CSV, paste, or upload",
     description:
-      "Add documents to your private vault on 0G Storage. Files are encrypted and registered on-chain.",
+      "Add schema-first evidence packs to your vault on 0G Storage. Wallet history, CSV exports, and paste briefings normalize into facts the AI board can use.",
     href: "/dashboard/vault/my-files",
     icon: Upload,
     status: "live",
@@ -62,14 +62,14 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   {
     id: "chat",
     step: 3,
-    title: "Talk to your data",
-    shortTitle: "Chat",
-    tagline: "Ask questions across your vault",
+    title: "AI War Room",
+    shortTitle: "Board",
+    tagline: "Multi-agent debate on vault evidence",
     description:
-      "Chat with an AI that only knows your documents — private, contextual answers from your vault.",
+      "Analyst, Risk, and Security agents cross-check your evidence packs on 0G Compute and record a consensus transcript to Storage.",
     href: "/dashboard/vault/chat",
     icon: MessageSquare,
-    status: "coming-soon",
+    status: "live",
   },
   {
     id: "agentic-id",

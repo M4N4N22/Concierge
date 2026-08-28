@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import UploadButton, { type UploadProgressState } from "../upload/UploadButton";
 import DummyUploadButton from "../upload/DummyUploadButton";
+import EvidenceIntake from "./EvidenceIntake";
 import { Progress } from "@/components/ui/progress";
 import { ExplorerLink } from "./ExplorerLink";
 import { CopyHash } from "./CopyHash";
@@ -17,11 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useChainId } from "wagmi";
-import {
-  getTxExplorerUrl,
-  truncateHash,
-} from "@/lib/explorer";
+import { getTxExplorerUrl, truncateHash } from "@/lib/explorer";
 
 interface UploadedFile {
   file: File;
@@ -31,26 +28,26 @@ interface UploadedFile {
 }
 
 const PIPELINE = [
-  { icon: HardDrive, label: "Your device", detail: "Files you choose" },
-  { icon: Shield, label: "0G Storage", detail: "Encrypted, decentralized" },
-  { icon: Blocks, label: "0G Chain vault", detail: "On-chain registry" },
+  { icon: Wallet, label: "Evidence source", detail: "Wallet, CSV, or paste" },
+  { icon: Shield, label: "Normalize", detail: "Schema-first facts" },
+  { icon: Blocks, label: "0G vault", detail: "Storage + on-chain" },
 ] as const;
 
 const DIFFERENTIATORS = [
   {
     icon: Shield,
-    title: "Encrypted at rest",
-    body: "Files are stored on 0G Storage — not a centralized cloud bucket you don't control.",
+    title: "Clean packs, not junk drawers",
+    body: "Agents consume structured VaultEvidence facts — amounts, dates, counterparties — not raw PDF chaos.",
   },
   {
     icon: Link2,
     title: "Provable on-chain",
-    body: "Each file gets a Merkle root hash registered in your vault smart contract.",
+    body: "Each evidence pack gets a Merkle root registered in your vault smart contract.",
   },
   {
-    icon: Wallet,
-    title: "Wallet-owned",
-    body: "Only your connected wallet can add files. No account passwords — you hold the keys.",
+    icon: HardDrive,
+    title: "Wallet-first cold start",
+    body: "Sync on-chain history with one click. Optional CSV / paste for personal context.",
   },
 ] as const;
 
@@ -60,12 +57,17 @@ function phaseLabel(phase: UploadProgressState["phase"]) {
   return "Finishing…";
 }
 
-export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => void }) {
+export default function UploadArea({
+  onVaultUpdate,
+}: {
+  onVaultUpdate?: () => void;
+}) {
   const { isConnected } = useAccount();
   const chainId = useChainId();
   const [loading, setLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(null);
+  const [uploadProgress, setUploadProgress] =
+    useState<UploadProgressState | null>(null);
 
   const handleVaultUpdate = useCallback(() => {
     onVaultUpdate?.();
@@ -78,9 +80,11 @@ export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => vo
       files.map(async (file) => ({
         ...file,
         rootHash: file.rootHash!,
-        content: file.file.type.startsWith("text")
-          ? await file.file.text()
-          : undefined,
+        content:
+          file.file.type.startsWith("text") ||
+          file.file.type === "application/json"
+            ? await file.file.text()
+            : undefined,
       }))
     );
     setUploadedFiles((prev) => [...prev, ...filesWithContent]);
@@ -99,9 +103,9 @@ export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => vo
     <div className="space-y-6">
       <section className="rounded-2xl border bg-card overflow-hidden">
         <div className="border-b bg-muted/30 px-5 py-3.5">
-          <p className="text-sm font-medium">Where your data goes</p>
+          <p className="text-sm font-medium">How clean ingestion works</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Unlike Google Drive or Dropbox — decentralized storage with on-chain proof
+            Source → normalize to VaultEvidence → 0G Storage + vault registry
           </p>
         </div>
         <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
@@ -115,19 +119,38 @@ export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => vo
                   Step {i + 1}
                 </p>
                 <p className="text-sm font-semibold mt-0.5">{step.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{step.detail}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {step.detail}
+                </p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
+      <EvidenceIntake
+        disabled={loading}
+        onRegistered={(result) => {
+          const file = new File(
+            [JSON.stringify(result.pack, null, 2)],
+            `${result.pack.id}.json`,
+            { type: "application/json" }
+          );
+          setUploadedFiles((prev) => [
+            ...prev,
+            { file, rootHash: result.rootHash, txHash: result.txHash },
+          ]);
+          handleVaultUpdate();
+        }}
+      />
+
       <section className="rounded-2xl border bg-card shadow-sm">
         <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Add to vault</h2>
+            <h2 className="text-lg font-semibold">Or upload raw files</h2>
             <p className="text-sm text-muted-foreground">
-              Upload documents to your personal 0G vault
+              Text/CSV/JSON are auto-normalized into evidence packs. Other types
+              store as-is.
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -149,8 +172,9 @@ export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => vo
             <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
               <Wallet className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-muted-foreground">
-                <span className="font-medium text-foreground">Connect wallet</span> in the
-                header to sign storage uploads and vault transactions on 0G.
+                <span className="font-medium text-foreground">Connect wallet</span>{" "}
+                in the header to sign storage uploads and vault transactions on
+                0G.
               </p>
             </div>
           )}
@@ -173,7 +197,9 @@ export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => vo
           >
             <item.icon className="h-5 w-5 text-primary mb-2.5" />
             <p className="text-sm font-semibold">{item.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.body}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {item.body}
+            </p>
           </div>
         ))}
       </section>
@@ -182,9 +208,11 @@ export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => vo
         <section className="rounded-2xl border bg-card overflow-hidden">
           <div className="border-b bg-muted/30 px-5 py-3.5 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Upload complete</p>
+              <p className="text-sm font-medium">Registered this session</p>
               <p className="text-xs text-muted-foreground">
-                {uploadedFiles.length} file{uploadedFiles.length !== 1 ? "s" : ""} this session
+                {uploadedFiles.length} pack
+                {uploadedFiles.length !== 1 ? "s" : ""} / file
+                {uploadedFiles.length !== 1 ? "s" : ""}
               </p>
             </div>
             {loading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
@@ -193,13 +221,17 @@ export default function UploadArea({ onVaultUpdate }: { onVaultUpdate?: () => vo
           {loading && uploadProgress && (
             <div className="border-b px-5 py-3 space-y-2 bg-primary/[0.03]">
               <div className="flex justify-between text-xs">
-                <span className="font-medium truncate">{uploadProgress.fileName}</span>
+                <span className="font-medium truncate">
+                  {uploadProgress.fileName}
+                </span>
                 <span className="text-muted-foreground shrink-0 ml-2">
                   {uploadProgress.current}/{uploadProgress.total}
                 </span>
               </div>
               <Progress value={progressPercent} className="h-1.5" />
-              <p className="text-xs text-muted-foreground">{phaseLabel(uploadProgress.phase)}</p>
+              <p className="text-xs text-muted-foreground">
+                {phaseLabel(uploadProgress.phase)}
+              </p>
             </div>
           )}
 

@@ -17,9 +17,9 @@ export default function MyFilesPage() {
       <JourneyStepHeader
         step={1}
         journeyId="upload"
-        title="Upload your data"
-        tagline="Vault ingestion"
-        description="Add files from your device or try a sample receipt. Everything is encrypted on 0G Storage and registered in your on-chain vault — you stay in control."
+        title="Ingest your evidence"
+        tagline="Schema-first vault intake"
+        description="Add clean evidence packs from your wallet, a CSV export, or a paste briefing. Text uploads are normalized into VaultEvidence before hitting 0G Storage — so the board reads facts, not noise."
       />
 
       <UploadArea onVaultUpdate={() => setVaultRefresh((n) => n + 1)} />
@@ -49,14 +49,15 @@ export default function MyFilesPage() {
         <div className="text-sm">
           <p className="font-medium text-foreground">What happens next?</p>
           <p className="text-muted-foreground mt-1">
-            After upload, head to{" "}
+            Evidence packs feed the{" "}
             <Link
-              href="/dashboard/vault/insights"
+              href="/dashboard/vault/chat"
               className="text-primary font-medium hover:underline"
             >
-              Insights
+              AI War Room
             </Link>{" "}
-            to let 0G Compute categorize and summarize each file.
+            — Analyst, Risk, and Security agents debate them and save a consensus
+            transcript back to your vault.
           </p>
         </div>
       </div>
