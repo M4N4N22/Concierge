@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { useChainId } from "wagmi";
 import { toast } from "sonner";
 import { MIN_LEDGER_CREATE_OG, MIN_PROVIDER_FUND_OG } from "@/lib/computeConstants";
 
@@ -16,6 +17,17 @@ export type LedgerState = {
   total: bigint;
   locked: bigint;
   available: bigint;
+};
+
+export type BrokerWalletInfo = {
+  address: string;
+  chainId: number;
+  network: string;
+  isTestnet: boolean;
+  nativeBalanceOg: number;
+  requiredCreateOg: number;
+  shortfallOg: number;
+  canCreateLedger: boolean;
 };
 
 const MODEL_TAGS: Record<string, string[]> = {
@@ -39,38 +51,57 @@ export function formatOG(value: number): string {
 }
 
 export function useComputeLedger() {
+  const chainId = useChainId();
   const [models, setModels] = useState<ComputeModel[]>([]);
   const [ledger, setLedger] = useState<LedgerState | null>(null);
   const [ledgerExists, setLedgerExists] = useState(false);
-  const [fundedProviders, setFundedProviders] = useState<Set<string>>(new Set());
+  const [broker, setBroker] = useState<BrokerWalletInfo | null>(null);
+  const [fundedProviders, setFundedProviders] = useState<Set<string>>(
+    new Set()
+  );
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const refreshLedger = useCallback(async () => {
-    const res = await fetch("/api/ledger", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "check" }),
-    });
-    const data = await res.json();
-    if (data.exists && data.ledger) {
-      const total = BigInt(data.ledger[1] ?? 0);
-      const locked = BigInt(data.ledger[2] ?? 0);
-      setLedger({ total, locked, available: total - locked });
-      setLedgerExists(true);
-    } else {
+    try {
+      const res = await fetch("/api/ledger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "check", chainId }),
+      });
+      const data = await res.json();
+      setBroker(
+        data.broker ? (data.broker as BrokerWalletInfo) : null
+      );
+      if (data.exists && data.ledger) {
+        const total = BigInt(data.ledger[1] ?? 0);
+        const locked = BigInt(data.ledger[2] ?? 0);
+        setLedger({ total, locked, available: total - locked });
+        setLedgerExists(true);
+      } else {
+        setLedger(null);
+        setLedgerExists(false);
+      }
+    } catch {
+      setBroker(null);
       setLedger(null);
       setLedgerExists(false);
     }
-  }, []);
+  }, [chainId]);
 
   const refreshModels = useCallback(async () => {
-    const res = await fetch("/api/models");
-    const data = await res.json();
-    if (data.models) {
-      setModels((data.models as ComputeModel[]).map(tagModel));
+    try {
+      const res = await fetch(`/api/models?chainId=${chainId}`);
+      const data = await res.json();
+      setModels(
+        data.models
+          ? (data.models as ComputeModel[]).map(tagModel)
+          : []
+      );
+    } catch {
+      setModels([]);
     }
-  }, []);
+  }, [chainId]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -82,7 +113,7 @@ export function useComputeLedger() {
   }, [refreshLedger, refreshModels]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
   const createLedger = async (amount = MIN_LEDGER_CREATE_OG) => {
@@ -91,7 +122,7 @@ export function useComputeLedger() {
       const res = await fetch("/api/ledger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", amount }),
+        body: JSON.stringify({ action: "create", amount, chainId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create ledger");
@@ -110,7 +141,7 @@ export function useComputeLedger() {
       const res = await fetch("/api/ledger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "deposit", amount }),
+        body: JSON.stringify({ action: "deposit", amount, chainId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Deposit failed");
@@ -125,7 +156,9 @@ export function useComputeLedger() {
 
   const fundProvider = async (provider: string, amount: number) => {
     if (amount < MIN_PROVIDER_FUND_OG) {
-      toast.error(`Minimum ${MIN_PROVIDER_FUND_OG} OG required to fund a provider`);
+      toast.error(
+        `Minimum ${MIN_PROVIDER_FUND_OG} OG required to fund a provider`
+      );
       return;
     }
     setActionLoading(`fund-${provider}`);
@@ -133,7 +166,12 @@ export function useComputeLedger() {
       const res = await fetch("/api/ledger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "fundSubAccount", subAccount: provider, amount }),
+        body: JSON.stringify({
+          action: "fundSubAccount",
+          subAccount: provider,
+          amount,
+          chainId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Funding failed");
@@ -141,7 +179,9 @@ export function useComputeLedger() {
       toast.success("Provider account funded — ready for inference");
       await refreshLedger();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Provider funding failed");
+      toast.error(
+        err instanceof Error ? err.message : "Provider funding failed"
+      );
     } finally {
       setActionLoading(null);
     }
@@ -162,6 +202,7 @@ export function useComputeLedger() {
     models,
     ledger,
     ledgerExists,
+    broker,
     fundedProviders,
     loading,
     actionLoading,
@@ -172,5 +213,6 @@ export function useComputeLedger() {
     createLedger,
     deposit,
     fundProvider,
+    chainId,
   };
 }

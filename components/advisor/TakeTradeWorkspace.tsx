@@ -1,24 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useAccount, useBalance, useChainId } from "wagmi";
 import {
   ArrowUpRight,
-  CheckCircle2,
-  Circle,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   Newspaper,
-  Shield,
-  Wallet,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BoardWorkspace } from "@/components/board/WarRoom";
 import { TradeDesk } from "@/components/trade/TradeDesk";
-import type { BoardSession } from "@/lib/board";
-import { formatEther } from "viem";
 import { cn } from "@/lib/utils";
-import { zeroGMainnet, zeroGTestnet } from "@/lib/wagmi/config";
+import { useAgenticId } from "@/hooks/useAgenticId";
+import { useAccount } from "wagmi";
 
 type NewsItem = {
   id: string;
@@ -27,6 +24,8 @@ type NewsItem = {
   url: string;
   published?: string;
 };
+
+const NEWS_OPEN_KEY = "concierge.trade.newsOpen";
 
 const LOCAL_NEWS_FALLBACK: NewsItem[] = [
   {
@@ -43,43 +42,43 @@ const LOCAL_NEWS_FALLBACK: NewsItem[] = [
   },
   {
     id: "fb-3",
-    title: "Risk note: never size a swap from headlines alone — use vault + mandate",
+    title:
+      "Risk note: never size a swap from headlines alone — use wallet balances + mandate",
     source: "Concierge context",
     url: "https://docs.0g.ai/",
   },
 ];
 
-function chainLabel(chainId: number) {
-  if (chainId === zeroGMainnet.id) return "0G Mainnet";
-  if (chainId === zeroGTestnet.id) return "0G Galileo";
-  return `Chain ${chainId}`;
-}
-
 export function TakeTradeWorkspace() {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { data: bal, isLoading: balLoading } = useBalance({ address });
-  const [session, setSession] = useState<BoardSession | null>(null);
+  const { isConnected } = useAccount();
+  const { agent, hasAgent } = useAgenticId();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsLive, setNewsLive] = useState(false);
   const [newsNote, setNewsNote] = useState<string | null>(null);
-  const [ticket, setTicket] = useState({
-    hasProposal: false,
-    hasQuote: false,
-    status: null as string | null,
-  });
+  const [newsOpen, setNewsOpen] = useState(true);
 
-  const onTicketChange = useCallback(
-    (state: {
-      hasProposal: boolean;
-      hasQuote: boolean;
-      status: string | null;
-    }) => {
-      setTicket(state);
-    },
-    []
-  );
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(NEWS_OPEN_KEY);
+      if (raw === "0") setNewsOpen(false);
+      if (raw === "1") setNewsOpen(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const toggleNews = useCallback(() => {
+    setNewsOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(NEWS_OPEN_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   const loadNews = useCallback(async () => {
     setNewsLoading(true);
@@ -113,272 +112,217 @@ export function TakeTradeWorkspace() {
     void loadNews();
   }, [loadNews]);
 
-  const balanceLabel =
-    !isConnected
-      ? "—"
-      : balLoading
-        ? "…"
-        : bal
-          ? `${Number(formatEther(bal.value)).toFixed(4)} ${bal.symbol}`
-          : "—";
-
-  const step = useMemo(() => {
-    if (!session || session.guard?.status === "block") return 1;
-    if (ticket.hasQuote) return 3;
-    if (ticket.hasProposal) return 2;
-    return 2;
-  }, [session, ticket.hasProposal, ticket.hasQuote]);
-
   return (
-    <div className="flex flex-col gap-4 pb-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
-            Take a trade
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Brief · mandate · execute
-          </h1>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            Size from wallet context, let agents brief a strategy, then confirm
-            under your mandate. Never auto-executes.
-          </p>
-        </div>
-        <Button asChild variant="outline" className="rounded-full">
-          <Link href="/dashboard/advisor/talk">
-            Talk to your data
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </header>
-
-      <div className="bento flex flex-wrap items-center gap-3 px-4 py-3 sm:gap-5 sm:px-5">
-        <StepPill n={1} label="Agent brief" active={step === 1} done={step > 1} />
-        <span className="hidden text-muted-foreground sm:inline">→</span>
-        <StepPill
-          n={2}
-          label="Mandate & ticket"
-          active={step === 2}
-          done={step > 2}
-        />
-        <span className="hidden text-muted-foreground sm:inline">→</span>
-        <StepPill
-          n={3}
-          label="Quote & confirm"
-          active={step === 3}
-          done={ticket.status === "executed"}
-        />
-        {session ? (
-          <span className="ml-auto text-[11px] text-muted-foreground">
-            Brief · {session.consensus.verdict} ·{" "}
-            {Math.round(session.consensus.confidence * 100)}%
-            {ticket.status ? ` · Ticket ${ticket.status}` : ""}
-          </span>
-        ) : null}
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="bento p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">
-              Wallet
-            </span>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <p className="mt-4 font-mono text-sm tabular-nums">
-            {isConnected && address
-              ? `${address.slice(0, 6)}…${address.slice(-4)}`
-              : "Not connected"}
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {isConnected ? chainLabel(chainId) : "Connect to load balances"}
-          </p>
-        </div>
-        <div className="bento-brand p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-white/80">Spendable</span>
-            <Wallet className="h-4 w-4 text-white/80" />
-          </div>
-          <p className="mt-4 text-2xl font-semibold tabular-nums text-white">
-            {balanceLabel}
-          </p>
-          <p className="mt-1 text-[11px] text-white/75">
-            Native balance — size trades within mandate
-          </p>
-        </div>
-        <div className="bento-ink relative overflow-hidden p-5">
-          <div
-            className="pointer-events-none absolute -right-6 -top-6 h-12 w-12 rounded-full opacity-100 blur-xl"
-            style={{
-              background:
-                "radial-gradient(circle, var(--brand) 100%, transparent 100%)",
-            }}
-          />
-          <div className="relative flex items-center justify-between">
-            <span className="text-xs font-medium text-white/70">Policy</span>
-            <Shield className="h-4 w-4 text-white/70" />
-          </div>
-          <p className="relative mt-4 text-lg font-semibold text-white">
-            Human confirm on
-          </p>
-          <p className="relative mt-1 text-[11px] text-white/65">
-            Caps + allowlist gate every proposal
-          </p>
-        </div>
-      </div>
-
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex flex-col gap-4">
-          <section className="space-y-2">
-            <div className="flex items-baseline justify-between gap-2 px-0.5">
-              <h2 className="text-sm font-semibold tracking-tight">
-                1 · Agent brief
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                Strategy consensus from vault evidence
+    <div
+      className={cn(
+        "grid min-h-[calc(100vh-5.5rem)] gap-4 pb-4",
+        "xl:grid-cols-[minmax(0,1fr)_auto]"
+      )}
+    >
+      <div className="flex min-w-0 flex-col gap-4">
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
+                Trading & Finance
               </p>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                Desk
+              </h1>
             </div>
-            <BoardWorkspace
-              intent="trade"
-              session={session}
-              onSessionChange={setSession}
-            />
-          </section>
-
-          <section className="space-y-2">
-            <div className="flex items-baseline justify-between gap-2 px-0.5">
-              <h2 className="text-sm font-semibold tracking-tight">
-                2 · Order ticket
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                {session
-                  ? "Propose from the brief above"
-                  : "Run a brief first to unlock propose"}
-              </p>
-            </div>
-            <div
-              className={cn(
-                "bento p-5 transition-opacity",
-                !session && "opacity-70"
-              )}
-            >
-              <TradeDesk session={session} onTicketChange={onTicketChange} />
-            </div>
-          </section>
-        </div>
-
-        <aside className="flex flex-col gap-3 xl:sticky xl:top-4 xl:max-h-[calc(100vh-5rem)] xl:overflow-y-auto brand-scroll">
-          <div className="bento p-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Newspaper className="h-3.5 w-3.5 text-[var(--brand)]" />
-                <p className="text-sm font-semibold">Market pulse</p>
-                {newsLive && !newsLoading ? (
-                  <span className="rounded-full bg-[color-mix(in_srgb,var(--success)_16%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--success)]">
-                    Live
-                  </span>
-                ) : null}
-              </div>
-              <button
+            <div className="flex flex-wrap items-center gap-2">
+              {isConnected && hasAgent && agent ? (
+                <Link
+                  href="/dashboard/agent/mint"
+                  className="rounded-full bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--brand)]"
+                >
+                  Agentic #{agent.tokenId.toString()}
+                </Link>
+              ) : isConnected ? (
+                <Button asChild size="sm" variant="outline" className="rounded-full">
+                  <Link href="/dashboard/agent/mint">Mint Agentic ID</Link>
+                </Button>
+              ) : null}
+              <Button
                 type="button"
-                onClick={() => void loadNews()}
-                disabled={newsLoading}
-                className="text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-50"
+                variant="ghost"
+                size="sm"
+                className="xl:hidden"
+                onClick={toggleNews}
               >
-                {newsLoading ? "…" : "Refresh"}
-              </button>
+                <Newspaper className="h-4 w-4" />
+                News
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/dashboard/trading/strategies">
+                  Strategies
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
-            <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
-              Public headlines for context only — never auto-trade on news.
-            </p>
-            {newsNote ? (
-              <p className="mb-2 rounded-xl bg-muted/50 px-2.5 py-1.5 text-[10px] text-muted-foreground">
-                {newsNote}
-              </p>
-            ) : null}
-            {newsLoading && news.length === 0 ? (
-              <div className="flex items-center gap-2 py-8 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Loading headlines…
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {news.map((n) => (
-                  <li key={n.id}>
-                    <a
-                      href={n.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block rounded-2xl bg-muted/45 px-3 py-2.5 transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_10%,transparent)]"
-                    >
-                      <p className="text-xs font-medium leading-snug">
-                        {n.title}
-                      </p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {n.source}
-                        {n.published ? ` · ${n.published}` : ""}
-                      </p>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
+          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Agents suggest Buy, Sell, or Hold from your wallet balances. You
+            apply the size, quote OG/USDC, and confirm — nothing auto-executes.
+          </p>
+        </header>
 
-          <div className="bento p-4">
-            <p className="text-sm font-semibold">How this desk works</p>
-            <ol className="mt-2 space-y-2 text-[11px] leading-relaxed text-muted-foreground">
-              <li>
-                <span className="font-medium text-foreground">Brief</span> —
-                agents debate buy / sell / hold from vault facts.
-              </li>
-              <li>
-                <span className="font-medium text-foreground">Mandate</span> —
-                notional, slippage, and pair allowlist must pass.
-              </li>
-              <li>
-                <span className="font-medium text-foreground">Execute</span> —
-                quote then human confirm. Simulated when pools are empty.
-              </li>
-            </ol>
-          </div>
-        </aside>
+        <div className="bento p-5 sm:p-6">
+          <TradeDesk />
+        </div>
+
+        <div className={cn("xl:hidden", !newsOpen && "hidden")}>
+          <NewsPanel
+            news={news}
+            newsLoading={newsLoading}
+            newsLive={newsLive}
+            newsNote={newsNote}
+            onRefresh={() => void loadNews()}
+            onCollapse={toggleNews}
+            fillHeight={false}
+          />
+        </div>
       </div>
+
+      <aside
+        className={cn(
+          "hidden xl:flex xl:sticky xl:top-4 xl:h-[calc(100vh-5.5rem)] xl:flex-col",
+          newsOpen ? "xl:w-[22rem]" : "xl:w-11"
+        )}
+      >
+        {newsOpen ? (
+          <NewsPanel
+            news={news}
+            newsLoading={newsLoading}
+            newsLive={newsLive}
+            newsNote={newsNote}
+            onRefresh={() => void loadNews()}
+            onCollapse={toggleNews}
+            fillHeight
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={toggleNews}
+            className="bento flex h-full w-11 flex-col items-center gap-3 py-4 text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Open news feed"
+            title="Open news feed"
+          >
+            <PanelRightOpen className="h-4 w-4" />
+            <Newspaper className="h-4 w-4 text-[var(--brand)]" />
+            <span
+              className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em]"
+              style={{ writingMode: "vertical-rl" }}
+            >
+              News feed
+            </span>
+            <ChevronLeft className="mt-auto h-4 w-4" />
+          </button>
+        )}
+      </aside>
     </div>
   );
 }
 
-function StepPill({
-  n,
-  label,
-  active,
-  done,
+function NewsPanel({
+  news,
+  newsLoading,
+  newsLive,
+  newsNote,
+  onRefresh,
+  onCollapse,
+  fillHeight,
 }: {
-  n: number;
-  label: string;
-  active: boolean;
-  done: boolean;
+  news: NewsItem[];
+  newsLoading: boolean;
+  newsLive: boolean;
+  newsNote: string | null;
+  onRefresh: () => void;
+  onCollapse: () => void;
+  fillHeight: boolean;
 }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs",
-        active &&
-          "bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-foreground",
-        done && !active && "text-[var(--success)]",
-        !active && !done && "text-muted-foreground"
+        "bento flex flex-col overflow-hidden",
+        fillHeight && "h-full min-h-0"
       )}
     >
-      {done ? (
-        <CheckCircle2 className="h-3.5 w-3.5" />
-      ) : active ? (
-        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--brand)] text-[9px] font-semibold text-white">
-          {n}
-        </span>
-      ) : (
-        <Circle className="h-3.5 w-3.5 opacity-50" />
-      )}
-      {label}
+      <div className="flex shrink-0 items-center gap-2 border-b border-border/50 px-4 py-3">
+        <Newspaper className="h-3.5 w-3.5 text-[var(--brand)]" />
+        <p className="text-sm font-semibold">News feed</p>
+        {newsLive && !newsLoading ? (
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--success)_16%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--success)]">
+            Live
+          </span>
+        ) : null}
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={newsLoading}
+            className="rounded-lg px-2 py-1 text-[10px] text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
+          >
+            {newsLoading ? "…" : "Refresh"}
+          </button>
+          <button
+            type="button"
+            onClick={onCollapse}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            aria-label="Collapse news feed"
+            title="Collapse"
+          >
+            {fillHeight ? (
+              <PanelRightClose className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      <p className="shrink-0 px-4 pt-3 text-[11px] leading-relaxed text-muted-foreground">
+        Context only — never size a swap from headlines.
+      </p>
+
+      {newsNote ? (
+        <p className="mx-4 mt-2 shrink-0 rounded-xl bg-muted/50 px-2.5 py-1.5 text-[10px] text-muted-foreground">
+          {newsNote}
+        </p>
+      ) : null}
+
+      <div
+        className={cn(
+          "brand-scroll mt-3 min-h-0 flex-1 px-3 pb-3",
+          fillHeight ? "overflow-y-auto" : "max-h-[28rem] overflow-y-auto"
+        )}
+      >
+        {newsLoading && news.length === 0 ? (
+          <div className="flex items-center gap-2 py-10 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Loading…
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {news.map((n) => (
+              <li key={n.id}>
+                <a
+                  href={n.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block rounded-2xl bg-muted/45 px-3 py-2.5 transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_10%,transparent)]"
+                >
+                  <p className="text-xs font-medium leading-snug">{n.title}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {n.source}
+                    {n.published ? ` · ${n.published}` : ""}
+                  </p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

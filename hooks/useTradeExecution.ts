@@ -16,6 +16,7 @@ import {
   pathForPair,
 } from "@/lib/trade/dex";
 import { quoteTradeProposal } from "@/lib/trade/quote";
+import { isLiveRoutablePair, normalizeTradePair } from "@/lib/trade/pairs";
 import type {
   TradeExecutionResult,
   TradeProposal,
@@ -67,6 +68,17 @@ export function useTradeExecution() {
           };
         }
 
+        if (!isLiveRoutablePair(proposal.pair) || !isLiveRoutablePair(quote.pair)) {
+          throw new Error(
+            `Live execution only supports OG/USDC (got ${normalizeTradePair(proposal.pair)})`
+          );
+        }
+        if (
+          normalizeTradePair(quote.pair) !== normalizeTradePair(proposal.pair)
+        ) {
+          throw new Error("Quote pair does not match proposal — re-quote");
+        }
+
         const config = getDexConfig(quote.chainId);
         if (!config || !quote.path || !quote.router) {
           throw new Error("Live DEX config missing");
@@ -77,7 +89,7 @@ export function useTradeExecution() {
         }
 
         const side = quote.side === "sell" ? "sell" : "buy";
-        const { tokenIn, tokenOut } = pathForPair(config, side);
+        const { tokenIn, tokenOut } = pathForPair(config, side, proposal.pair);
         const amountIn = BigInt(quote.amountInRaw);
         const amountOutMinimum = parseUnits(
           quote.amountOutMinimum,

@@ -1,23 +1,21 @@
 import { HeroSection } from "./sections/HeroSection";
-import { ProblemSection } from "./sections/ProblemSection";
-import { MarketSection } from "./sections/MarketSection";
-import { SolutionSection } from "./sections/SolutionSection";
-import { TechnicalSection } from "./sections/TechnicalSection";
-import { CompetitiveSection } from "./sections/CompetitiveSection";
+import { StackSection } from "./sections/StackSection";
+import { JourneySection } from "./sections/JourneySection";
+import { ProductSection } from "./sections/ProductSection";
 import { FAQSection } from "./sections/FAQSection";
 import { CTASection } from "./sections/CTASection";
+import { LandingFooter } from "./sections/LandingFooter";
 
 const Landing = () => {
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen bg-background">
       <HeroSection />
-      <ProblemSection />
-      <MarketSection />
-      <SolutionSection />
-      <TechnicalSection />
-      <CompetitiveSection />
+      <StackSection />
+      <JourneySection />
+      <ProductSection />
       <FAQSection />
       <CTASection />
+      <LandingFooter />
     </div>
   );
 };

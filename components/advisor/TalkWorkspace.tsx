@@ -81,7 +81,7 @@ function renderContent(text: string) {
 }
 
 export function TalkWorkspace() {
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, chainId } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { refetch } = useUserFiles();
   const { fetchFileContent } = usefetchFileContent();
@@ -161,6 +161,7 @@ export function TalkWorkspace() {
           evidence,
           mode: "auto",
           agentTokenId: agent?.tokenId.toString(),
+          chainId,
           wallet: address,
           timestamp,
           signature,
@@ -213,14 +214,23 @@ export function TalkWorkspace() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {agent ? (
+            <Link
+              href="/dashboard/agent/mint"
+              className="rounded-full bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--brand)]"
+            >
+              Agentic #{agent.tokenId.toString()}
+            </Link>
+          ) : isConnected ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/agent/mint">Mint Agentic ID</Link>
+            </Button>
+          ) : null}
           {evidence.length === 0 && isConnected ? (
             <Button asChild size="sm" variant="outline">
               <Link href="/dashboard/vault/my-files">Add evidence</Link>
             </Button>
           ) : null}
-          <Button asChild size="sm" variant="ghost">
-            <Link href="/dashboard/advisor/trade">Take a trade →</Link>
-          </Button>
         </div>
       </div>
 
@@ -236,8 +246,8 @@ export function TalkWorkspace() {
                 Ask anything about your vault
               </h1>
               <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                Spend patterns, wallet activity, anomalies — Concierge answers
-                from your evidence only. No trades from this chat.
+                Spend patterns, documents, wallet activity — grounded in your
+                evidence. Trading and finance live under Trading & Finance.
               </p>
               <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
                 {SUGGESTIONS.map((s) => (
@@ -347,7 +357,7 @@ export function TalkWorkspace() {
               </Button>
             </div>
             <p className="mt-2 text-center text-[10px] text-muted-foreground">
-              Answers use selected vault packs. For swaps, use Take a trade.
+              Vault Q&amp;A only — trading lives under Trading &amp; Finance.
             </p>
           </div>
         </div>

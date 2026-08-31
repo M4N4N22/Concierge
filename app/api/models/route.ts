@@ -1,12 +1,10 @@
 // app/api/models/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createZGComputeNetworkBroker } from "@0gfoundation/0g-compute-ts-sdk";
-import { ethers } from "ethers";
+import {
+  createComputeBroker,
+  parseComputeChainId,
+} from "@/lib/computeBroker";
 
-const RPC_URL = process.env.GALILEO_RPC_URL!;
-const PRIVATE_KEY = process.env.GALILEO_PRIVATE_KEY!;
-
-// Helper to safely stringify BigInt values
 function bigIntToString(obj: any): any {
   if (typeof obj === "bigint") return obj.toString();
   if (Array.isArray(obj)) return obj.map(bigIntToString);
@@ -22,35 +20,36 @@ export async function GET(req: NextRequest) {
   console.log("[GET /api/models] Request received");
 
   try {
-    console.log("[INIT] Connecting to provider...");
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-
-    console.log("[INIT] Creating signer...");
-    const signer = new ethers.Wallet(PRIVATE_KEY, provider);
-
-    console.log("[INIT] Creating compute network broker...");
-    const broker = await createZGComputeNetworkBroker(signer);
+    const chainId = parseComputeChainId(
+      req.nextUrl.searchParams.get("chainId")
+    );
+    console.log(`[INIT] Creating compute broker (chainId=${chainId ?? "default"})...`);
+    const { broker, cfg } = await createComputeBroker(chainId);
+    console.log(`[INIT] Broker on ${cfg.networkName}`);
 
     console.log("[BROKER] Listing available services...");
     const services = await broker.inference.listService();
 
-    // BigInt-safe logging
     console.log(`[BROKER] Retrieved ${services.length} services.`);
     console.log("[DEBUG] Raw services:", JSON.stringify(bigIntToString(services), null, 2));
 
-    // Map services to frontend-friendly structure
     const models = services.map((s: any, index: number) => {
       console.log(`[SERVICE ${index + 1}] Provider: ${s.provider}, Model: ${s.model}`);
       return {
         provider: s.provider,
         model: s.model,
         verifiability: s.verifiability,
-        minUnits: (s.inputPrice + s.outputPrice).toString(), // BigInt → string
+        minUnits: (s.inputPrice + s.outputPrice).toString(),
       };
     });
 
     console.log("[RESPONSE] Sending model list to client.");
-    return NextResponse.json({ models });
+    return NextResponse.json({
+      models,
+      network: cfg.networkName,
+      chainId: cfg.chainId,
+      isTestnet: cfg.isTestnet,
+    });
   } catch (err: any) {
     console.error("[ERROR] Failed to fetch models:", err);
     return NextResponse.json(

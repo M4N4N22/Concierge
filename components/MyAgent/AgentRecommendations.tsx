@@ -1,13 +1,29 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
-import { useUserFiles } from "@/hooks/useUserFiles";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAccount } from "wagmi";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  BrainCircuit,
+  Fingerprint,
+  GraduationCap,
+  Layers,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  CollapsibleGuideRail,
+  type GuideItem,
+} from "@/components/dashboard/CollapsibleGuideRail";
+import { cn } from "@/lib/utils";
+import { useUserFiles } from "@/hooks/useUserFiles";
+import { useAgenticId } from "@/hooks/useAgenticId";
 import { fetchFileContent } from "@/utils/fetchFileContent";
 import {
   AGENT_DOMAINS,
@@ -15,8 +31,6 @@ import {
   matchFileToDomain,
   type AgentDomain,
 } from "@/lib/domains";
-import { JourneyStepHeader } from "@/components/dashboard/JourneyStepHeader";
-import { toast } from "sonner";
 
 interface RecommendationData {
   title: string;
@@ -24,6 +38,39 @@ interface RecommendationData {
   summary: string;
   recommendations: string[];
 }
+
+const GUIDE: GuideItem[] = [
+  {
+    id: "what",
+    icon: Sparkles,
+    title: "What are recommendations?",
+    body: "Actionable tips for one specialist domain, generated from your vault categories and insight summaries via 0G Compute.",
+  },
+  {
+    id: "domain",
+    icon: BrainCircuit,
+    title: "Pick a domain",
+    body: "Finance, travel, or subscriptions. Choose from Learning, or switch domains here — each run uses matching vault context.",
+  },
+  {
+    id: "compute",
+    icon: Layers,
+    title: "0G Compute",
+    body: "Inference needs a funded compute ledger and provider (same setup as Insights). Without it, you’ll see a clear error instead of fake tips.",
+  },
+  {
+    id: "learning",
+    icon: GraduationCap,
+    title: "Back to Learning",
+    body: "Domain progress and sync live on Learning. Return there to refresh vault mapping before regenerating recommendations.",
+  },
+  {
+    id: "mint",
+    icon: Fingerprint,
+    title: "Agentic ID",
+    body: "Recommendations use vault data. Mint an Agentic ID when you want on-chain ownership of the Concierge agent identity.",
+  },
+];
 
 export default function AgentRecommendations() {
   const searchParams = useSearchParams();
@@ -33,10 +80,21 @@ export default function AgentRecommendations() {
     ? (domainParam as AgentDomain)
     : null;
 
+  const { isConnected, chainId } = useAccount();
   const { files, refetch } = useUserFiles();
-  const { isConnected } = useAccount();
+  const { hasAgent, agent } = useAgenticId();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<RecommendationData | null>(null);
+
+  useEffect(() => {
+    if (isConnected) void refetch({ silent: true });
+  }, [isConnected, chainId, refetch]);
+
+  const domainFileCount = useMemo(() => {
+    if (!domain) return 0;
+    return files.filter((f) => matchFileToDomain(f.category) === domain)
+      .length;
+  }, [domain, files]);
 
   const loadRecommendations = useCallback(async () => {
     if (!domain || !isConnected) return;
@@ -47,18 +105,27 @@ export default function AgentRecommendations() {
       const vaultContext = await Promise.all(
         syncedFiles.map(async (f) => {
           let summary = "";
-          if (f.insightsCID && f.insightsCID !== "0x" + "0".repeat(64)) {
+          if (
+            f.insightsCID &&
+            f.insightsCID !== "0x" + "0".repeat(64)
+          ) {
             try {
               summary = await fetchFileContent(f.insightsCID);
             } catch {
               summary = f.category;
             }
           }
-          return { category: f.category, summary, domain: matchFileToDomain(f.category) };
+          return {
+            category: f.category,
+            summary,
+            domain: matchFileToDomain(f.category),
+          };
         })
       );
 
-      const relevant = vaultContext.filter((f) => f.domain === domain || !f.domain);
+      const relevant = vaultContext.filter(
+        (f) => f.domain === domain || !f.domain
+      );
 
       const res = await fetch("/api/agentRecommendations", {
         method: "POST",
@@ -80,9 +147,9 @@ export default function AgentRecommendations() {
         ...DOMAIN_META[domain],
         summary: DOMAIN_META[domain].description,
         recommendations: [
-          "Upload documents to your vault and run AI insights first.",
-          "Sync your vault from the Learning page.",
-          "Ensure GALILEO_PRIVATE_KEY is set for 0G Compute.",
+          "Add evidence to your vault and run Insights so categories are labeled.",
+          "Sync from Learning, then refresh recommendations.",
+          "Finish 0G Compute setup (ledger + funded provider) if inference failed.",
         ],
       });
     } finally {
@@ -91,93 +158,220 @@ export default function AgentRecommendations() {
   }, [domain, isConnected, refetch]);
 
   useEffect(() => {
-    if (domain && isConnected) loadRecommendations();
+    if (domain && isConnected) void loadRecommendations();
+    else setData(null);
   }, [domain, isConnected, loadRecommendations]);
 
+  const selectDomain = (d: AgentDomain) => {
+    router.push(`/dashboard/agent/recommendations?domain=${d}`);
+  };
+
+  const primaryCta = domain
+    ? { href: "/dashboard/agent/learning", label: "Back to Learning" }
+    : hasAgent
+      ? { href: "/dashboard/advisor/talk", label: "Continue to Talk" }
+      : { href: "/dashboard/agent/learning", label: "Open Learning" };
+
+  const meta = domain ? DOMAIN_META[domain] : null;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-5xl mx-auto space-y-8"
-    >
-      <JourneyStepHeader
-        step={4}
-        journeyId="agentic-id"
-        title={
-          data
-            ? `${data.title} recommendations`
-            : domain
-            ? "Loading recommendations…"
-            : "Agent recommendations"
-        }
-        tagline="Domain insights"
-        description={
-          data?.summary ||
-          (domain
-            ? "Powered by 0G Compute from your vault data."
-            : "Select a domain from Learning to view specialized insights.")
-        }
-      />
-
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    <div className="flex flex-col gap-4 pb-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
+            Agentic ID · Recommendations
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {meta ? `${meta.title.replace(/ Agent$/, "")} tips` : "Recommendations"}
+          </h1>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            {meta
+              ? data?.summary ||
+                "0G Compute tips grounded in matching vault evidence."
+              : "Pick a specialist domain to generate actionable recommendations from your vault."}
+          </p>
         </div>
-      )}
-
-      {!loading && data && (
-        <motion.div
-          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-          }}
-        >
-          {data.recommendations.map((rec, i) => (
-            <motion.div
-              key={i}
-              variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0 } }}
-            >
-              <Card className="hover:shadow-xl transition-all border border-muted/40">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-primary" /> Insight #{i + 1}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground/80 leading-relaxed">{rec}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
-
-      {!loading && !domain && (
-        <Card className="text-center py-10">
-          <CardContent className="text-foreground/60">
-            No domain selected. Return to Learning to view personalized recommendations.
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex justify-center gap-3 pt-4">
-        {domain && (
-          <Button variant="secondary" onClick={loadRecommendations} disabled={loading}>
-            Refresh
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          onClick={() => router.push("/dashboard/agent/learning")}
-          className="gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Domain learning
+        <Button asChild className="rounded-full px-5" variant="outline">
+          <Link href={primaryCta.href}>
+            {primaryCta.label}
+            {primaryCta.href.includes("learning") ? (
+              <ArrowLeft className="h-4 w-4" />
+            ) : (
+              <ArrowUpRight className="h-4 w-4" />
+            )}
+          </Link>
         </Button>
+      </header>
+
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_18.5rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="bento p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Domain
+                </span>
+                <BrainCircuit className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="mt-5 text-2xl font-semibold tracking-tight">
+                {!domain ? "—" : meta?.title.replace(/ Agent$/, "")}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {domain
+                  ? `${domainFileCount} matching vault file${domainFileCount === 1 ? "" : "s"}`
+                  : "Select a domain below"}
+              </p>
+            </div>
+
+            <div className="bento-brand p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-white/80">Tips</span>
+                <Sparkles className="h-4 w-4 text-white/80" />
+              </div>
+              <p className="mt-5 text-3xl font-semibold tabular-nums text-white">
+                {loading ? "…" : data?.recommendations.length ?? "—"}
+              </p>
+              <p className="mt-1 text-[11px] text-white/75">
+                Generated for this domain
+              </p>
+            </div>
+
+            <div className="bento-ink relative overflow-hidden p-5">
+              <div
+                className="pointer-events-none absolute -right-6 -top-6 h-12 w-12 rounded-full opacity-100 blur-xl"
+                style={{
+                  background:
+                    "radial-gradient(circle, var(--brand) 100%, transparent 100%)",
+                }}
+              />
+              <div className="relative flex items-center justify-between">
+                <span className="text-xs font-medium text-white/70">
+                  Agentic ID
+                </span>
+                <Fingerprint className="h-4 w-4 text-white/70" />
+              </div>
+              <p className="relative mt-5 text-2xl font-semibold tracking-tight text-white">
+                {!isConnected
+                  ? "—"
+                  : hasAgent && agent
+                    ? `#${agent.tokenId.toString()}`
+                    : "None"}
+              </p>
+              <p className="relative mt-1 text-[11px] text-white/65">
+                {files.length} vault file{files.length === 1 ? "" : "s"} total
+              </p>
+            </div>
+          </div>
+
+          {/* Domain picker */}
+          <section className="bento overflow-hidden">
+            <div className="px-5 py-4">
+              <h2 className="text-sm font-semibold tracking-tight">Domain</h2>
+              <p className="text-xs text-muted-foreground">
+                Switch specialty — regenerates recommendations
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 border-t border-border/50 px-5 py-4">
+              {AGENT_DOMAINS.map((d) => {
+                const active = domain === d;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => selectDomain(d)}
+                    className={cn(
+                      "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors",
+                      active
+                        ? "bg-[var(--brand)] text-white"
+                        : "bg-muted/60 text-foreground hover:bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]"
+                    )}
+                  >
+                    {DOMAIN_META[d].title.replace(/ Agent$/, "")}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {!isConnected ? (
+            <div className="bento px-6 py-12 text-center">
+              <Sparkles className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
+              <p className="text-sm font-medium">Connect wallet for recommendations</p>
+            </div>
+          ) : !domain ? (
+            <div className="bento px-6 py-12 text-center">
+              <BrainCircuit className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
+              <p className="text-sm font-medium">Select a domain</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Or open one from{" "}
+                <Link
+                  href="/dashboard/agent/learning"
+                  className="text-[var(--brand)] underline-offset-2 hover:underline"
+                >
+                  Learning
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <section className="bento overflow-hidden">
+              <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold tracking-tight">
+                    {meta?.title} recommendations
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Grounded in vault context · 0G Compute
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 shrink-0"
+                  onClick={() => void loadRecommendations()}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Refresh
+                </Button>
+              </div>
+
+              <div className="border-t border-border/50 px-5 py-4">
+                {loading && !data ? (
+                  <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="text-sm">Generating recommendations…</span>
+                  </div>
+                ) : data ? (
+                  <div className="space-y-2">
+                    {data.recommendations.map((rec, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 rounded-2xl bg-muted/45 p-4"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--brand)]">
+                          <Sparkles className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Insight #{i + 1}
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed">{rec}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <CollapsibleGuideRail items={GUIDE} />
       </div>
-    </motion.div>
+    </div>
   );
 }

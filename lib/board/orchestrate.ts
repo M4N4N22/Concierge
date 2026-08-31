@@ -89,21 +89,24 @@ function finalize(
 
 async function runLiveBoard(
   question: string,
-  evidence: VaultEvidence[]
+  evidence: VaultEvidence[],
+  chainId?: number | null
 ): Promise<BoardSession> {
   const evidenceBrief = formatEvidenceBrief(evidence);
   const turns: BoardTurn[] = [];
 
   for (const role of ["analyst", "risk", "security"] as const) {
     const raw = await run0GInference(
-      agentTurnPrompt({ role, question, evidenceBrief, priorTurns: turns })
+      agentTurnPrompt({ role, question, evidenceBrief, priorTurns: turns }),
+      chainId
     );
     const parsed = parseJsonLoose<TurnPayload>(raw);
     turns.push(toTurn(role, parsed));
   }
 
   const chairRaw = await run0GInference(
-    chairPrompt({ question, evidenceBrief, turns })
+    chairPrompt({ question, evidenceBrief, turns }),
+    chainId
   );
   const chairParsed = parseJsonLoose<FastPayload["consensus"]>(chairRaw);
 
@@ -122,10 +125,14 @@ async function runLiveBoard(
 
 async function runFastBoard(
   question: string,
-  evidence: VaultEvidence[]
+  evidence: VaultEvidence[],
+  chainId?: number | null
 ): Promise<BoardSession> {
   const evidenceBrief = formatEvidenceBrief(evidence);
-  const raw = await run0GInference(fastBoardPrompt({ question, evidenceBrief }));
+  const raw = await run0GInference(
+    fastBoardPrompt({ question, evidenceBrief }),
+    chainId
+  );
   const parsed = parseJsonLoose<FastPayload>(raw);
 
   const roleOrder = ["analyst", "risk", "security"] as const;
@@ -155,12 +162,15 @@ export async function runBoardSession(input: {
   mode?: "auto" | "live" | "fast" | "fallback";
   agentTokenId?: string;
   wallet?: string;
+  /** Connected wallet chain — selects mainnet vs Galileo compute broker. */
+  chainId?: number | null;
 }): Promise<BoardSession> {
   const question =
     input.question.trim() ||
     "Review my vault evidence and recommend next actions.";
   const evidence = input.evidence ?? [];
   const mode = input.mode ?? "auto";
+  const chainId = input.chainId;
   const bind = {
     agentTokenId: input.agentTokenId,
     wallet: input.wallet,
@@ -172,7 +182,7 @@ export async function runBoardSession(input: {
 
   if (mode === "live") {
     try {
-      return finalize(await runLiveBoard(question, evidence), bind);
+      return finalize(await runLiveBoard(question, evidence, chainId), bind);
     } catch (err) {
       const fallback = buildFallbackSession(question, evidence);
       fallback.modelNotes = `Live compute failed (${err instanceof Error ? err.message : "error"}); used offline fallback.`;
@@ -182,7 +192,7 @@ export async function runBoardSession(input: {
 
   if (mode === "fast") {
     try {
-      return finalize(await runFastBoard(question, evidence), bind);
+      return finalize(await runFastBoard(question, evidence, chainId), bind);
     } catch (err) {
       const fallback = buildFallbackSession(question, evidence);
       fallback.modelNotes = `Fast compute failed (${err instanceof Error ? err.message : "error"}); used offline fallback.`;
@@ -191,10 +201,10 @@ export async function runBoardSession(input: {
   }
 
   try {
-    return finalize(await runFastBoard(question, evidence), bind);
+    return finalize(await runFastBoard(question, evidence, chainId), bind);
   } catch (fastErr) {
     try {
-      const live = await runLiveBoard(question, evidence);
+      const live = await runLiveBoard(question, evidence, chainId);
       live.modelNotes = `Fast mode failed (${fastErr instanceof Error ? fastErr.message : "error"}); completed via live sequential agents.`;
       return finalize(live, bind);
     } catch (liveErr) {

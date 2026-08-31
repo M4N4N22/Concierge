@@ -4,6 +4,7 @@ import {
   Sparkles,
   MessageSquare,
   Fingerprint,
+  CandlestickChart,
   Store,
 } from "lucide-react";
 
@@ -12,6 +13,7 @@ export type JourneyStepId =
   | "insights"
   | "chat"
   | "agentic-id"
+  | "trading"
   | "ecosystem";
 
 export interface JourneySubStep {
@@ -34,6 +36,10 @@ export interface JourneyStep {
   subSteps?: JourneySubStep[];
 }
 
+/**
+ * Concierge journey: vault → intelligence → talk → own the agent → trade → ecosystem.
+ * Agentic ID (formerly INFT) sits before Trading so ownership precedes desk use.
+ */
 export const JOURNEY_STEPS: JourneyStep[] = [
   {
     id: "upload",
@@ -42,7 +48,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     shortTitle: "Vault",
     tagline: "Ingest wallet, CSV, and briefing evidence",
     description:
-      "Add schema-first evidence packs to your vault on 0G Storage. Wallet history, CSV exports, and paste briefings normalize into facts the AI board can use.",
+      "Add schema-first evidence packs to your vault on 0G Storage. Wallet history, CSV exports, and paste briefings normalize into facts agents can use.",
     href: "/dashboard/vault/my-files",
     icon: Upload,
     status: "live",
@@ -62,37 +68,23 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   {
     id: "chat",
     step: 3,
-    title: "Advisor",
-    shortTitle: "Advisor",
-    tagline: "Talk to your data or take a trade",
+    title: "Talk",
+    shortTitle: "Talk",
+    tagline: "Ask about your vault — not trading",
     description:
-      "Two separate tools powered by your vault: conversational advice about your evidence, and a mandate-gated trade desk.",
-    href: "/dashboard/advisor",
+      "Chat with vault evidence about spend, activity, and documents. Trading and finance live under Trading & Finance.",
+    href: "/dashboard/advisor/talk",
     icon: MessageSquare,
     status: "live",
-    subSteps: [
-      {
-        id: "talk",
-        name: "Talk to your data",
-        href: "/dashboard/advisor/talk",
-        description: "Chat with vault evidence — advisory only",
-      },
-      {
-        id: "take-trade",
-        name: "Take a trade",
-        href: "/dashboard/advisor/trade",
-        description: "Balances, brief, mandate, and order ticket",
-      },
-    ],
   },
   {
     id: "agentic-id",
     step: 4,
     title: "Agentic ID",
     shortTitle: "Agentic ID",
-    tagline: "Mint and bind your onchain Board Chair",
+    tagline: "Mint your on-chain AI agent identity",
     description:
-      "Mint an Agentic ID bound to your vault. Talk and Trade transcripts and firewall seals can bind back to this token.",
+      "Mint an Agentic ID (formerly INFT) bound to your vault. Encrypted metadata fingerprints your Concierge intelligence on 0G Chain — then use Talk, Desk, and Ecosystem.",
     href: "/dashboard/agent/mint",
     icon: Fingerprint,
     status: "live",
@@ -101,7 +93,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
         id: "mint",
         name: "Mint",
         href: "/dashboard/agent/mint",
-        description: "Create your Agentic ID / Board Chair",
+        description: "Mint your Agentic ID on 0G Chain",
       },
       {
         id: "learning",
@@ -118,13 +110,39 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     ],
   },
   {
-    id: "ecosystem",
+    id: "trading",
     step: 5,
+    title: "Trading & Finance",
+    shortTitle: "Trading",
+    tagline: "Desk, agents, and strategies",
+    description:
+      "Simple OG/USDC desk with agent Buy/Sell/Hold suggestions, plus a strategy builder for structured plays.",
+    href: "/dashboard/trading",
+    icon: CandlestickChart,
+    status: "live",
+    subSteps: [
+      {
+        id: "desk",
+        name: "Desk",
+        href: "/dashboard/trading/desk",
+        description: "Balances, agent suggest, quote & confirm",
+      },
+      {
+        id: "strategies",
+        name: "Strategies",
+        href: "/dashboard/trading/strategies",
+        description: "Spot templates live · options spreads soon",
+      },
+    ],
+  },
+  {
+    id: "ecosystem",
+    step: 6,
     title: "Ecosystem",
     shortTitle: "Ecosystem",
-    tagline: "List, rent, or transfer data-backed agents",
+    tagline: "List, rent, or transfer Agentic IDs",
     description:
-      "Marketplace, rentals, and P2P trade for data-backed Agentic IDs — list, rent access without surrendering ownership, or transfer the Board Chair with intelligence intact.",
+      "Marketplace, rentals, and P2P transfer for data-backed Agentic IDs — list, rent access without surrendering ownership, or transfer with intelligence intact.",
     href: "/dashboard/ecosystem",
     icon: Store,
     status: "live",
@@ -142,8 +160,8 @@ export const JOURNEY_STEPS: JourneyStep[] = [
         description: "Share agent access without giving up ownership",
       },
       {
-        id: "trade",
-        name: "Trade",
+        id: "transfer",
+        name: "Transfer",
         href: "/dashboard/ecosystem/trade",
         description: "Transfer Agentic IDs with intelligence intact",
       },
@@ -151,12 +169,23 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   },
 ];
 
+export function getStepById(id: JourneyStepId): JourneyStep | undefined {
+  return JOURNEY_STEPS.find((s) => s.id === id);
+}
+
 export function getStepByPath(pathname: string): JourneyStep | undefined {
   for (const step of JOURNEY_STEPS) {
     if (step.href && pathname.startsWith(step.href)) return step;
-    if (step.subSteps?.some((s) => s.href !== "#" && pathname.startsWith(s.href))) {
+    if (
+      step.subSteps?.some(
+        (s) => s.href !== "#" && pathname.startsWith(s.href)
+      )
+    ) {
       return step;
     }
+  }
+  if (pathname.startsWith("/dashboard/advisor")) {
+    return JOURNEY_STEPS.find((s) => s.id === "chat");
   }
   return undefined;
 }

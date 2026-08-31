@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils";
 import {
   getNextStep,
   getPrevStep,
+  getStepById,
   type JourneyStepId,
 } from "@/lib/journey";
 
 interface JourneyStepHeaderProps {
-  step: number;
+  /** Optional override; defaults to JOURNEY_STEPS[journeyId].step */
+  step?: number;
   title: string;
   tagline?: string;
   description?: string;
@@ -34,13 +36,16 @@ export function JourneyStepHeader({
 }: JourneyStepHeaderProps) {
   const prev = getPrevStep(journeyId);
   const next = getNextStep(journeyId);
+  const displayStep = step ?? getStepById(journeyId)?.step ?? 0;
 
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-mono tabular-nums">{String(step).padStart(2, "0")}</span>
+            <span className="font-mono tabular-nums">
+              {String(displayStep).padStart(2, "0")}
+            </span>
             {tagline ? <span>· {tagline}</span> : null}
             {badge ? (
               <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
