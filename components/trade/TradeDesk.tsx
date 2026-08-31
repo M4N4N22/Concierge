@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FieldLabel } from "@/components/ui/hint";
-import { Panel, PanelHeader } from "@/components/ui/panel";
+import { PanelHeader } from "@/components/ui/panel";
 import {
   DEFAULT_MANDATE,
   mandateWithinLimits,
@@ -40,7 +40,17 @@ function saveMandate(m: TradeMandate) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(m));
 }
 
-export function TradeDesk({ session }: { session: BoardSession | null }) {
+export function TradeDesk({
+  session,
+  onTicketChange,
+}: {
+  session: BoardSession | null;
+  onTicketChange?: (state: {
+    hasProposal: boolean;
+    hasQuote: boolean;
+    status: TradeProposal["status"] | null;
+  }) => void;
+}) {
   const { address, chainId, isConnected } = useAccount();
   const { fetchQuote, executeQuote, quoting, executing } = useTradeExecution();
   const { addFile } = useAddToVault();
@@ -50,6 +60,14 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
   const [proposal, setProposal] = useState<TradeProposal | null>(null);
   const [quote, setQuote] = useState<TradeQuote | null>(null);
   const [lastTx, setLastTx] = useState<string | null>(null);
+
+  useEffect(() => {
+    onTicketChange?.({
+      hasProposal: !!proposal,
+      hasQuote: !!quote,
+      status: proposal?.status ?? null,
+    });
+  }, [proposal, quote, onTicketChange]);
 
   useEffect(() => {
     const m = loadMandate();
@@ -71,7 +89,7 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
 
   const onPropose = () => {
     if (!session) {
-      toast.error("Run a board session first");
+      toast.error("Run a trade brief first (Trade mode)");
       return;
     }
     const p = proposeTradeFromBoard(session, mandate);
@@ -179,10 +197,10 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
 
   return (
     <div className="space-y-3">
-      <Panel>
+      <div>
         <PanelHeader
           title="Trade mandate"
-          hint="Caps and allowlists for any board-originated trade. Default is human-confirm only — no blind swaps."
+          hint="Caps and allowlists for trade-brief proposals. Default is human-confirm only."
         />
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
@@ -238,7 +256,7 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
           <label className="inline-flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              className="accent-foreground"
+              className="accent-[var(--brand)]"
               checked={mandate.requireConfirm}
               onChange={(e) =>
                 persist({ ...mandate, requireConfirm: e.target.checked })
@@ -257,26 +275,33 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
             Autonomous exec (soon)
           </label>
         </div>
-      </Panel>
+      </div>
 
-      <Panel>
+      <div className="border-t border-border/50 pt-4">
         <PanelHeader
           title="Trade proposal"
-          hint="Board → Uniswap quote (live on mainnet when liquidity exists) → human confirm. Never auto-executes."
+          hint="Trade brief → Uniswap quote → human confirm. Never auto-executes."
           action={
             <Button size="sm" onClick={onPropose} disabled={!session}>
-              Propose from board
+              Propose from brief
             </Button>
           }
         />
 
         {!proposal ? (
-          <p className="text-xs text-muted-foreground">
-            No proposal yet. Convene the board, then propose.
-          </p>
+          <div className="rounded-2xl bg-muted/40 px-4 py-6 text-center">
+            <p className="text-sm font-medium">
+              {session ? "Ready to propose" : "Waiting on a trade brief"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {session
+                ? "Click Propose from brief to build a mandate-checked ticket."
+                : "Complete step 1 above so agents can recommend a side and size."}
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat label="Pair" value={proposal.pair} />
               <Stat
                 label="Side"
@@ -292,11 +317,11 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
               <Stat label="Size" value={String(proposal.size)} />
               <Stat label="Status" value={proposal.status} />
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               {proposal.rationale}
             </p>
             {check && !check.ok && (
-              <ul className="text-xs text-[var(--danger)] space-y-0.5">
+              <ul className="space-y-0.5 rounded-2xl bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-xs text-[var(--danger)]">
                 {check.reasons.map((r) => (
                   <li key={r}>{r}</li>
                 ))}
@@ -304,17 +329,17 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
             )}
 
             {quote && (
-              <div className="rounded-md bg-muted/50 px-3 py-2.5 space-y-1.5">
+              <div className="space-y-1.5 rounded-2xl bg-muted/50 px-3.5 py-3">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="uppercase tracking-wide text-muted-foreground">
                     Quote
                   </span>
                   <span
                     className={cn(
-                      "font-medium",
+                      "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
                       quote.mode === "live"
-                        ? "text-[var(--success)]"
-                        : "text-amber-600"
+                        ? "bg-[color-mix(in_srgb,var(--success)_18%,transparent)] text-[var(--success)]"
+                        : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
                     )}
                   >
                     {quote.mode}
@@ -377,7 +402,7 @@ export function TradeDesk({ session }: { session: BoardSession | null }) {
             </div>
           </div>
         )}
-      </Panel>
+      </div>
     </div>
   );
 }
@@ -392,13 +417,13 @@ function Stat({
   tone?: "muted" | "success" | "danger";
 }) {
   return (
-    <div className="rounded-md bg-muted/50 px-3 py-2">
+    <div className="rounded-2xl bg-muted/50 px-3 py-2.5">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
-          "mt-0.5 font-medium tabular-nums",
+          "mt-0.5 text-sm font-medium tabular-nums",
           tone === "success" && "text-[var(--success)]",
           tone === "danger" && "text-[var(--danger)]"
         )}

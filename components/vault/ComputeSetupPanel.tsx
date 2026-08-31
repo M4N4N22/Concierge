@@ -69,31 +69,31 @@ function ModelCard({
   return (
     <div
       className={cn(
-        "rounded-xl border p-4 transition-colors",
-        funded ? "border-green-500/30 bg-green-500/5" : "bg-card"
+        "rounded-2xl bg-muted/45 p-4 transition-colors",
+        funded && "bg-[color-mix(in_srgb,var(--success)_10%,var(--surface))]"
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           {model.tags && (
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="mb-2 flex flex-wrap gap-1">
               {model.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                  className="rounded-full bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--brand)]"
                 >
                   {tag}
                 </span>
               ))}
             </div>
           )}
-          <p className="text-sm font-semibold truncate">{model.model}</p>
-          <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+          <p className="truncate text-sm font-semibold">{model.model}</p>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
             {model.provider.slice(0, 10)}…{model.provider.slice(-6)}
           </p>
         </div>
         {funded ? (
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-[var(--success)]" />
         ) : (
           <Cpu className="h-5 w-5 shrink-0 text-muted-foreground/50" />
         )}
@@ -126,7 +126,7 @@ function ModelCard({
       )}
 
       {funded && (
-        <p className="mt-3 text-xs font-medium text-green-600 dark:text-green-400">
+        <p className="mt-3 text-xs font-medium text-[var(--success)]">
           Ready for inference
         </p>
       )}
@@ -155,20 +155,21 @@ export default function ComputeSetupPanel() {
   const completedSteps = SETUP_STEPS.filter(
     (s) => stepStatus(s.id, readiness) === "done"
   ).length;
-  const progressPercent = Math.round((completedSteps / SETUP_STEPS.length) * 100);
+  const progressPercent = Math.round(
+    (completedSteps / SETUP_STEPS.length) * 100
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Pipeline */}
-      <section className="rounded-2xl border bg-card overflow-hidden">
-        <div className="border-b bg-muted/30 px-5 py-3.5">
-          <p className="text-sm font-medium">0G Compute setup</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Create a ledger, fund it, enable a model — then run AI on your vault
+    <div className="space-y-3">
+      <section className="bento overflow-hidden">
+        <div className="px-5 py-4">
+          <p className="text-sm font-semibold tracking-tight">0G Compute setup</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Create a ledger, fund it, enable a model — then analyze vault files
           </p>
         </div>
 
-        <div className="px-5 py-4 space-y-3">
+        <div className="space-y-3 px-5 pb-4">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Setup progress</span>
             <span className="font-medium">
@@ -178,21 +179,26 @@ export default function ComputeSetupPanel() {
           <Progress value={progressPercent} className="h-1.5" />
         </div>
 
-        <div className="grid sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border border-t">
+        <div className="grid border-t border-border/50 sm:grid-cols-4">
           {SETUP_STEPS.map((step) => {
             const status = stepStatus(step.id, readiness);
             return (
-              <div key={step.id} className="flex items-start gap-2.5 p-4">
+              <div
+                key={step.id}
+                className="flex items-start gap-2.5 border-border/50 p-4 sm:border-r sm:last:border-r-0"
+              >
                 {status === "done" ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-[var(--success)]" />
                 ) : status === "current" ? (
-                  <div className="h-5 w-5 shrink-0 rounded-full border-2 border-primary bg-primary/10" />
+                  <div className="h-5 w-5 shrink-0 rounded-full border-2 border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]" />
                 ) : (
                   <Circle className="h-5 w-5 shrink-0 text-muted-foreground/40" />
                 )}
                 <div>
                   <p className="text-xs font-semibold">{step.label}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{step.detail}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {step.detail}
+                  </p>
                 </div>
               </div>
             );
@@ -200,13 +206,14 @@ export default function ComputeSetupPanel() {
         </div>
       </section>
 
-      {/* Ledger controls */}
-      <section className="rounded-2xl border bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b px-5 py-4">
+      <section className="bento">
+        <div className="flex items-center justify-between px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold">Compute ledger</h2>
-            <p className="text-sm text-muted-foreground">
-              Your account for paying 0G Compute inference fees
+            <h2 className="text-sm font-semibold tracking-tight">
+              Compute ledger
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Pays for 0G Compute inference fees
             </p>
           </div>
           <Button
@@ -221,19 +228,19 @@ export default function ComputeSetupPanel() {
           </Button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="space-y-4 px-5 pb-5">
           {loading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
+            <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Checking ledger status…
             </div>
           ) : !ledgerExists ? (
-            <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-8 text-center">
-              <Wallet className="h-10 w-10 mx-auto text-primary/60 mb-3" />
+            <div className="rounded-2xl bg-muted/40 px-6 py-8 text-center">
+              <Wallet className="mx-auto mb-3 h-9 w-9 text-[var(--brand)]/70" />
               <p className="text-sm font-medium">No compute ledger yet</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                Create a ledger on 0G Compute to pay for AI inference. The network
-                requires a minimum deposit of {MIN_LEDGER_CREATE_OG}.
+              <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+                Create a ledger on 0G Compute to pay for AI inference. Minimum
+                deposit: {MIN_LEDGER_CREATE_OG} OG.
               </p>
               <Button
                 className="mt-4 gap-2"
@@ -252,7 +259,11 @@ export default function ComputeSetupPanel() {
             <>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Total", value: formatOG(totalOG), color: "text-foreground" },
+                  {
+                    label: "Total",
+                    value: formatOG(totalOG),
+                    color: "text-foreground",
+                  },
                   {
                     label: "Locked",
                     value: formatOG(ledger ? Number(ledger.locked) / 1e18 : 0),
@@ -261,28 +272,31 @@ export default function ComputeSetupPanel() {
                   {
                     label: "Available",
                     value: formatOG(availableOG),
-                    color: "text-green-600 dark:text-green-400",
+                    color: "text-[var(--success)]",
                   },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-xl border bg-muted/20 p-3 text-center">
+                  <div
+                    key={item.label}
+                    className="rounded-2xl bg-muted/40 p-3 text-center"
+                  >
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                       {item.label}
                     </p>
-                    <p className={cn("text-lg font-semibold mt-1", item.color)}>
+                    <p className={cn("mt-1 text-lg font-semibold", item.color)}>
                       {item.value} OG
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   type="number"
                   min={0.1}
                   step={0.1}
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  className="sm:max-w-[120px]"
+                  className="rounded-full sm:max-w-[120px]"
                   placeholder="Amount"
                 />
                 <Button
@@ -315,18 +329,19 @@ export default function ComputeSetupPanel() {
         </div>
       </section>
 
-      {/* Models */}
       {ledgerExists && (
-        <section className="rounded-2xl border bg-card shadow-sm">
-          <div className="border-b px-5 py-4">
-            <h2 className="text-lg font-semibold">AI models on 0G Compute</h2>
-            <p className="text-sm text-muted-foreground">
-              Fund at least one provider to enable inference on your vault files
+        <section className="bento">
+          <div className="px-5 py-4">
+            <h2 className="text-sm font-semibold tracking-tight">
+              AI models on 0G Compute
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Fund at least one provider to enable inference
             </p>
           </div>
-          <div className="p-5 grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
             {models.length === 0 ? (
-              <p className="text-sm text-muted-foreground col-span-2 py-4 text-center">
+              <p className="col-span-2 py-4 text-center text-sm text-muted-foreground">
                 No models available — check server env keys
               </p>
             ) : (

@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
     // Helps with ESM modules in node_modules
     esmExternals: "loose",
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/vault/chat",
+        destination: "/dashboard/advisor/talk",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

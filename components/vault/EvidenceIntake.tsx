@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { FieldLabel } from "@/components/ui/hint";
-import { Panel, PanelHeader } from "@/components/ui/panel";
 import { useAddToVault } from "@/hooks/useAddToVault";
 import { useWalletEvidence } from "@/hooks/useWalletEvidence";
 import {
@@ -56,33 +55,40 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
   };
 
   return (
-    <Panel>
-      <PanelHeader
-        title="Evidence intake"
-        hint="Wallet sync, CSV, or paste — normalized to VaultEvidence before Storage."
-      />
+    <div className="bento p-5">
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold tracking-tight">Evidence intake</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Wallet sync, CSV, or paste — normalized before Storage.
+        </p>
+      </div>
 
       {!isConnected && (
-        <p className="mb-3 text-xs text-muted-foreground">Connect wallet to register packs.</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Connect wallet to register packs.
+        </p>
       )}
 
       <Tabs defaultValue="wallet">
-        <TabsList className="h-8 w-full grid grid-cols-3 rounded-md bg-muted p-0.5">
-          <TabsTrigger value="wallet" className="text-xs gap-1.5 rounded-sm">
+        <TabsList className="h-9 w-full grid grid-cols-3 rounded-full bg-muted p-1">
+          <TabsTrigger value="wallet" className="rounded-full text-xs gap-1.5">
             <Wallet className="h-3 w-3" />
             Wallet
           </TabsTrigger>
-          <TabsTrigger value="csv" className="text-xs gap-1.5 rounded-sm">
+          <TabsTrigger value="csv" className="rounded-full text-xs gap-1.5">
             <FileSpreadsheet className="h-3 w-3" />
             CSV
           </TabsTrigger>
-          <TabsTrigger value="paste" className="text-xs gap-1.5 rounded-sm">
+          <TabsTrigger value="paste" className="rounded-full text-xs gap-1.5">
             <ClipboardPaste className="h-3 w-3" />
             Paste
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="wallet" className="mt-3">
+        <TabsContent value="wallet" className="mt-4 space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            Pull balances and recent transfers into one evidence pack.
+          </p>
           <Button
             size="sm"
             onClick={async () => {
@@ -103,12 +109,17 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
             }}
             disabled={locked || walletLoading}
           >
-            {(busy || walletLoading) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {(busy || walletLoading) && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            )}
             Sync wallet
           </Button>
         </TabsContent>
 
-        <TabsContent value="csv" className="mt-3">
+        <TabsContent value="csv" className="mt-4 space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            Bank or spend exports — amount columns become structured facts.
+          </p>
           <input
             ref={csvInputRef}
             type="file"
@@ -139,7 +150,10 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
           </Button>
         </TabsContent>
 
-        <TabsContent value="paste" className="mt-3 space-y-2">
+        <TabsContent value="paste" className="mt-4 space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            Receipt, tx context, or decision brief for the board.
+          </p>
           <div>
             <FieldLabel>Title</FieldLabel>
             <Input
@@ -150,9 +164,7 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
             />
           </div>
           <div>
-            <FieldLabel hint="Receipt, tx context, or decision brief for the board.">
-              Briefing
-            </FieldLabel>
+            <FieldLabel>Briefing</FieldLabel>
             <Textarea
               value={briefing}
               onChange={(e) => setBriefing(e.target.value)}
@@ -181,17 +193,19 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
       </Tabs>
 
       {preview && (
-        <div className="mt-4 rounded-md bg-muted/60 px-3 py-2.5 space-y-1">
+        <div className="mt-4 rounded-2xl bg-muted/60 px-3.5 py-3 space-y-1">
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="font-medium truncate">{preview.title}</span>
             <span className="text-muted-foreground shrink-0">
               {preview.type} · {Math.round(preview.confidence * 100)}%
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">{preview.summary}</p>
+          <p className="text-[11px] text-muted-foreground truncate">
+            {preview.summary}
+          </p>
         </div>
       )}
-    </Panel>
+    </div>
   );
 }
 

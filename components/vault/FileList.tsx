@@ -19,12 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ExplorerLink } from "./ExplorerLink";
-import { CopyHash } from "./CopyHash";
 import { cn } from "@/lib/utils";
-import {
-  getStorageScanUrl,
-  truncateHash,
-} from "@/lib/explorer";
+import { getStorageScanUrl, truncateHash } from "@/lib/explorer";
 import { toast } from "sonner";
 import { isEvidenceCategory } from "@/lib/evidence";
 
@@ -105,19 +101,19 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
   const title = displayName(file, content);
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden transition-shadow hover:shadow-sm">
+    <div className="overflow-hidden rounded-2xl bg-muted/45 transition-colors hover:bg-muted/70">
       <button
         type="button"
         onClick={toggle}
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-muted/30 transition-colors"
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-left"
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <FileText className="h-5 w-5" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--brand)]">
+          <FileText className="h-4 w-4" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium truncate">{title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="truncate text-sm font-medium">{title}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             {new Date(file.timestamp * 1000).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
@@ -133,15 +129,15 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
             className={cn(
               "rounded-full px-2 py-0.5 text-[10px] font-medium",
               file.category === "unassigned"
-                ? "bg-muted text-muted-foreground"
+                ? "bg-[var(--surface)] text-muted-foreground"
                 : isEvidenceCategory(file.category)
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                : "bg-primary/10 text-primary"
+                  ? "bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-[var(--brand)]"
+                  : "bg-[var(--surface)] text-foreground"
             )}
           >
             {file.category}
           </span>
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-600 dark:text-green-400">
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--success)]">
             <Blocks className="h-3 w-3" />
             On-chain
           </span>
@@ -155,25 +151,25 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
       </button>
 
       {expanded && (
-        <div className="border-t bg-muted/10 px-4 py-4 space-y-4">
+        <div className="space-y-3 border-t border-border/50 px-3.5 py-3.5">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border bg-background p-3 space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+            <div className="space-y-1.5 rounded-2xl bg-[var(--surface)] p-3">
+              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <HardDrive className="h-3 w-3" />
                 0G Storage hash
               </p>
               <div className="flex items-center gap-2">
-                <code className="text-xs font-mono text-primary break-all flex-1">
+                <code className="flex-1 break-all font-mono text-xs text-[var(--brand)]">
                   {file.rootHash}
                 </code>
                 <button
                   type="button"
                   onClick={copyHash}
-                  className="shrink-0 rounded-md p-1.5 hover:bg-muted text-muted-foreground"
+                  className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
                   aria-label="Copy hash"
                 >
                   {copied ? (
-                    <Check className="h-3.5 w-3.5 text-green-600" />
+                    <Check className="h-3.5 w-3.5 text-[var(--success)]" />
                   ) : (
                     <Copy className="h-3.5 w-3.5" />
                   )}
@@ -183,12 +179,9 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
                 href={getStorageScanUrl(chainId)}
                 label="Verify on StorageScan"
               />
-              <p className="text-[11px] text-muted-foreground">
-                Preview loads in-app from 0G Storage — no download needed
-              </p>
             </div>
 
-            <div className="rounded-lg border bg-background p-3 space-y-1.5">
+            <div className="space-y-1.5 rounded-2xl bg-[var(--surface)] p-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Storage status
               </p>
@@ -198,34 +191,39 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
                   Fetching from 0G…
                 </div>
               ) : storageAvailable ? (
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                <p className="text-sm font-medium text-[var(--success)]">
                   Available on 0G Storage
                 </p>
               ) : error ? (
-                <p className="text-sm text-red-500">{error}</p>
+                <p className="text-sm text-[var(--danger)]">{error}</p>
               ) : (
-                <p className="text-sm text-amber-600">Indexing — try again shortly</p>
+                <p className="text-sm text-amber-600">
+                  Indexing — try again shortly
+                </p>
               )}
+              <p className="text-[11px] text-muted-foreground">
+                Preview loads in-app — no download needed
+              </p>
             </div>
           </div>
 
-          <div className="rounded-lg border bg-background overflow-hidden">
-            <div className="border-b bg-muted/30 px-3 py-2">
+          <div className="overflow-hidden rounded-2xl bg-[var(--surface)]">
+            <div className="px-3 py-2">
               <p className="text-xs font-medium text-muted-foreground">Preview</p>
             </div>
-            <div className="p-3 max-h-48 overflow-auto">
+            <div className="max-h-48 overflow-auto px-3 pb-3">
               {loading ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
               ) : storageAvailable ? (
-                <pre className="text-xs whitespace-pre-wrap break-words font-mono leading-relaxed">
+                <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">
                   {content!.length > 2000
                     ? content!.slice(0, 2000) + "\n…"
                     : content}
                 </pre>
               ) : (
-                <p className="text-sm text-muted-foreground italic py-4 text-center">
+                <p className="py-4 text-center text-sm italic text-muted-foreground">
                   {error ? "Could not load preview" : "Preview not available yet"}
                 </p>
               )}
@@ -237,7 +235,13 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
   );
 }
 
-export default function FileList({ refreshToken = 0 }: { refreshToken?: number }) {
+export default function FileList({
+  refreshToken = 0,
+  compact = false,
+}: {
+  refreshToken?: number;
+  compact?: boolean;
+}) {
   const { files, loading, refetch } = useUserFiles();
   const { isConnected } = useAccount();
   const chainId = useChainId();
@@ -246,7 +250,7 @@ export default function FileList({ refreshToken = 0 }: { refreshToken?: number }
 
   useEffect(() => {
     if (isConnected) {
-      refetch().then(() => setHasFetched(true));
+      refetch({ silent: true }).then(() => setHasFetched(true));
     }
   }, [isConnected, chainId, refreshToken, refetch]);
 
@@ -261,26 +265,26 @@ export default function FileList({ refreshToken = 0 }: { refreshToken?: number }
 
   if (!isConnected) {
     return (
-      <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-12 text-center">
-        <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+      <div className="rounded-2xl bg-muted/40 px-6 py-12 text-center">
+        <FileText className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
         <p className="text-sm font-medium">Connect wallet to view vault files</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Your on-chain file registry is tied to your wallet address
+        <p className="mt-1 text-xs text-muted-foreground">
+          Your on-chain registry is tied to this wallet
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-sm">
+    <div className={cn("space-y-3", compact && "space-y-2.5")}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by hash or category…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
+            className="h-9 rounded-full pl-9"
           />
         </div>
         <Button
@@ -288,7 +292,7 @@ export default function FileList({ refreshToken = 0 }: { refreshToken?: number }
           size="sm"
           onClick={() => refetch()}
           disabled={loading}
-          className="gap-2 shrink-0"
+          className="shrink-0 gap-2"
         >
           <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           Refresh
@@ -296,28 +300,30 @@ export default function FileList({ refreshToken = 0 }: { refreshToken?: number }
       </div>
 
       {loading && !hasFetched ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
-          <p className="text-sm">Loading your vault from 0G Chain…</p>
+        <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
+          <Loader2 className="mb-3 h-7 w-7 animate-spin text-[var(--brand)]" />
+          <p className="text-sm">Loading vault from 0G Chain…</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-12 text-center">
-          <FileText className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+        <div className="rounded-2xl bg-muted/40 px-6 py-12 text-center">
+          <FileText className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
           <p className="text-sm font-medium">
             {search ? "No files match your search" : "No files in your vault yet"}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             {search
               ? "Try a different search term"
-              : "Upload documents above — they'll appear here once registered on-chain"}
+              : "Ingest evidence above — packs appear here once registered"}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground px-1">
-            {filtered.length} file{filtered.length !== 1 ? "s" : ""} in vault
-            {search && ` matching "${search}"`}
-          </p>
+          {!compact && (
+            <p className="px-1 text-xs text-muted-foreground">
+              {filtered.length} file{filtered.length !== 1 ? "s" : ""} in vault
+              {search && ` matching "${search}"`}
+            </p>
+          )}
           {filtered.map((file) => (
             <VaultFileCard key={file.rootHash} file={file} chainId={chainId} />
           ))}
