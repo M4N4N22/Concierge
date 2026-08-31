@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function LegacyVaultChatPage() {
+export default function AdvisorIndexPage() {
   redirect("/dashboard/advisor/talk");
 }

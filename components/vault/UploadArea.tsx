@@ -11,7 +11,6 @@ import { CopyHash } from "./CopyHash";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getTxExplorerUrl, truncateHash } from "@/lib/explorer";
-import { Panel, PanelHeader } from "@/components/ui/panel";
 
 interface UploadedFile {
   file: File;
@@ -70,27 +69,33 @@ export default function UploadArea({
 
   return (
     <div className="space-y-3">
-      <EvidenceIntake
-        disabled={loading}
-        onRegistered={(result) => {
-          const file = new File(
-            [JSON.stringify(result.pack, null, 2)],
-            `${result.pack.id}.json`,
-            { type: "application/json" }
-          );
-          setUploadedFiles((prev) => [
-            ...prev,
-            { file, rootHash: result.rootHash, txHash: result.txHash },
-          ]);
-          handleVaultUpdate();
-        }}
-      />
+      <div className="grid gap-3 lg:grid-cols-2">
+        <EvidenceIntake
+          disabled={loading}
+          onRegistered={(result) => {
+            const file = new File(
+              [JSON.stringify(result.pack, null, 2)],
+              `${result.pack.id}.json`,
+              { type: "application/json" }
+            );
+            setUploadedFiles((prev) => [
+              ...prev,
+              { file, rootHash: result.rootHash, txHash: result.txHash },
+            ]);
+            handleVaultUpdate();
+          }}
+        />
 
-      <Panel>
-        <PanelHeader
-          title="File upload"
-          hint="Text/CSV/JSON auto-normalize to evidence packs. Other types store as-is."
-          action={
+        <div className="bento flex flex-col p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold tracking-tight">
+                File upload
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Text/CSV/JSON auto-normalize to evidence packs.
+              </p>
+            </div>
             <DummyUploadButton
               onUpload={handleUpload}
               loading={loading}
@@ -98,28 +103,37 @@ export default function UploadArea({
               onProgress={setUploadProgress}
               onComplete={handleVaultUpdate}
             />
-          }
-        />
-        {!isConnected && (
-          <p className="mb-3 text-xs text-muted-foreground">
-            Connect wallet to upload.
-          </p>
-        )}
-        <UploadButton
-          onUpload={handleUpload}
-          loading={loading}
-          setLoading={setLoading}
-          onProgress={setUploadProgress}
-          onComplete={handleVaultUpdate}
-        />
-      </Panel>
+          </div>
+
+          {!isConnected && (
+            <p className="mb-3 text-xs text-muted-foreground">
+              Connect wallet to upload.
+            </p>
+          )}
+
+          <div className="flex-1">
+            <UploadButton
+              onUpload={handleUpload}
+              loading={loading}
+              setLoading={setLoading}
+              onProgress={setUploadProgress}
+              onComplete={handleVaultUpdate}
+            />
+          </div>
+        </div>
+      </div>
 
       {uploadedFiles.length > 0 && (
-        <Panel pad={false}>
+        <div className="bento overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3">
-            <p className="text-sm font-medium">
-              Session · {uploadedFiles.length}
-            </p>
+            <div>
+              <p className="text-sm font-semibold">
+                This session · {uploadedFiles.length}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Fresh receipts before they show in the registry
+              </p>
+            </div>
             {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           </div>
           {loading && uploadProgress && (
@@ -146,10 +160,15 @@ export default function UploadArea({
                   <th className="px-5 py-2 font-medium">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {uploadedFiles.map((file, index) => (
-                  <tr key={index}>
-                    <td className="px-5 py-2.5 font-medium">{file.file.name}</td>
+                  <tr
+                    key={index}
+                    className="border-t border-border/60"
+                  >
+                    <td className="px-5 py-2.5 font-medium">
+                      {file.file.name}
+                    </td>
                     <td className="px-5 py-2.5">
                       <CopyHash hash={file.rootHash} />
                     </td>
@@ -181,7 +200,7 @@ export default function UploadArea({
               </tbody>
             </table>
           </div>
-        </Panel>
+        </div>
       )}
     </div>
   );

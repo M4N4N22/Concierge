@@ -66,7 +66,7 @@ export function agentTurnPrompt(input: {
   priorTurns: BoardTurn[];
 }): string {
   const agent = BOARD_AGENTS[input.role];
-  return `You are ${agent.name} on Concierge Board, a multi-agent war room on 0G Compute.
+  return `You are ${agent.name} on Concierge Advisor, helping the user understand their vault evidence on 0G Compute.
 Mandate: ${agent.mandate}
 
 User question / decision:
@@ -119,7 +119,7 @@ export function fastBoardPrompt(input: {
   question: string;
   evidenceBrief: string;
 }): string {
-  return `You are Concierge Board on 0G Compute — a multi-agent war room.
+  return `You are Concierge Advisor on 0G Compute — a multi-agent consensus board for vault evidence.
 Simulate a debate between Analyst, Risk, and Security agents, then Chair consensus.
 
 Question:

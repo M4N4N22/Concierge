@@ -40,7 +40,7 @@ export default function InsightsWorkspace() {
   const [progress, setProgress] = useState({ done: 0, total: 0 });
 
   useEffect(() => {
-    if (isConnected) refetch();
+    if (isConnected) void refetch({ silent: true });
   }, [isConnected, refetch]);
 
   const toggleFile = (hash: string) => {
@@ -110,7 +110,7 @@ export default function InsightsWorkspace() {
     setCurrentFile(null);
     setProcessing(false);
     setSelected(new Set());
-    await refetch();
+    await refetch({ silent: true });
   };
 
   const grouped = files.reduce<Record<string, VaultFile[]>>((acc, file) => {
@@ -128,22 +128,21 @@ export default function InsightsWorkspace() {
 
   if (!isConnected) {
     return (
-      <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-12 text-center">
-        <Sparkles className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+      <div className="bento px-6 py-12 text-center">
+        <Sparkles className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
         <p className="text-sm font-medium">Connect wallet to run insights</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Gate: setup required */}
+    <div className="space-y-3">
       {!readiness.canCompute && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-          <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-[var(--radius)] bg-amber-500/10 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <div className="text-sm">
-            <p className="font-medium">Complete setup above first</p>
-            <ul className="mt-1.5 space-y-0.5 text-muted-foreground text-xs">
+            <p className="font-medium">Finish compute setup above first</p>
+            <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
               {!readiness.hasLedger && <li>→ Create your 0G Compute ledger</li>}
               {readiness.hasLedger && !readiness.hasBalance && (
                 <li>→ Deposit OG into your ledger</li>
@@ -156,17 +155,24 @@ export default function InsightsWorkspace() {
         </div>
       )}
 
-      <section className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-        <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="bento overflow-hidden">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Run AI insights</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-sm font-semibold tracking-tight">
+              Run AI insights
+            </h2>
+            <p className="text-xs text-muted-foreground">
               Select vault files — 0G Compute categorizes and summarizes each one
             </p>
           </div>
           {files.length > 0 && readiness.canCompute && (
-            <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={selectAll} disabled={processing}>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAll}
+                disabled={processing}
+              >
                 Select all
               </Button>
               <Button
@@ -189,7 +195,7 @@ export default function InsightsWorkspace() {
         </div>
 
         {processing && (
-          <div className="border-b bg-primary/[0.03] px-5 py-3 space-y-2">
+          <div className="space-y-2 border-t border-border/50 bg-[color-mix(in_srgb,var(--brand)_5%,transparent)] px-5 py-3">
             <div className="flex justify-between text-xs">
               <span className="font-medium">
                 {currentFile
@@ -209,26 +215,26 @@ export default function InsightsWorkspace() {
               className="h-1.5"
             />
             <p className="text-xs text-muted-foreground">
-              Verifying provider · inference · storing results on 0G · updating vault
+              Verifying provider · inference · storing on 0G · updating vault
             </p>
           </div>
         )}
 
-        <div className="p-5">
+        <div className="border-t border-border/50 px-5 py-4">
           {filesLoading ? (
             <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
               <span className="text-sm">Loading vault files…</span>
             </div>
           ) : files.length === 0 ? (
-            <div className="rounded-xl border border-dashed bg-muted/20 px-6 py-10 text-center">
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+            <div className="rounded-2xl bg-muted/40 px-6 py-10 text-center">
+              <Upload className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
               <p className="text-sm font-medium">No files in your vault</p>
-              <p className="text-xs text-muted-foreground mt-1 mb-4">
-                Upload documents first, then return here for AI organization
+              <p className="mb-4 mt-1 text-xs text-muted-foreground">
+                Add evidence first, then return here to organize
               </p>
               <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/vault/my-files">Go to Upload</Link>
+                <Link href="/dashboard/vault/my-files">Go to Vault</Link>
               </Button>
             </div>
           ) : (
@@ -243,11 +249,11 @@ export default function InsightsWorkspace() {
                   <div
                     key={file.rootHash}
                     className={cn(
-                      "flex items-start gap-3 rounded-xl border p-4 transition-colors",
-                      selected.has(file.rootHash) && "border-primary/40 bg-primary/[0.03]",
-                      hasResult || onChainCategory
-                        ? "border-green-500/20"
-                        : "hover:bg-muted/20"
+                      "flex items-start gap-3 rounded-2xl bg-muted/45 p-4 transition-colors",
+                      selected.has(file.rootHash) &&
+                        "bg-[color-mix(in_srgb,var(--brand)_10%,var(--surface))]",
+                      (hasResult || onChainCategory) &&
+                        "bg-[color-mix(in_srgb,var(--success)_8%,var(--surface))]"
                     )}
                   >
                     {readiness.canCompute && !hasResult && !onChainCategory && (
@@ -258,29 +264,31 @@ export default function InsightsWorkspace() {
                         className="mt-1"
                       />
                     )}
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--brand)]">
                       <FileText className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <code className="text-xs font-mono text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <code className="font-mono text-xs text-muted-foreground">
                           {truncateHash(file.rootHash)}
                         </code>
                         {(hasResult || onChainCategory) && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--success)_14%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--success)]">
                             <CheckCircle2 className="h-3 w-3" />
                             {insight?.category || onChainCategory}
                           </span>
                         )}
                       </div>
                       {insight?.error ? (
-                        <p className="text-sm text-red-500 mt-1">{insight.error}</p>
+                        <p className="mt-1 text-sm text-[var(--danger)]">
+                          {insight.error}
+                        </p>
                       ) : insight?.summary || onChainCategory ? (
-                        <p className="text-sm text-foreground mt-1.5 leading-relaxed">
+                        <p className="mt-1.5 text-sm leading-relaxed">
                           {insight?.summary || "Insights stored on-chain"}
                         </p>
                       ) : (
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           Not yet analyzed — select and run insights
                         </p>
                       )}
@@ -293,21 +301,28 @@ export default function InsightsWorkspace() {
         </div>
       </section>
 
-      {/* Results by category */}
       {hasInsights && categories.length > 0 && (
-        <section className="rounded-2xl border bg-card overflow-hidden">
-          <div className="border-b bg-muted/30 px-5 py-3.5">
-            <p className="text-sm font-medium">Organized vault</p>
+        <section className="bento overflow-hidden">
+          <div className="px-5 py-4">
+            <p className="text-sm font-semibold tracking-tight">
+              Organized vault
+            </p>
             <p className="text-xs text-muted-foreground">
-              Files grouped by AI-assigned category — stored on 0G & written to vault
+              Grouped by AI category — stored on 0G and written to the registry
             </p>
           </div>
-          <div className="p-5">
+          <div className="border-t border-border/50 px-5 py-4">
             <Tabs defaultValue={categories[0]}>
-              <TabsList className="flex flex-wrap h-auto gap-1">
-                <TabsTrigger value="all">All</TabsTrigger>
+              <TabsList className="flex h-auto flex-wrap gap-1 rounded-full bg-muted p-1">
+                <TabsTrigger value="all" className="rounded-full text-xs">
+                  All
+                </TabsTrigger>
                 {categories.map((cat) => (
-                  <TabsTrigger key={cat} value={cat}>
+                  <TabsTrigger
+                    key={cat}
+                    value={cat}
+                    className="rounded-full text-xs"
+                  >
                     {cat}
                   </TabsTrigger>
                 ))}
@@ -322,7 +337,11 @@ export default function InsightsWorkspace() {
                         f.category !== "unassigned"
                     )
                     .map((f) => (
-                      <InsightCard key={f.rootHash} file={f} insight={insights[f.rootHash]} />
+                      <InsightCard
+                        key={f.rootHash}
+                        file={f}
+                        insight={insights[f.rootHash]}
+                      />
                     ))}
                 </div>
               </TabsContent>
@@ -331,7 +350,11 @@ export default function InsightsWorkspace() {
                 <TabsContent key={cat} value={cat} className="mt-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     {grouped[cat].map((f) => (
-                      <InsightCard key={f.rootHash} file={f} insight={insights[f.rootHash]} />
+                      <InsightCard
+                        key={f.rootHash}
+                        file={f}
+                        insight={insights[f.rootHash]}
+                      />
                     ))}
                   </div>
                 </TabsContent>
@@ -355,12 +378,12 @@ function InsightCard({
     insight?.category || (file.category !== "unassigned" ? file.category : "—");
 
   return (
-    <div className="rounded-xl border bg-background p-4">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+    <div className="rounded-2xl bg-muted/45 p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--brand)]">
           {category}
         </span>
-        <code className="text-[10px] text-muted-foreground font-mono">
+        <code className="font-mono text-[10px] text-muted-foreground">
           {truncateHash(file.rootHash, 6, 4)}
         </code>
       </div>

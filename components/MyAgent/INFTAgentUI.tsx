@@ -49,7 +49,7 @@ export default function INFTAgentUI() {
       });
       await refetch();
       alert(
-        `Board Chair minted!\nTx: ${tx}\nOpen the War Room to bind sessions.`
+        `Board Chair minted!\nTx: ${tx}\nOpen Talk to bind sessions.`
       );
     } catch (err) {
       console.error(err);
@@ -126,7 +126,7 @@ export default function INFTAgentUI() {
             {agent.embeddingURI || "not bound yet"}
           </p>
           <Button asChild size="sm" variant="outline">
-            <Link href="/dashboard/vault/chat">Open War Room</Link>
+            <Link href="/dashboard/advisor/talk">Open Talk</Link>
           </Button>
         </div>
       ) : (

@@ -20,7 +20,8 @@ export function useUserFiles() {
   const [files, setFiles] = useState<VaultFile[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchFiles = useCallback(async (): Promise<VaultFile[]> => {
+  const fetchFiles = useCallback(async (opts?: { silent?: boolean }): Promise<VaultFile[]> => {
+    const silent = opts?.silent ?? false;
     console.log("Fetching user files...", {
       userAddress,
       isConnected,
@@ -28,7 +29,7 @@ export function useUserFiles() {
     });
 
     if (!isConnected || !userAddress) {
-      toast.error("Wallet not connected.");
+      if (!silent) toast.error("Wallet not connected.");
       setFiles([]);
       setLoading(false);
       return [];
@@ -36,7 +37,7 @@ export function useUserFiles() {
 
     const vaultAddress = VAULT_ADDRESSES[chainId];
     if (!vaultAddress) {
-      toast.error(`No vault contract deployed for chain ID ${chainId}`);
+      if (!silent) toast.error(`No vault contract deployed for chain ID ${chainId}`);
       return [];
     }
     const vault = vaultAddress as `0x${string}`;
@@ -109,7 +110,7 @@ export function useUserFiles() {
       return deduped;
     } catch (err: any) {
       console.error("Error fetching user files:", err);
-      toast.error(err?.reason || "Failed to fetch files.");
+      if (!silent) toast.error(err?.reason || "Failed to fetch files.");
       setFiles([]);
       return [];
     } finally {

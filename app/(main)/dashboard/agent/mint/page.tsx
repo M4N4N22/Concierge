@@ -16,8 +16,8 @@ export default function MyAgentPage() {
         step={4}
         journeyId="agentic-id"
         title="Mint your Board Chair"
-        tagline="Agentic ID owns the war room"
-        description="Create an ERC-721 Agentic ID bound to your vault. It chairs the AI War Room — board transcripts bind to this token via profile URI + firewall seal hash."
+        tagline="Agentic ID owns Advisor transcripts"
+        description="Create an ERC-721 Agentic ID bound to your vault. It can bind Talk and Trade transcripts via profile URI + firewall seal hash."
         actions={
           <Button size="sm" variant="outline" onClick={() => setShowDemo((p) => !p)}>
             {showDemo ? "Use production mint" : "Try demo wizard"}
