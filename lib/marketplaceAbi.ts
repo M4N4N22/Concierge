@@ -1,0 +1,121 @@
+/** Minimal ABI for AgentMarketplace — keep in sync with contracts/Marketplace/AgentMarketplace.sol */
+export const AGENT_MARKETPLACE_ABI = [
+  {
+    type: "constructor",
+    inputs: [{ name: "agentNft_", type: "address" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "agentNft",
+    inputs: [],
+    outputs: [{ type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "listForSale",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "priceWei", type: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cancelSale",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "buy",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "listForRent",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "priceWei", type: "uint256" },
+      { name: "durationSec", type: "uint64" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cancelRent",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "rent",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "hasAccess",
+    inputs: [
+      { name: "tokenId", type: "uint256" },
+      { name: "user", type: "address" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "sales",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [
+      { name: "seller", type: "address" },
+      { name: "priceWei", type: "uint256" },
+      { name: "active", type: "bool" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "rents",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [
+      { name: "owner", type: "address" },
+      { name: "priceWei", type: "uint256" },
+      { name: "durationSec", type: "uint64" },
+      { name: "active", type: "bool" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "rentals",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [
+      { name: "renter", type: "address" },
+      { name: "expiresAt", type: "uint64" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getActiveSaleIds",
+    inputs: [],
+    outputs: [{ type: "uint256[]" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getActiveRentIds",
+    inputs: [],
+    outputs: [{ type: "uint256[]" }],
+    stateMutability: "view",
+  },
+] as const;

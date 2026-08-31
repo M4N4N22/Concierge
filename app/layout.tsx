@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >

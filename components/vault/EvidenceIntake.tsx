@@ -2,17 +2,13 @@
 
 import { useState, useRef } from "react";
 import { useAccount, useChainId } from "wagmi";
-import {
-  Wallet,
-  FileSpreadsheet,
-  ClipboardPaste,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
+import { Wallet, FileSpreadsheet, ClipboardPaste, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { FieldLabel } from "@/components/ui/hint";
+import { Panel, PanelHeader } from "@/components/ui/panel";
 import { useAddToVault } from "@/hooks/useAddToVault";
 import { useWalletEvidence } from "@/hooks/useWalletEvidence";
 import {
@@ -23,7 +19,6 @@ import {
   type VaultEvidence,
 } from "@/lib/evidence";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 type Props = {
   onRegistered?: (result: {
@@ -45,7 +40,6 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
   const [briefingTitle, setBriefingTitle] = useState("");
   const [preview, setPreview] = useState<VaultEvidence | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
-
   const locked = disabled || busy || !isConnected;
 
   const commit = async (pack: VaultEvidence) => {
@@ -61,227 +55,146 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
     }
   };
 
-  const handleWalletSync = async () => {
-    if (!isConnected) return;
-    setBusy(true);
-    try {
-      const pack = await fetchWalletEvidence();
-      setPreview(pack);
-      const result = await registerEvidencePack(pack, addFile, {
-        useTestnet: true,
-      });
-      if (result) onRegistered?.(result);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Wallet sync failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleCsvFile = async (file: File) => {
-    const text = await file.text();
-    const pack = normalizeCsvEvidence(text, {
-      fileName: file.name,
-      wallet: address,
-      chainId,
-      source: "csv",
-    });
-    setPreview(pack);
-    await commit(pack);
-  };
-
-  const handleBriefing = async () => {
-    if (!briefing.trim()) {
-      toast.error("Paste a receipt, tx, or decision context first");
-      return;
-    }
-    const pack = normalizeBriefingEvidence(briefing, {
-      wallet: address,
-      chainId,
-      title: briefingTitle || undefined,
-    });
-    setPreview(pack);
-    await commit(pack);
-    setBriefing("");
-    setBriefingTitle("");
-  };
-
   return (
-    <section className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-      <div className="border-b px-5 py-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Sparkles className="h-5 w-5" />
-          </div>
+    <Panel>
+      <PanelHeader
+        title="Evidence intake"
+        hint="Wallet sync, CSV, or paste — normalized to VaultEvidence before Storage."
+      />
+
+      {!isConnected && (
+        <p className="mb-3 text-xs text-muted-foreground">Connect wallet to register packs.</p>
+      )}
+
+      <Tabs defaultValue="wallet">
+        <TabsList className="h-8 w-full grid grid-cols-3 rounded-md bg-muted p-0.5">
+          <TabsTrigger value="wallet" className="text-xs gap-1.5 rounded-sm">
+            <Wallet className="h-3 w-3" />
+            Wallet
+          </TabsTrigger>
+          <TabsTrigger value="csv" className="text-xs gap-1.5 rounded-sm">
+            <FileSpreadsheet className="h-3 w-3" />
+            CSV
+          </TabsTrigger>
+          <TabsTrigger value="paste" className="text-xs gap-1.5 rounded-sm">
+            <ClipboardPaste className="h-3 w-3" />
+            Paste
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="wallet" className="mt-3">
+          <Button
+            size="sm"
+            onClick={async () => {
+              if (!isConnected) return;
+              setBusy(true);
+              try {
+                const pack = await fetchWalletEvidence();
+                setPreview(pack);
+                const result = await registerEvidencePack(pack, addFile, {
+                  useTestnet: true,
+                });
+                if (result) onRegistered?.(result);
+              } catch (err: unknown) {
+                toast.error(err instanceof Error ? err.message : "Sync failed");
+              } finally {
+                setBusy(false);
+              }
+            }}
+            disabled={locked || walletLoading}
+          >
+            {(busy || walletLoading) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Sync wallet
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="csv" className="mt-3">
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            disabled={locked}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              const pack = normalizeCsvEvidence(await file.text(), {
+                fileName: file.name,
+                wallet: address,
+                chainId,
+                source: "csv",
+              });
+              await commit(pack);
+            }}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={locked}
+            onClick={() => csvInputRef.current?.click()}
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Choose CSV
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="paste" className="mt-3 space-y-2">
           <div>
-            <h2 className="text-lg font-semibold">Clean evidence intake</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Schema-first packs for the AI board — wallet sync, CSV, or paste. Agents
-              read structured facts, not messy PDFs.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-5">
-        {!isConnected && (
-          <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
-            Connect your wallet to sync on-chain evidence and register packs.
-          </div>
-        )}
-
-        <Tabs defaultValue="wallet" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-auto p-1">
-            <TabsTrigger value="wallet" className="gap-1.5 text-xs sm:text-sm py-2">
-              <Wallet className="h-3.5 w-3.5" />
-              Wallet
-            </TabsTrigger>
-            <TabsTrigger value="csv" className="gap-1.5 text-xs sm:text-sm py-2">
-              <FileSpreadsheet className="h-3.5 w-3.5" />
-              CSV
-            </TabsTrigger>
-            <TabsTrigger value="paste" className="gap-1.5 text-xs sm:text-sm py-2">
-              <ClipboardPaste className="h-3.5 w-3.5" />
-              Paste
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="wallet" className="mt-4 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Pull native balance and recent token transfers into a{" "}
-              <code className="text-xs bg-muted px-1 rounded">evidence:wallet</code> pack.
-              Zero file upload — cleanest cold start.
-            </p>
-            <Button
-              type="button"
-              onClick={handleWalletSync}
-              disabled={locked || walletLoading}
-              className="w-full sm:w-auto gap-2"
-            >
-              {(busy || walletLoading) && (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              )}
-              Sync wallet evidence
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="csv" className="mt-4 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Import a bank / card / subscription CSV. We normalize rows into spend or
-              subscription facts before vault registration.
-            </p>
-            <input
-              ref={csvInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              disabled={locked}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) await handleCsvFile(file);
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={locked}
-              className="gap-2"
-              onClick={() => csvInputRef.current?.click()}
-            >
-              {busy ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="h-4 w-4" />
-              )}
-              Choose CSV export
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="paste" className="mt-4 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Paste a receipt, tx hash context, or decision brief for the board session.
-            </p>
+            <FieldLabel>Title</FieldLabel>
             <Input
-              placeholder="Optional title (e.g. March dining review)"
               value={briefingTitle}
               onChange={(e) => setBriefingTitle(e.target.value)}
               disabled={locked}
+              placeholder="Optional"
             />
+          </div>
+          <div>
+            <FieldLabel hint="Receipt, tx context, or decision brief for the board.">
+              Briefing
+            </FieldLabel>
             <Textarea
-              placeholder={`Example:\nDining Spent: $200 on 2025-11-03 at Cafe Luna.\nOr paste a transaction / proposal you want the board to review.`}
               value={briefing}
               onChange={(e) => setBriefing(e.target.value)}
               disabled={locked}
-              rows={5}
-              className="resize-y min-h-[120px]"
+              rows={4}
             />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                onClick={handleBriefing}
-                disabled={locked || !briefing.trim()}
-                className="gap-2"
-              >
-                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                Normalize & register
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={locked || !briefing.trim()}
-                onClick={() => {
-                  const pack = normalizeBriefingEvidence(briefing, {
-                    wallet: address,
-                    chainId,
-                    title: briefingTitle || undefined,
-                  });
-                  setPreview(pack);
-                  toast.message("Preview ready — register when it looks right");
-                }}
-              >
-                Preview only
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {preview && (
-          <div
-            className={cn(
-              "mt-5 rounded-xl border bg-muted/20 p-4 space-y-2",
-              busy && "opacity-70"
-            )}
-          >
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <p className="text-sm font-medium">{preview.title}</p>
-              <span className="text-[11px] font-medium rounded-full bg-primary/10 text-primary px-2 py-0.5">
-                evidence:{preview.type} · {Math.round(preview.confidence * 100)}%
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">{preview.summary}</p>
-            <ul className="grid sm:grid-cols-2 gap-1.5 pt-1">
-              {preview.facts.slice(0, 8).map((f) => (
-                <li
-                  key={`${f.key}-${String(f.value)}`}
-                  className="text-xs rounded-md bg-background/80 border px-2.5 py-1.5 truncate"
-                >
-                  <span className="text-muted-foreground">{f.key}: </span>
-                  <span className="font-medium">
-                    {String(f.value)}
-                    {f.unit ? ` ${f.unit}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
           </div>
-        )}
-      </div>
-    </section>
+          <Button
+            size="sm"
+            disabled={locked || !briefing.trim()}
+            onClick={async () => {
+              const pack = normalizeBriefingEvidence(briefing, {
+                wallet: address,
+                chainId,
+                title: briefingTitle || undefined,
+              });
+              await commit(pack);
+              setBriefing("");
+              setBriefingTitle("");
+            }}
+          >
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Register
+          </Button>
+        </TabsContent>
+      </Tabs>
+
+      {preview && (
+        <div className="mt-4 rounded-md bg-muted/60 px-3 py-2.5 space-y-1">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="font-medium truncate">{preview.title}</span>
+            <span className="text-muted-foreground shrink-0">
+              {preview.type} · {Math.round(preview.confidence * 100)}%
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">{preview.summary}</p>
+        </div>
+      )}
+    </Panel>
   );
 }
 
-/** Used by file upload path to turn text/csv into evidence before vault write. */
 export async function normalizeUploadFile(
   file: File,
   ctx: { wallet?: string; chainId?: number }
@@ -293,9 +206,7 @@ export async function normalizeUploadFile(
     lower.endsWith(".json") ||
     file.type.startsWith("text") ||
     file.type === "application/json";
-
   if (!readable) return null;
-
   try {
     const content = await file.text();
     if (!content.trim()) return null;

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/hint";
 import { cn } from "@/lib/utils";
 import {
   getNextStep,
@@ -13,8 +14,8 @@ import {
 interface JourneyStepHeaderProps {
   step: number;
   title: string;
-  tagline: string;
-  description: string;
+  tagline?: string;
+  description?: string;
   journeyId: JourneyStepId;
   badge?: string;
   actions?: React.ReactNode;
@@ -35,33 +36,33 @@ export function JourneyStepHeader({
   const next = getNextStep(journeyId);
 
   return (
-    <div className={cn("space-y-4", className)}>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-2 max-w-2xl">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-primary/15 text-primary text-sm font-semibold">
-              {step}
-            </span>
-            <p className="text-sm font-medium text-primary uppercase tracking-wide">
-              Step {step} · {tagline}
-            </p>
-            {badge && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+    <div className={cn("space-y-3", className)}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-mono tabular-nums">{String(step).padStart(2, "0")}</span>
+            {tagline ? <span>· {tagline}</span> : null}
+            {badge ? (
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
                 {badge}
               </span>
-            )}
+            ) : null}
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-          <p className="text-muted-foreground leading-relaxed">{description}</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-medium tracking-tight text-foreground">
+              {title}
+            </h1>
+            {description ? <Hint text={description} /> : null}
+          </div>
         </div>
-        {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
+        {actions ? <div className="flex shrink-0 gap-2">{actions}</div> : null}
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-border/60">
+      <div className="flex items-center justify-between pt-2 hairline border-t">
         {prev?.href ? (
           <Button variant="ghost" size="sm" asChild>
-            <Link href={prev.href} className="gap-1">
-              <ArrowLeft className="h-4 w-4" />
+            <Link href={prev.href} className="gap-1 text-muted-foreground">
+              <ArrowLeft className="h-3.5 w-3.5" />
               {prev.shortTitle}
             </Link>
           </Button>
@@ -69,19 +70,11 @@ export function JourneyStepHeader({
           <span />
         )}
         {next?.href ? (
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="ghost" size="sm" asChild>
             <Link href={next.href} className="gap-1">
-              Next: {next.shortTitle}
-              {next.status === "coming-soon" && (
-                <span className="text-[10px] text-muted-foreground">(preview)</span>
-              )}
-              <ArrowRight className="h-4 w-4" />
+              {next.shortTitle}
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-          </Button>
-        ) : next ? (
-          <Button variant="outline" size="sm" disabled className="gap-1 opacity-60">
-            Next: {next.shortTitle}
-            <ArrowRight className="h-4 w-4" />
           </Button>
         ) : null}
       </div>
