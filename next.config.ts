@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
         destination: "/dashboard/advisor/talk",
         permanent: false,
       },
+      {
+        source: "/dashboard/advisor/trade",
+        destination: "/dashboard/trading/desk",
+        permanent: false,
+      },
     ];
   },
 };

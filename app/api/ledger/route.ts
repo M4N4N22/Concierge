@@ -1,13 +1,12 @@
 // app/api/ledger/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { MIN_LEDGER_CREATE_OG, MIN_PROVIDER_FUND_OG } from "@/lib/computeConstants";
-import { createZGComputeNetworkBroker } from "@0gfoundation/0g-compute-ts-sdk";
+import {
+  createComputeBroker,
+  parseComputeChainId,
+} from "@/lib/computeBroker";
 import { ethers } from "ethers";
 
-const RPC_URL = process.env.GALILEO_RPC_URL!;
-const PRIVATE_KEY = process.env.GALILEO_PRIVATE_KEY!;
-
-// Color helpers for terminal readability
 const color = {
   gray: (t: string) => `\x1b[90m${t}\x1b[0m`,
   green: (t: string) => `\x1b[32m${t}\x1b[0m`,
@@ -42,24 +41,48 @@ function logLedgerSummary(ledger: any) {
 
 export async function POST(req: NextRequest) {
   const start = Date.now();
-  console.log(color.cyan(`\n[REQUEST] Ledger API triggered at ${new Date().toISOString()}`));
+  console.log(
+    color.cyan(
+      `\n[REQUEST] Ledger API triggered at ${new Date().toISOString()}`
+    )
+  );
 
   try {
     const body = await req.json();
     console.log(color.gray(`[BODY]`), body);
 
     const { action, amount, subAccount } = body;
+    const requestChainId = parseComputeChainId(body.chainId);
     if (!action) {
       console.warn(color.yellow(`[WARN] Missing action field`));
       return NextResponse.json({ error: "Missing action" }, { status: 400 });
     }
 
-    // Initialize broker
-    console.log(color.cyan(`[INIT] Connecting to provider & broker...`));
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const signer = new ethers.Wallet(PRIVATE_KEY, provider);
-    const broker = await createZGComputeNetworkBroker(signer);
-    console.log(color.green(`[INIT] Broker initialized successfully`));
+    console.log(
+      color.cyan(
+        `[INIT] Connecting broker (chainId=${requestChainId ?? "default"})...`
+      )
+    );
+    const { broker, signer, provider, cfg } =
+      await createComputeBroker(requestChainId);
+    console.log(
+      color.green(
+        `[INIT] Broker ready on ${cfg.networkName} (${cfg.chainId}) ${signer.address}`
+      )
+    );
+
+    const nativeWei = await provider.getBalance(signer.address);
+    const nativeBalanceOg = Number(ethers.formatEther(nativeWei));
+    const brokerInfo = {
+      address: signer.address,
+      chainId: cfg.chainId,
+      network: cfg.networkName,
+      isTestnet: cfg.isTestnet,
+      nativeBalanceOg,
+      requiredCreateOg: MIN_LEDGER_CREATE_OG,
+      shortfallOg: Math.max(0, MIN_LEDGER_CREATE_OG - nativeBalanceOg),
+      canCreateLedger: nativeBalanceOg >= MIN_LEDGER_CREATE_OG,
+    };
 
     switch (action) {
       case "check": {
@@ -71,11 +94,16 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({
             exists: true,
             ledger: bigIntToString(ledger),
+            broker: brokerInfo,
           });
         } catch (err: any) {
-          if (err?.shortMessage?.includes("LedgerNotExists")) {
+          const msg = `${err?.shortMessage || ""} ${err?.message || ""}`;
+          if (
+            msg.includes("LedgerNotExists") ||
+            /account does not exist|add-account/i.test(msg)
+          ) {
             console.warn(color.yellow(`[WARN] Ledger does not exist`));
-            return NextResponse.json({ exists: false });
+            return NextResponse.json({ exists: false, broker: brokerInfo });
           }
           console.error(color.red(`[ERROR] Failed to fetch ledger:`), err);
           throw err;
@@ -100,6 +128,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           created: true,
           ledger: bigIntToString(newLedger),
+          broker: brokerInfo,
         });
       }
 
@@ -117,6 +146,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           deposited: true,
           ledger: bigIntToString(updatedLedger),
+          broker: brokerInfo,
         });
       }
 
@@ -140,11 +170,18 @@ export async function POST(req: NextRequest) {
         try {
           const ledgerBefore = await broker.ledger.getLedger();
           const available = ledgerBefore[1] - ledgerBefore[2];
-          console.log(color.gray(`[LEDGER BEFORE] Available:`), available.toString());
+          console.log(
+            color.gray(`[LEDGER BEFORE] Available:`),
+            available.toString()
+          );
 
           const amountBigInt = BigInt(Math.round(amount * 1e18));
           if (amountBigInt > available) {
-            console.warn(color.yellow(`[WARN] Insufficient balance for sub-account transfer`));
+            console.warn(
+              color.yellow(
+                `[WARN] Insufficient balance for sub-account transfer`
+              )
+            );
             return NextResponse.json(
               { error: "Insufficient available balance" },
               { status: 400 }
@@ -154,13 +191,16 @@ export async function POST(req: NextRequest) {
           await broker.ledger.transferFund(subAccount, amountBigInt);
           const ledgerAfter = await broker.ledger.getLedger();
           logLedgerSummary(ledgerAfter);
-          console.log(color.green(`[SUCCESS] Sub-account funded successfully`));
+          console.log(
+            color.green(`[SUCCESS] Sub-account funded successfully`)
+          );
 
           return NextResponse.json({
             funded: true,
             subAccount,
             amount,
             ledger: bigIntToString(ledgerAfter),
+            broker: brokerInfo,
           });
         } catch (err) {
           console.error(color.red(`[ERROR] Sub-account funding failed:`), err);

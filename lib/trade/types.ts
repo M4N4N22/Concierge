@@ -65,6 +65,7 @@ export type TradeMandate = {
 export type TradeProposal = {
   schemaVersion: typeof TRADE_SCHEMA_VERSION;
   id: string;
+  /** Board session id when proposed from Advisor; `manual` for wallet desk. */
   boardSessionId: string;
   agentTokenId?: string;
   pair: string;
@@ -84,7 +85,7 @@ export const DEFAULT_MANDATE: TradeMandate = {
   schemaVersion: TRADE_SCHEMA_VERSION,
   maxNotional: 100,
   maxSlippageBps: 50,
-  allowlist: [],
+  allowlist: ["OG/USDC"],
   requireConfirm: true,
   autonomous: false,
   updatedAt: new Date(0).toISOString(),

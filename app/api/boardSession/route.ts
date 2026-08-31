@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runBoardSession } from "@/lib/board/orchestrate";
 import { authorizeBoardRequest } from "@/lib/boardAuth";
+import {
+  parseAgentTokenId,
+  walletHasAgentAccess,
+} from "@/lib/agentAccess";
 import type { VaultEvidence } from "@/lib/evidence";
 
 export const maxDuration = 120;
@@ -35,14 +39,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const agentTokenId =
-      typeof body.agentTokenId === "string" ? body.agentTokenId : undefined;
+    const agentTokenId = parseAgentTokenId(body.agentTokenId);
+    const chainId =
+      typeof body.chainId === "number"
+        ? body.chainId
+        : Number(body.chainId) || undefined;
+
+    // When an Agentic ID is claimed, enforce owner-or-renter via marketplace.hasAccess.
+    if (agentTokenId !== null) {
+      const access = await walletHasAgentAccess({
+        wallet: auth.wallet,
+        tokenId: agentTokenId,
+        chainId,
+      });
+      if (!access.ok) {
+        return NextResponse.json({ error: access.error }, { status: 403 });
+      }
+    }
 
     const session = await runBoardSession({
       question: auth.question,
       evidence,
       mode: auth.mode,
-      agentTokenId,
+      agentTokenId:
+        agentTokenId !== null ? agentTokenId.toString() : undefined,
       wallet: auth.wallet,
     });
     return NextResponse.json({ session });

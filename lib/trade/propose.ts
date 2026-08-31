@@ -5,6 +5,7 @@ import {
   type TradeProposal,
   type TradeSide,
 } from "./types";
+import { isLiveRoutablePair, normalizeTradePair } from "./pairs";
 
 const PAIR_RE = /\b([A-Z]{2,10})\s*\/\s*([A-Z]{2,10})\b/;
 const BUY_RE = /\b(buy|long|accumulate)\b/i;
@@ -49,7 +50,7 @@ export function proposeTradeFromBoard(
   ].join("\n");
 
   const side = inferSide(corpus);
-  const pair = inferPair(corpus);
+  const pair = normalizeTradePair(inferPair(corpus));
   const size = inferSize(corpus, mandate);
   const citations = [
     ...session.evidenceIds.slice(0, 4),
@@ -67,8 +68,12 @@ export function proposeTradeFromBoard(
     status = "awaiting_confirm";
   }
 
-  if (mandate.allowlist.length && !mandate.allowlist.includes(pair)) {
+  if (!isLiveRoutablePair(pair)) {
     status = "blocked";
+  }
+  if (mandate.allowlist.length) {
+    const allowed = mandate.allowlist.map(normalizeTradePair);
+    if (!allowed.includes(pair)) status = "blocked";
   }
   if (size > mandate.maxNotional) {
     status = "blocked";
@@ -87,10 +92,53 @@ export function proposeTradeFromBoard(
     rationale:
       side === "hold"
         ? "Board did not recommend a market action."
-        : session.consensus.summary.slice(0, 280),
+        : !isLiveRoutablePair(pair)
+          ? `Pair ${pair} has no live route (only OG/USDC).`
+          : session.consensus.summary.slice(0, 280),
     citations: [...new Set(citations)].slice(0, 8),
     status,
     guardSealHash: session.guard?.sealHash,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/** Wallet desk order — no board session required. */
+export function createWalletProposal(args: {
+  side: "buy" | "sell";
+  /** Buy: USDC to spend. Sell: OG to sell (base) unless sizeIsQuote. */
+  size: number;
+  sizeIsQuote?: boolean;
+  mandate: TradeMandate;
+}): TradeProposal {
+  const pair = "OG/USDC";
+  const sizeIsQuote = args.sizeIsQuote ?? args.side === "buy";
+  let status: TradeProposal["status"] = "awaiting_confirm";
+  if (args.size <= 0) status = "blocked";
+  if (sizeIsQuote && args.size > args.mandate.maxNotional) status = "blocked";
+  if (
+    args.mandate.allowlist.length &&
+    !args.mandate.allowlist.map(normalizeTradePair).includes(pair)
+  ) {
+    status = "blocked";
+  }
+
+  return {
+    schemaVersion: 1,
+    id: createTradeId(),
+    boardSessionId: "manual",
+    pair,
+    side: args.side,
+    size: args.size,
+    sizeIsQuote,
+    maxSlippageBps: args.mandate.maxSlippageBps,
+    rationale:
+      args.side === "buy"
+        ? `Buy OG with ${args.size} USDC from connected wallet`
+        : sizeIsQuote
+          ? `Sell OG for ~${args.size} USDC from connected wallet`
+          : `Sell ${args.size} OG for USDC from connected wallet`,
+    citations: [],
+    status,
     createdAt: new Date().toISOString(),
   };
 }
@@ -100,17 +148,28 @@ export function mandateWithinLimits(
   mandate: TradeMandate
 ): { ok: boolean; reasons: string[] } {
   const reasons: string[] = [];
-  if (proposal.size > mandate.maxNotional) {
-    reasons.push(`Size exceeds max notional (${mandate.maxNotional})`);
+  const pair = normalizeTradePair(proposal.pair);
+  // Notional cap applies to quote-denominated size (USDC). Base sells checked after quote.
+  if (proposal.sizeIsQuote && proposal.size > mandate.maxNotional) {
+    reasons.push(`Size exceeds max notional (${mandate.maxNotional} USDC)`);
+  }
+  if (proposal.size <= 0) {
+    reasons.push("Size must be greater than zero");
   }
   if (proposal.maxSlippageBps > mandate.maxSlippageBps) {
     reasons.push(`Slippage exceeds mandate (${mandate.maxSlippageBps} bps)`);
   }
-  if (mandate.allowlist.length && !mandate.allowlist.includes(proposal.pair)) {
-    reasons.push(`Pair ${proposal.pair} not on allowlist`);
+  if (!isLiveRoutablePair(pair)) {
+    reasons.push(`Pair ${pair} has no live Uniswap route (only OG/USDC)`);
+  }
+  if (mandate.allowlist.length) {
+    const allowed = mandate.allowlist.map(normalizeTradePair);
+    if (!allowed.includes(pair)) {
+      reasons.push(`Pair ${pair} not on allowlist`);
+    }
   }
   if (proposal.status === "blocked") {
-    reasons.push("Proposal blocked by firewall or policy");
+    reasons.push("Proposal blocked by policy");
   }
   return { ok: reasons.length === 0, reasons };
 }

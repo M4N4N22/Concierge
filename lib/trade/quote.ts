@@ -2,31 +2,26 @@ import { parseUnits, formatUnits } from "viem";
 import type { PublicClient } from "viem";
 import {
   getDexConfig,
+  pathForExactOutput,
   pathForPair,
   QUOTER_V2_ABI,
   type DexConfig,
 } from "./dex";
+import { isLiveRoutablePair, normalizeTradePair } from "./pairs";
 import type { TradeProposal, TradeQuote } from "./types";
 
 /** Demo rate when Quoter has no liquidity / testnet unset: 1 OG ≈ 0.10 USDC */
 const SIM_OG_PER_USDC = 10;
 
-function amountInRaw(
+function amountInRawBuyOrBaseSell(
   proposal: TradeProposal,
   config: DexConfig,
   side: "buy" | "sell"
 ): bigint {
   if (side === "buy") {
-    // size is quote (USDC)
     return parseUnits(String(proposal.size), config.usdc.decimals);
   }
-  if (proposal.sizeIsQuote) {
-    // sell notional in USDC → approximate OG in at sim/live after quote;
-    // for amountIn we spend OG: convert USDC notional → OG via sim rate first,
-    // live path will re-quote. Use OG amount ≈ size * SIM_OG_PER_USDC.
-    const og = proposal.size * SIM_OG_PER_USDC;
-    return parseUnits(og.toFixed(6), config.wNative.decimals);
-  }
+  // Base-denominated sell only — quote-notional sells use live exact-output.
   return parseUnits(String(proposal.size), config.wNative.decimals);
 }
 
@@ -40,6 +35,7 @@ function simulatedQuote(
   reason: string
 ): TradeQuote {
   const side = proposal.side === "sell" ? "sell" : "buy";
+  const pair = normalizeTradePair(proposal.pair);
   let amountIn: number;
   let amountOut: number;
   let tokenInSymbol: string;
@@ -62,13 +58,12 @@ function simulatedQuote(
     tokenOutSymbol = "USDC";
   }
 
-  const minOut =
-    amountOut * (1 - proposal.maxSlippageBps / 10_000);
+  const minOut = amountOut * (1 - proposal.maxSlippageBps / 10_000);
 
   return {
     mode: "simulated",
     chainId,
-    pair: proposal.pair,
+    pair,
     side,
     tokenInSymbol,
     tokenOutSymbol,
@@ -89,23 +84,53 @@ async function liveQuote(
   proposal: TradeProposal
 ): Promise<TradeQuote> {
   const side = proposal.side === "sell" ? "sell" : "buy";
-  const { path, tokenIn, tokenOut } = pathForPair(config, side);
-  const amountIn = amountInRaw(proposal, config, side);
+  const pair = normalizeTradePair(proposal.pair);
+  if (!isLiveRoutablePair(pair)) {
+    throw new Error(`No live route for ${pair}`);
+  }
 
-  const { result } = await publicClient.simulateContract({
-    address: config.quoterV2,
-    abi: QUOTER_V2_ABI,
-    functionName: "quoteExactInput",
-    args: [path, amountIn],
-  });
+  const { path, tokenIn, tokenOut } = pathForPair(config, side, pair);
 
-  const amountOut = result[0] as bigint;
+  let amountIn: bigint;
+  let amountOut: bigint;
+  let execPath = path;
+  let note = "Uniswap V3 multi-hop via WETH (W0G ↔ WETH ↔ USDC.e)";
+
+  if (side === "sell" && proposal.sizeIsQuote) {
+    // Quote-notional sell: size is USDC out — size W0G in from live exact-output.
+    const amountOutDesired = parseUnits(
+      String(proposal.size),
+      config.usdc.decimals
+    );
+    const outPath = pathForExactOutput(config, side, pair);
+    const { result } = await publicClient.simulateContract({
+      address: config.quoterV2,
+      abi: QUOTER_V2_ABI,
+      functionName: "quoteExactOutput",
+      args: [outPath, amountOutDesired],
+    });
+    amountIn = result[0] as bigint;
+    amountOut = amountOutDesired;
+    execPath = path;
+    note =
+      "Live exact-output sized sell (USDC notional → W0G in), then exactInput exec";
+  } else {
+    amountIn = amountInRawBuyOrBaseSell(proposal, config, side);
+    const { result } = await publicClient.simulateContract({
+      address: config.quoterV2,
+      abi: QUOTER_V2_ABI,
+      functionName: "quoteExactInput",
+      args: [path, amountIn],
+    });
+    amountOut = result[0] as bigint;
+  }
+
   const minOut = applySlippage(amountOut, proposal.maxSlippageBps);
 
   return {
     mode: "live",
     chainId: config.chainId,
-    pair: proposal.pair,
+    pair,
     side,
     tokenInSymbol: tokenIn.symbol,
     tokenOutSymbol: tokenOut.symbol,
@@ -115,16 +140,17 @@ async function liveQuote(
     amountOutRaw: amountOut.toString(),
     amountOutMinimum: formatUnits(minOut, tokenOut.decimals),
     maxSlippageBps: proposal.maxSlippageBps,
-    path,
+    path: execPath,
     router: config.swapRouter02,
     fetchedAt: new Date().toISOString(),
-    note: "Uniswap V3 multi-hop via WETH (W0G ↔ WETH ↔ USDC.e)",
+    note,
   };
 }
 
 /**
  * Quote a board proposal on Uniswap V3 when available; otherwise simulated.
  * Never executes — human confirm required separately.
+ * Live routes only for OG/USDC; unsupported pairs stay simulated (not executable live).
  */
 export async function quoteTradeProposal(
   publicClient: PublicClient | null,
@@ -133,6 +159,15 @@ export async function quoteTradeProposal(
 ): Promise<TradeQuote> {
   if (proposal.side === "hold") {
     return simulatedQuote(proposal, chainId, "Hold — no swap path");
+  }
+
+  const pair = normalizeTradePair(proposal.pair);
+  if (!isLiveRoutablePair(pair)) {
+    return simulatedQuote(
+      proposal,
+      chainId,
+      `Unsupported pair ${pair} for live DEX (only OG/USDC). Simulated only — execution disabled.`
+    );
   }
 
   const config = getDexConfig(chainId);
@@ -150,10 +185,15 @@ export async function quoteTradeProposal(
     return await liveQuote(publicClient, config, proposal);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "quote failed";
+    // Never fall back to sim-rate sized sells as "almost live" — keep preview only.
+    const sellNotionalNote =
+      proposal.side === "sell" && proposal.sizeIsQuote
+        ? ` Live sell notional needs an exact-output quote — simulated preview only (not executable at this size).`
+        : "";
     return simulatedQuote(
       proposal,
       chainId,
-      `Live quote failed (${msg.slice(0, 80)}) — pools may lack liquidity. Simulated fallback.`
+      `Live quote failed (${msg.slice(0, 80)}) — pools may lack liquidity. Simulated fallback.${sellNotionalNote}`
     );
   }
 }

@@ -163,7 +163,7 @@ function JourneyStepBlock({
       )}
 
       {expanded && step.subSteps && step.subSteps.length > 0 && (
-        <ul className="mb-1 ml-4 mt-0.5 space-y-0.5 border-l border-[var(--sidebar-border)] pl-2.5">
+        <ul className="mb-1 ml-6 mt-0.5 space-y-0.5 border-l border-[var(--sidebar-border)] pl-2.5">
           {step.subSteps.map((sub) => {
             const live = sub.href !== "#";
             const active = isPathActive(pathname, sub.href);
@@ -184,7 +184,7 @@ function JourneyStepBlock({
                   className={cn(
                     "block rounded-lg px-2 py-1 text-xs transition-colors",
                     active
-                      ? "bg-[var(--sidebar-accent)] text-white"
+                      ? " text-white"
                       : "text-[var(--sidebar-muted)] hover:text-white"
                   )}
                 >

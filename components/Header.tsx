@@ -1,39 +1,50 @@
 "use client";
 
-import dynamic from "next/dynamic";
-//const WalletButton = dynamic(() => import("./WalletButton"), { ssr: false });
-
 import Link from "next/link";
 import { ModeToggle } from "./ThemeToggle";
+import { Button } from "@/components/ui/button";
 
+const NAV = [
+  { href: "#stack", label: "0G stack" },
+  { href: "#journey", label: "Flow" },
+  { href: "#product", label: "Desk" },
+  { href: "#faq", label: "FAQ" },
+] as const;
 
-
-export const Header = () => {
+export function Header() {
   return (
-    <header className="fixed top-4 left-12 right-12 z-50 backdrop-blur-md  rounded-xl bg-background/30 text-foreground p-2">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex justify-between items-start">
-          {/* Left: Logo + NavigationMenu (stacked vertically) */}
-          <div className="flex flex-col items-start gap-2">
-            {/* Logo */}
-            <Link href="/">
-              <div className="flex items-center">
-           
-                <span className="text-3xl tracking-tight">Concierge</span>
-              </div>
-            </Link>
+    <header className="fixed inset-x-0 top-4 z-50 px-4 sm:px-6">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 rounded-full bg-[var(--ink)] p-5 text-white shadow-[0_12px_40px_-18px_rgba(0,0,0,0.55)] sm:px-4 dark:bg-[#0a0a0a] dark:ring-1 dark:ring-white/10">
+        <Link
+          href="/"
+          className="shrink-0 px-2 text-lg font-semibold tracking-tight sm:text-xl"
+        >
+          Concierge
+        </Link>
 
-            {/* NavigationMenu */}
-          
-          </div>
+        <nav className="hidden items-center gap-0.5 md:flex">
+          {NAV.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="rounded-full px-3 py-1.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
 
-          {/* Right: Theme toggle & WalletButton */}
-          <div className="flex items-center gap-4">
-            <ModeToggle />
-            {/* <WalletButton /> */}
-          </div>
+        <div className="flex items-center gap-2">
+          <ModeToggle className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" />
+          <Button
+            asChild
+            size="sm"
+            className="rounded-full bg-[var(--brand)] px-4 text-white hover:bg-[var(--brand)]/90"
+          >
+            <Link href="/dashboard">Launch app</Link>
+          </Button>
         </div>
       </div>
     </header>
   );
-};
+}

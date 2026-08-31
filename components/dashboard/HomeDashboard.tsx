@@ -84,17 +84,17 @@ export function HomeDashboard() {
     }
     if (!hasAgent) {
       return {
-        label: "Mint Board Chair",
+        label: "Mint Agentic ID",
         href: "/dashboard/agent/mint",
-        explainer: "Bind sealed transcripts to an onchain Agentic ID.",
+        explainer: "Mint your on-chain AI agent identity bound to the vault.",
         cta: "Mint Agentic ID",
       };
     }
     return {
-      label: "Take a trade",
-      href: "/dashboard/advisor/trade",
-      explainer: "Mandate-gated brief, quote, and confirm.",
-      cta: "Open Trade",
+      label: "Trading desk",
+      href: "/dashboard/trading/desk",
+      explainer: "Agent Buy/Sell/Hold from wallet balances, then you confirm.",
+      cta: "Open Desk",
     };
   }, [hasAgent, isConnected, stats.boardSessions, stats.vaultFiles]);
 
@@ -324,20 +324,20 @@ export function HomeDashboard() {
             href="/dashboard/agent/mint"
             icon={Fingerprint}
             title="Agentic ID"
-            explainer="Mint or bind your Board Chair"
+            explainer="Mint your on-chain agent identity"
+          />
+          <RailLink
+            href="/dashboard/trading/desk"
+            icon={ShieldCheck}
+            title="Trading desk"
+            explainer="Agents suggest · you quote & confirm"
+            highlight
           />
           <RailLink
             href="/dashboard/ecosystem"
             icon={Store}
             title="Ecosystem"
-            explainer="List, rent, or transfer agents"
-          />
-          <RailLink
-            href="/dashboard/advisor/trade"
-            icon={ShieldCheck}
-            title="Take a trade"
-            explainer="Mandate-gated Uniswap confirm flow"
-            highlight
+            explainer="List, rent, or transfer Agentic IDs"
           />
 
           {(stats.tradeTraces > 0 || stats.boardSessions > 0) && isConnected ? (
@@ -454,6 +454,8 @@ function moduleMeta(
       return { badge: stats.boardSessions > 0 ? "Active" : "Core" };
     case "agentic-id":
       return { badge: hasAgent ? "Owned" : "Mint" };
+    case "trading":
+      return { badge: "Live" };
     case "ecosystem":
       return { badge: hasAgent ? "Open" : "Locked" };
     default:

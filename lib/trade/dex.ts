@@ -1,5 +1,7 @@
 /** Uniswap V3 addresses on 0G Mainnet. Galileo has no public deploy — use env overrides or simulation. */
 
+import { isLiveRoutablePair, normalizeTradePair } from "./pairs";
+
 export type DexToken = {
   symbol: string;
   address: `0x${string}`;
@@ -97,8 +99,14 @@ export function encodeV3Path(
 /** OG/USDC multi-hop via WETH (no direct pool on 0G mainnet). */
 export function pathForPair(
   config: DexConfig,
-  side: "buy" | "sell"
+  side: "buy" | "sell",
+  pair = "OG/USDC"
 ): { path: `0x${string}`; tokenIn: DexToken; tokenOut: DexToken } {
+  if (!isLiveRoutablePair(pair)) {
+    throw new Error(
+      `No live Uniswap route for ${normalizeTradePair(pair)} — only OG/USDC`
+    );
+  }
   const { wNative, usdc, weth, feeNativeWeth, feeUsdcWeth } = config;
   if (side === "buy") {
     // USDC → WETH → W0G
@@ -120,6 +128,23 @@ export function pathForPair(
     tokenIn: wNative,
     tokenOut: usdc,
   };
+}
+
+/**
+ * Exact-output path is the reverse encoding of the exact-input path
+ * (Uniswap V3: tokenOut first when quoting/swapping exact output).
+ */
+export function pathForExactOutput(
+  config: DexConfig,
+  side: "buy" | "sell",
+  pair = "OG/USDC"
+): `0x${string}` {
+  const { path } = pathForPair(
+    config,
+    side === "buy" ? "sell" : "buy",
+    pair
+  );
+  return path;
 }
 
 export const ERC20_ABI = [
@@ -187,6 +212,21 @@ export const QUOTER_V2_ABI = [
     ],
     outputs: [
       { name: "amountOut", type: "uint256" },
+      { name: "sqrtPriceX96AfterList", type: "uint160[]" },
+      { name: "initializedTicksCrossedList", type: "uint32[]" },
+      { name: "gasEstimate", type: "uint256" },
+    ],
+  },
+  {
+    type: "function",
+    name: "quoteExactOutput",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "path", type: "bytes" },
+      { name: "amountOut", type: "uint256" },
+    ],
+    outputs: [
+      { name: "amountIn", type: "uint256" },
       { name: "sqrtPriceX96AfterList", type: "uint160[]" },
       { name: "initializedTicksCrossedList", type: "uint32[]" },
       { name: "gasEstimate", type: "uint256" },

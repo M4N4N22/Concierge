@@ -83,7 +83,7 @@ type Props = {
 };
 
 export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, chainId } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { files, loading: filesLoading, refetch } = useUserFiles();
   const { fetchFileContent } = usefetchFileContent();
@@ -175,6 +175,7 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
           evidence: selectedEvidence,
           mode,
           agentTokenId: agent?.tokenId.toString(),
+          chainId,
           wallet: address,
           timestamp,
           signature,
@@ -217,6 +218,10 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
       setSavedRoot(result.rootHash);
       onSessionChange({ ...sealed, transcriptRootHash: result.rootHash });
       if (agent && session.guard?.sealHash) {
+        if (agent.access === "rental") {
+          toast.message("Transcript saved — renters cannot bind the Agentic ID");
+          return;
+        }
         try {
           const tx = await bindBoardSession({
             tokenId: agent.tokenId,
@@ -253,9 +258,14 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
           {agentLoading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
           ) : hasAgent && agent ? (
-            <span className="font-mono text-xs text-muted-foreground">
-              #{agent.tokenId.toString()}
-            </span>
+            <div className="text-right">
+              <span className="font-mono text-xs text-muted-foreground">
+                #{agent.tokenId.toString()}
+              </span>
+              {agent.access === "rental" ? (
+                <p className="text-[10px] text-[var(--brand)]">Rental access</p>
+              ) : null}
+            </div>
           ) : (
             <Button asChild size="sm" variant="outline">
               <Link href="/dashboard/agent/mint">Mint</Link>
@@ -440,7 +450,7 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              {hasAgent ? "Save & bind" : "Save"}
+              {hasAgent && agent?.access === "owner" ? "Save & bind" : "Save"}
             </Button>
           </div>
 

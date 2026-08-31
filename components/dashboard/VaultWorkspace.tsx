@@ -54,8 +54,8 @@ const GUIDE: GuideItem[] = [
   {
     id: "trade",
     icon: LineChart,
-    title: "Take a trade",
-    body: "From a sealed trade brief you can propose a swap, get a Uniswap quote, and confirm under your mandate.",
+    title: "Trading desk",
+    body: "Agents suggest Buy, Sell, or Hold from wallet balances. Apply to the OG/USDC order, quote, and confirm. Strategies live next door.",
   },
   {
     id: "connectors",

@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { TakeTradeWorkspace } from "@/components/advisor/TakeTradeWorkspace";
-
-export default function AdvisorTradePage() {
-  return <TakeTradeWorkspace />;
+export default function LegacyAdvisorTradePage() {
+  redirect("/dashboard/trading/desk");
 }

@@ -9,6 +9,7 @@ import {
   Circle,
   Loader2,
   RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,9 @@ import { cn } from "@/lib/utils";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
 import { formatOG, type ComputeModel } from "@/hooks/useComputeLedger";
 import { MIN_LEDGER_CREATE_OG, MIN_PROVIDER_FUND_OG } from "@/lib/computeConstants";
+import { getOgFundingLinks } from "@/lib/computeFunding";
 import { useState } from "react";
+import Link from "next/link";
 
 const SETUP_STEPS = [
   { id: "ledger", label: "Create ledger", detail: "Register on 0G Compute" },
@@ -139,6 +142,7 @@ export default function ComputeSetupPanel() {
     models,
     ledger,
     ledgerExists,
+    broker,
     fundedProviders,
     loading,
     actionLoading,
@@ -149,6 +153,7 @@ export default function ComputeSetupPanel() {
     createLedger,
     deposit,
     fundProvider,
+    chainId,
   } = useComputeLedgerContext();
 
   const [depositAmount, setDepositAmount] = useState("0.5");
@@ -159,13 +164,169 @@ export default function ComputeSetupPanel() {
     (completedSteps / SETUP_STEPS.length) * 100
   );
 
+  const isTestnet = broker?.isTestnet ?? chainId !== 16661;
+  const shortfall = broker?.shortfallOg ?? MIN_LEDGER_CREATE_OG;
+  const canCreate = broker?.canCreateLedger ?? false;
+  const fundingLinks = getOgFundingLinks(isTestnet);
+
   return (
     <div className="space-y-3">
+      {/* Broker wallet + network balance */}
+      <section className="bento overflow-hidden">
+        <div className="px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold tracking-tight">
+                Broker wallet
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Pays gas + the {MIN_LEDGER_CREATE_OG} OG needed to create a
+                compute ledger
+              </p>
+            </div>
+            {broker ? (
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                  broker.isTestnet
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-[var(--brand)]"
+                )}
+              >
+                {broker.network}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-border/50 px-5 py-4">
+          {loading && !broker ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading broker balance…
+            </div>
+          ) : broker ? (
+            <>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-2xl bg-muted/40 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Available
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {formatOG(broker.nativeBalanceOg)}{" "}
+                    <span className="text-sm font-medium text-muted-foreground">
+                      OG
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    Native on {broker.isTestnet ? "testnet" : "mainnet"}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-muted/40 px-3 py-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Required
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {MIN_LEDGER_CREATE_OG}{" "}
+                    <span className="text-sm font-medium text-muted-foreground">
+                      OG
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    Min to create ledger
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "rounded-2xl px-3 py-3",
+                    shortfall > 0
+                      ? "bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]"
+                      : "bg-[color-mix(in_srgb,var(--success)_12%,transparent)]"
+                  )}
+                >
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {shortfall > 0 ? "Short by" : "Status"}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-1 text-lg font-semibold tabular-nums",
+                      shortfall > 0
+                        ? "text-[var(--danger)]"
+                        : "text-[var(--success)]"
+                    )}
+                  >
+                    {shortfall > 0
+                      ? `${formatOG(shortfall)} OG`
+                      : "Ready"}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {shortfall > 0
+                      ? "Need more OG on this broker wallet"
+                      : "Enough to create ledger"}
+                  </p>
+                </div>
+              </div>
+
+              <p className="font-mono text-[10px] text-muted-foreground">
+                {broker.address.slice(0, 10)}…{broker.address.slice(-8)} · chain{" "}
+                {broker.chainId}
+              </p>
+
+              {shortfall > 0 ? (
+                <div className="rounded-2xl border border-border/60 bg-muted/30 px-3.5 py-3">
+                  <p className="text-xs font-medium">
+                    Fund this broker wallet ({formatOG(shortfall)} OG short)
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {broker.isTestnet
+                      ? "On Galileo testnet use the faucet or ask the community for test OG."
+                      : "On mainnet buy OG via official guides / DEX, then send to the broker address above."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {fundingLinks.map((link) =>
+                      link.external ? (
+                        <a
+                          key={link.href}
+                          href={link.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1.5 text-[11px] font-medium hover:bg-muted/50"
+                        >
+                          {link.label}
+                          <ExternalLink className="h-3 w-3 opacity-60" />
+                        </a>
+                      ) : (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background px-3 py-1.5 text-[11px] font-medium hover:bg-muted/50"
+                        >
+                          {link.label}
+                        </Link>
+                      )
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Could not load broker balance — check{" "}
+              {isTestnet
+                ? "GALILEO_RPC_URL / GALILEO_PRIVATE_KEY"
+                : "OG_MAINNET_RPC_URL / OG_MAINNET_PRIVATE_KEY"}
+              .
+            </p>
+          )}
+        </div>
+      </section>
+
       <section className="bento overflow-hidden">
         <div className="px-5 py-4">
           <p className="text-sm font-semibold tracking-tight">0G Compute setup</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Create a ledger, fund it, enable a model — then analyze vault files
+            Create a ledger ({MIN_LEDGER_CREATE_OG} OG), fund it, enable a model
+            — then run AI on vault or desk
           </p>
         </div>
 
@@ -239,13 +400,21 @@ export default function ComputeSetupPanel() {
               <Wallet className="mx-auto mb-3 h-9 w-9 text-[var(--brand)]/70" />
               <p className="text-sm font-medium">No compute ledger yet</p>
               <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-                Create a ledger on 0G Compute to pay for AI inference. Minimum
-                deposit: {MIN_LEDGER_CREATE_OG} OG.
+                Creating a ledger locks {MIN_LEDGER_CREATE_OG} OG from the
+                broker wallet
+                {broker
+                  ? ` (${formatOG(broker.nativeBalanceOg)} OG available)`
+                  : ""}
+                {shortfall > 0
+                  ? ` — short by ${formatOG(shortfall)} OG.`
+                  : "."}
               </p>
               <Button
                 className="mt-4 gap-2"
                 onClick={() => createLedger(MIN_LEDGER_CREATE_OG)}
-                disabled={actionLoading === "create"}
+                disabled={
+                  actionLoading === "create" || (!canCreate && !!broker)
+                }
               >
                 {actionLoading === "create" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -254,6 +423,11 @@ export default function ComputeSetupPanel() {
                 )}
                 Create ledger ({MIN_LEDGER_CREATE_OG} OG)
               </Button>
+              {!canCreate && broker ? (
+                <p className="mt-2 text-[11px] text-[var(--danger)]">
+                  Need {formatOG(shortfall)} more OG on the broker wallet first
+                </p>
+              ) : null}
             </div>
           ) : (
             <>
