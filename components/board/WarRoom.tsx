@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useAccount, useSignMessage } from "wagmi";
 import {
   Loader2,
-  Scale,
   ShieldAlert,
   LineChart,
   Gavel,
@@ -13,12 +12,14 @@ import {
   Save,
   CheckCircle2,
   AlertTriangle,
-  Fingerprint,
   ShieldCheck,
   Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { FieldLabel, Hint } from "@/components/ui/hint";
+import { Panel, PanelHeader } from "@/components/ui/panel";
+import { TradeDesk } from "@/components/trade/TradeDesk";
 import { useUserFiles } from "@/hooks/useUserFiles";
 import { usefetchFileContent } from "@/hooks/useFileContent";
 import { useAddToVault } from "@/hooks/useAddToVault";
@@ -28,7 +29,6 @@ import type {
   BoardSession,
   BoardTurn,
   BoardVerdict,
-  GuardStatus,
 } from "@/lib/board";
 import { boardAuthMessage } from "@/lib/boardAuthMessage";
 import { uploadAndRegisterOnVault } from "@/utils/upload";
@@ -36,26 +36,20 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const DEFAULT_QUESTION =
-  "Review my vault evidence and recommend the safest next actions.";
+  "Review my vault evidence and recommend the safest next actions including any OG trades.";
 
-function verdictTone(v: BoardVerdict): string {
-  if (v === "approve") return "text-emerald-600 dark:text-emerald-400";
-  if (v === "reject") return "text-red-600 dark:text-red-400";
+function verdictTone(v: BoardVerdict) {
+  if (v === "approve") return "text-[var(--success)]";
+  if (v === "reject") return "text-[var(--danger)]";
   if (v === "abstain") return "text-muted-foreground";
-  return "text-amber-600 dark:text-amber-400";
-}
-
-function guardTone(s: GuardStatus): string {
-  if (s === "pass") return "border-emerald-500/30 bg-emerald-500/5";
-  if (s === "block") return "border-red-500/30 bg-red-500/5";
-  return "border-amber-500/30 bg-amber-500/5";
+  return "text-amber-500";
 }
 
 function RoleIcon({ role }: { role: BoardTurn["role"] }) {
-  if (role === "analyst") return <LineChart className="h-4 w-4" />;
-  if (role === "risk") return <AlertTriangle className="h-4 w-4" />;
-  if (role === "security") return <ShieldAlert className="h-4 w-4" />;
-  return <Gavel className="h-4 w-4" />;
+  if (role === "analyst") return <LineChart className="h-3.5 w-3.5" />;
+  if (role === "risk") return <AlertTriangle className="h-3.5 w-3.5" />;
+  if (role === "security") return <ShieldAlert className="h-3.5 w-3.5" />;
+  return <Gavel className="h-3.5 w-3.5" />;
 }
 
 function parseEvidence(raw: string): VaultEvidence | null {
@@ -63,16 +57,12 @@ function parseEvidence(raw: string): VaultEvidence | null {
     const parsed = JSON.parse(raw) as VaultEvidence;
     if (parsed?.id && parsed?.type && Array.isArray(parsed.facts)) return parsed;
   } catch {
-    // ignore
+    /* ignore */
   }
   return null;
 }
 
-type LoadedPack = {
-  rootHash: string;
-  category: string;
-  pack: VaultEvidence;
-};
+type LoadedPack = { rootHash: string; category: string; pack: VaultEvidence };
 
 export default function WarRoom() {
   const { isConnected, address } = useAccount();
@@ -80,21 +70,14 @@ export default function WarRoom() {
   const { files, loading: filesLoading, refetch } = useUserFiles();
   const { fetchFileContent } = usefetchFileContent();
   const { addFile } = useAddToVault();
-  const {
-    agent,
-    loading: agentLoading,
-    hasAgent,
-    bindBoardSession,
-    refetch: refetchAgent,
-  } = useAgenticId();
+  const { agent, loading: agentLoading, hasAgent, bindBoardSession, refetch: refetchAgent } =
+    useAgenticId();
 
   const [packs, setPacks] = useState<LoadedPack[]>([]);
   const [loadingPacks, setLoadingPacks] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [question, setQuestion] = useState(DEFAULT_QUESTION);
-  const [mode, setMode] = useState<"auto" | "fast" | "live" | "fallback">(
-    "auto"
-  );
+  const [mode, setMode] = useState<"auto" | "fast" | "live" | "fallback">("auto");
   const [running, setRunning] = useState(false);
   const [session, setSession] = useState<BoardSession | null>(null);
   const [saving, setSaving] = useState(false);
@@ -109,19 +92,14 @@ export default function WarRoom() {
     setLoadingPacks(true);
     try {
       const list = await refetch();
-      const evidenceFiles = list.filter((f) => isEvidenceCategory(f.category));
       const loaded: LoadedPack[] = [];
-
-      for (const f of evidenceFiles.slice(0, 20)) {
+      for (const f of list.filter((x) => isEvidenceCategory(x.category)).slice(0, 20)) {
         if (f.category === "evidence:board") continue;
         try {
-          const raw = await fetchFileContent(f.rootHash);
-          const pack = parseEvidence(raw);
-          if (pack) {
-            loaded.push({ rootHash: f.rootHash, category: f.category, pack });
-          }
+          const pack = parseEvidence(await fetchFileContent(f.rootHash));
+          if (pack) loaded.push({ rootHash: f.rootHash, category: f.category, pack });
         } catch {
-          // skip unreadable
+          /* skip */
         }
       }
       setPacks(loaded);
@@ -140,18 +118,9 @@ export default function WarRoom() {
     [packs, selected]
   );
 
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   const runBoard = async () => {
     if (!isConnected || !address) {
-      toast.error("Connect wallet first");
+      toast.error("Connect wallet");
       return;
     }
     setRunning(true);
@@ -159,13 +128,8 @@ export default function WarRoom() {
     setBoundTx(null);
     try {
       const timestamp = Date.now();
-      const message = boardAuthMessage({
-        wallet: address,
-        timestamp,
-        question,
-      });
+      const message = boardAuthMessage({ wallet: address, timestamp, question });
       const signature = await signMessageAsync({ message });
-
       const res = await fetch("/api/boardSession", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,7 +137,7 @@ export default function WarRoom() {
           question,
           evidence: selectedEvidence,
           mode,
-          agentTokenId: agent ? agent.tokenId.toString() : undefined,
+          agentTokenId: agent?.tokenId.toString(),
           wallet: address,
           timestamp,
           signature,
@@ -182,14 +146,7 @@ export default function WarRoom() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Board failed");
       setSession(data.session as BoardSession);
-      const g = (data.session as BoardSession).guard?.status;
-      toast.success(
-        g === "block"
-          ? "Board complete — Agentic Firewall blocked unsafe actions"
-          : g === "review"
-            ? "Board complete — firewall requires human review"
-            : "Board session sealed"
-      );
+      toast.success("Board sealed");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Board failed");
     } finally {
@@ -199,40 +156,24 @@ export default function WarRoom() {
 
   const saveAndBind = async () => {
     if (!session || !isConnected) return;
-    if (session.guard?.status === "block") {
-      toast.error("Cannot bind a blocked session as executable guidance");
-      // still allow vault archive
-    }
     setSaving(true);
     try {
-      const sealedSession: BoardSession = {
+      const sealed: BoardSession = {
         ...session,
         agentTokenId: agent?.tokenId.toString() ?? session.agentTokenId,
         chairWallet: address ?? session.chairWallet,
       };
-      const file = new File(
-        [JSON.stringify(sealedSession, null, 2)],
-        `${session.id}.json`,
-        { type: "application/json" }
-      );
-      const result = await uploadAndRegisterOnVault(
-        file,
-        addFile,
-        (rootHash) => rootHash,
-        {
-          category: "evidence:board",
-          useTestnet: true,
-          successMessage: "Board transcript saved to vault",
-        }
-      );
-      if (!result) return;
-
-      setSavedRoot(result.rootHash);
-      setSession({
-        ...sealedSession,
-        transcriptRootHash: result.rootHash,
+      const file = new File([JSON.stringify(sealed, null, 2)], `${session.id}.json`, {
+        type: "application/json",
       });
-
+      const result = await uploadAndRegisterOnVault(file, addFile, (h) => h, {
+        category: "evidence:board",
+        useTestnet: true,
+        successMessage: "Transcript saved",
+      });
+      if (!result) return;
+      setSavedRoot(result.rootHash);
+      setSession({ ...sealed, transcriptRootHash: result.rootHash });
       if (agent && session.guard?.sealHash) {
         try {
           const tx = await bindBoardSession({
@@ -241,26 +182,14 @@ export default function WarRoom() {
             sealHash: session.guard.sealHash,
           });
           setBoundTx(tx);
-          setSession((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  transcriptRootHash: result.rootHash,
-                  boundToAgent: true,
-                }
-              : prev
+          setSession((p) =>
+            p ? { ...p, transcriptRootHash: result.rootHash, boundToAgent: true } : p
           );
-          toast.success("Agentic ID profile bound to this board session");
+          toast.success("Bound to Agentic ID");
           await refetchAgent();
         } catch (err: unknown) {
-          toast.error(
-            err instanceof Error
-              ? `Saved to vault, but Agentic ID bind failed: ${err.message}`
-              : "Saved to vault; Agentic ID bind failed"
-          );
+          toast.error(err instanceof Error ? err.message : "Bind failed");
         }
-      } else if (!agent) {
-        toast.message("Transcript saved — mint an Agentic ID to bind as Board Chair");
       }
     } finally {
       setSaving(false);
@@ -268,361 +197,215 @@ export default function WarRoom() {
   };
 
   return (
-    <div className="space-y-6">
-      <section
-        className={cn(
-          "rounded-2xl border px-5 py-4",
-          hasAgent
-            ? "border-primary/25 bg-primary/[0.03]"
-            : "border-dashed bg-muted/20"
-        )}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Fingerprint className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Board Chair · Agentic ID</p>
-              {agentLoading ? (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Checking on-chain agent…
-                </p>
-              ) : hasAgent && agent ? (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Token #{agent.tokenId.toString()} · {agent.domain || "no domain"}{" "}
-                  · sessions bind to this chair on save
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  No Agentic ID yet — board still runs; mint to own & seal sessions
-                  onchain.
-                </p>
-              )}
-            </div>
+    <div className="space-y-3">
+      <Panel>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 text-sm">
+            <span className="font-medium">Chair</span>
+            <Hint text="Your minted Agentic ID chairs this board. Sessions bind to it on save." />
           </div>
-          {!hasAgent && (
+          {agentLoading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          ) : hasAgent && agent ? (
+            <span className="font-mono text-xs text-muted-foreground">
+              #{agent.tokenId.toString()}
+            </span>
+          ) : (
             <Button asChild size="sm" variant="outline">
-              <Link href="/dashboard/agent/mint">Mint Agentic ID</Link>
+              <Link href="/dashboard/agent/mint">Mint</Link>
             </Button>
           )}
         </div>
-      </section>
+      </Panel>
 
-      <section className="rounded-2xl border bg-card overflow-hidden">
-        <div className="border-b px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Scale className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">Concierge Board</h2>
-              <p className="text-sm text-muted-foreground">
-                Analyst · Risk · Security debate → Agentic Firewall seals actions
-              </p>
-            </div>
+      <Panel>
+        <PanelHeader
+          title="Evidence"
+          hint="Select schema packs from your vault. Agents debate these facts only."
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void loadPacks()}
+              disabled={loadingPacks || filesLoading}
+            >
+              {loadingPacks ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          }
+        />
+
+        {loadingPacks ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : packs.length === 0 ? (
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>No evidence packs</span>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/vault/my-files">Ingest</Link>
+            </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => void loadPacks()}
-            disabled={loadingPacks || filesLoading}
-          >
-            {loadingPacks ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Refresh evidence
-          </Button>
-        </div>
+        ) : (
+          <ul className="grid gap-1.5 sm:grid-cols-2">
+            {packs.map((p) => {
+              const on = selected.has(p.pack.id);
+              return (
+                <li key={p.pack.id}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelected((prev) => {
+                        const n = new Set(prev);
+                        if (n.has(p.pack.id)) n.delete(p.pack.id);
+                        else n.add(p.pack.id);
+                        return n;
+                      })
+                    }
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors",
+                      on ? "bg-muted" : "hover:bg-muted/50"
+                    )}
+                  >
+                    {on && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-foreground" />}
+                    <span className="min-w-0 flex-1 truncate">{p.pack.title}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {p.pack.type}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
 
-        <div className="p-5 space-y-5">
-          {!isConnected && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
-              Connect your wallet to load vault evidence and run the board.
-            </div>
-          )}
-
+        <div className="mt-4 space-y-3">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium">Evidence packs</p>
-              <p className="text-xs text-muted-foreground">
-                {selectedEvidence.length}/{packs.length} selected
-              </p>
-            </div>
-            {loadingPacks ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading vault evidence…
-              </div>
-            ) : packs.length === 0 ? (
-              <div className="rounded-xl border border-dashed px-4 py-8 text-center space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  No evidence packs yet. Sync a wallet or paste a briefing first.
-                </p>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard/vault/my-files">Go to evidence intake</Link>
-                </Button>
-              </div>
-            ) : (
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {packs.map((p) => {
-                  const on = selected.has(p.pack.id);
-                  return (
-                    <li key={p.pack.id}>
-                      <button
-                        type="button"
-                        onClick={() => toggle(p.pack.id)}
-                        className={cn(
-                          "w-full rounded-xl border px-3 py-3 text-left transition-colors",
-                          on
-                            ? "border-primary/40 bg-primary/5"
-                            : "hover:bg-muted/40"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium truncate">
-                            {p.pack.title}
-                          </p>
-                          {on && (
-                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-1 truncate">
-                          {p.category} · {Math.round(p.pack.confidence * 100)}% ·{" "}
-                          {p.pack.summary}
-                        </p>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Board question</label>
+            <FieldLabel hint="Signed into the board auth message. Keep under 2000 chars.">
+              Question
+            </FieldLabel>
             <Textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              rows={3}
+              rows={2}
               disabled={running}
+              className="resize-none"
             />
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground mr-1">Compute mode</span>
-            {(
-              [
-                ["auto", "Auto"],
-                ["fast", "Fast"],
-                ["live", "Live swarm"],
-                ["fallback", "Offline"],
-              ] as const
-            ).map(([value, label]) => (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {(["auto", "fast", "live", "fallback"] as const).map((m) => (
               <button
-                key={value}
+                key={m}
                 type="button"
-                onClick={() => setMode(value)}
+                onClick={() => setMode(m)}
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
-                  mode === value
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background text-muted-foreground hover:text-foreground"
+                  "rounded-md px-2.5 py-1 text-xs capitalize",
+                  mode === m ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}
               >
-                {label}
+                {m}
               </button>
             ))}
+            <Hint text="Auto tries fast compute, then live swarm, then offline fallback." />
           </div>
-
-          <Button
-            type="button"
-            className="w-full sm:w-auto gap-2"
-            onClick={() => void runBoard()}
-            disabled={running || !isConnected}
-          >
-            {running ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Scale className="h-4 w-4" />
-            )}
-            {running ? "Agents debating…" : "Convene the board"}
+          <Button onClick={() => void runBoard()} disabled={running || !isConnected}>
+            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {running ? "Debating…" : "Convene"}
           </Button>
           {files.length > 0 && packs.length === 0 && !loadingPacks && (
-            <p className="text-xs text-muted-foreground">
-              Vault has {files.length} registered item(s), but none parsed as
-              evidence packs. Re-ingest via wallet/CSV/paste on My Files.
+            <p className="text-[11px] text-muted-foreground">
+              Vault has files that are not evidence packs — re-ingest via wallet/CSV/paste.
             </p>
           )}
         </div>
-      </section>
+      </Panel>
 
       {session && (
-        <section className="rounded-2xl border bg-card overflow-hidden">
-          <div className="border-b px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium">Debate transcript</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {session.id} · mode {session.computeMode}
-                {session.agentTokenId
-                  ? ` · chair #${session.agentTokenId}`
-                  : ""}
-                {session.modelNotes ? ` · ${session.modelNotes}` : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "text-xs font-semibold uppercase tracking-wide",
-                  verdictTone(session.consensus.verdict)
-                )}
-              >
+        <Panel pad={false}>
+          <div className="flex items-center justify-between gap-3 px-5 py-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium">Transcript</span>
+              <span className={cn("text-xs font-medium uppercase", verdictTone(session.consensus.verdict))}>
                 {session.consensus.verdict}
               </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="gap-2"
-                onClick={() => void saveAndBind()}
-                disabled={saving}
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                {hasAgent ? "Save & bind to Agentic ID" : "Save to vault"}
-              </Button>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {session.computeMode}
+              </span>
             </div>
+            <Button size="sm" variant="outline" onClick={() => void saveAndBind()} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {hasAgent ? "Save & bind" : "Save"}
+            </Button>
           </div>
 
-          {session.guard && (
-            <div
-              className={cn(
-                "border-b px-5 py-4 space-y-2",
-                guardTone(session.guard.status)
-              )}
-            >
-              <div className="flex items-center gap-2">
-                {session.guard.status === "block" ? (
-                  <Ban className="h-4 w-4 text-red-600" />
-                ) : session.guard.status === "review" ? (
-                  <ShieldAlert className="h-4 w-4 text-amber-600" />
-                ) : (
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                )}
-                <p className="text-sm font-semibold">
-                  Agentic Firewall · {session.guard.status}
-                </p>
-              </div>
-              <p className="text-[11px] font-mono text-muted-foreground break-all">
-                seal {session.guard.sealHash}
-              </p>
-              <ul className="text-xs space-y-1 list-disc pl-5 text-muted-foreground">
-                {session.guard.reasons.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-              {session.guard.blockedActions.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-medium uppercase text-red-600/80 mb-1">
-                    Blocked actions
-                  </p>
-                  <ul className="text-xs list-disc pl-5 space-y-0.5">
-                    {session.guard.blockedActions.map((a) => (
-                      <li key={a}>{a}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {session.guard.allowedActions.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-medium uppercase text-emerald-700/80 dark:text-emerald-400/80 mb-1">
-                    Allowed (non-executing) actions
-                  </p>
-                  <ul className="text-xs list-disc pl-5 space-y-0.5">
-                    {session.guard.allowedActions.map((a) => (
-                      <li key={a}>{a}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
+          {session.guard && <GuardStrip guard={session.guard} />}
 
-          <div className="divide-y">
+          <div className="divide-y divide-border">
             {session.turns.map((turn) => (
-              <div key={turn.role} className="px-5 py-4 space-y-2">
+              <div key={turn.role} className="px-5 py-3 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-foreground">
-                      <RoleIcon role={turn.role} />
-                    </span>
+                  <div className="flex items-center gap-2 text-xs font-medium">
+                    <RoleIcon role={turn.role} />
                     {turn.name}
                   </div>
-                  <span
-                    className={cn(
-                      "text-xs font-medium uppercase",
-                      verdictTone(turn.stance)
-                    )}
-                  >
+                  <span className={cn("text-[10px] uppercase", verdictTone(turn.stance))}>
                     {turn.stance}
                   </span>
                 </div>
-                <p className="text-sm leading-relaxed text-foreground/90">
-                  {turn.argument}
-                </p>
-                {turn.concerns.length > 0 && (
-                  <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-0.5">
-                    {turn.concerns.map((c) => (
-                      <li key={c}>{c}</li>
-                    ))}
-                  </ul>
-                )}
-                {turn.citations.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Citations: {turn.citations.join(", ")}
-                  </p>
-                )}
+                <p className="text-sm text-foreground/90 leading-relaxed">{turn.argument}</p>
               </div>
             ))}
           </div>
 
-          <div className="border-t bg-muted/20 px-5 py-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <Gavel className="h-4 w-4 text-primary" />
-              <p className="text-sm font-semibold">Chair consensus</p>
-              <span className="text-xs text-muted-foreground">
-                {Math.round(session.consensus.confidence * 100)}% confidence
+          <div className="px-5 py-4 bg-muted/30 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <Gavel className="h-3.5 w-3.5" />
+              Consensus
+              <span className="text-muted-foreground font-normal">
+                {Math.round(session.consensus.confidence * 100)}%
               </span>
             </div>
             <p className="text-sm leading-relaxed">{session.consensus.summary}</p>
-            {session.consensus.dissent.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
-                  Dissent
-                </p>
-                <ul className="text-sm space-y-1 list-disc pl-5 text-muted-foreground">
-                  {session.consensus.dissent.map((d) => (
-                    <li key={d}>{d}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {savedRoot && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                Vault transcript · {savedRoot.slice(0, 18)}…
-                {boundTx ? ` · Agentic ID bound (${boundTx.slice(0, 12)}…)` : ""}
+              <p className="text-[10px] font-mono text-muted-foreground">
+                {savedRoot.slice(0, 20)}…{boundTx ? ` · bound` : ""}
               </p>
             )}
           </div>
-        </section>
+        </Panel>
       )}
+
+      <TradeDesk session={session} />
+    </div>
+  );
+}
+
+function GuardStrip({
+  guard,
+}: {
+  guard: NonNullable<BoardSession["guard"]>;
+}) {
+  const tone =
+    guard.status === "pass"
+      ? "bg-[var(--success)]/10 text-[var(--success)]"
+      : guard.status === "block"
+        ? "bg-[var(--danger)]/10 text-[var(--danger)]"
+        : "bg-amber-500/10 text-amber-500";
+
+  return (
+    <div className={cn("mx-5 mb-3 rounded-md px-3 py-2.5 text-xs", tone)}>
+      <div className="flex items-center gap-1.5 font-medium">
+        {guard.status === "block" ? (
+          <Ban className="h-3.5 w-3.5" />
+        ) : guard.status === "review" ? (
+          <ShieldAlert className="h-3.5 w-3.5" />
+        ) : (
+          <ShieldCheck className="h-3.5 w-3.5" />
+        )}
+        Firewall · {guard.status}
+        <Hint text={guard.reasons.join(" · ") || "Sealed execution gate"} />
+      </div>
     </div>
   );
 }

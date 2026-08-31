@@ -11,7 +11,8 @@ export type EvidenceType =
   | "contract"
   | "briefing"
   | "document"
-  | "board";
+  | "board"
+  | "trade";
 
 export type EvidenceSource =
   | "wallet"
@@ -65,6 +66,7 @@ export function evidenceTypeFromCategory(
     "briefing",
     "document",
     "board",
+    "trade",
   ];
   return (allowed as string[]).includes(t) ? (t as EvidenceType) : null;
 }

@@ -110,26 +110,27 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     shortTitle: "Ecosystem",
     tagline: "Train, trade, rent, and monetize",
     description:
-      "Marketplace for specialized agents, delegation, and Agent-as-a-Service — built on ERC-7857.",
+      "Marketplace, rentals, and P2P trade for data-backed Agentic IDs — list, rent access without surrendering ownership, or transfer the Board Chair with intelligence intact.",
+    href: "/dashboard/ecosystem",
     icon: Store,
-    status: "coming-soon",
+    status: "live",
     subSteps: [
       {
         id: "marketplace",
         name: "Marketplace",
-        href: "#",
+        href: "/dashboard/ecosystem/marketplace",
         description: "Discover and acquire data-backed agents",
       },
       {
         id: "rent",
         name: "Rent & Delegate",
-        href: "#",
+        href: "/dashboard/ecosystem/rent",
         description: "Share agent access without giving up ownership",
       },
       {
         id: "trade",
         name: "Trade Agents",
-        href: "#",
+        href: "/dashboard/ecosystem/trade",
         description: "Transfer Agentic IDs with intelligence intact",
       },
     ],

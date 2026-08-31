@@ -11,52 +11,36 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar-background)]">
-      <div className="border-b border-[var(--sidebar-border)] px-5 py-5">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-sm font-bold text-primary-foreground shadow-sm">
+    <aside className="flex h-full w-56 shrink-0 flex-col bg-[var(--sidebar-background)] hairline border-r">
+      <div className="px-4 py-4">
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground">
             C
-          </div>
-          <div className="min-w-0">
-            <p className="text-[15px] font-semibold leading-tight tracking-tight text-[var(--sidebar-foreground)]">
-              Concierge
-            </p>
-            <p className="text-[11px] text-muted-foreground">Personal Agentic ID</p>
-          </div>
+          </span>
+          <span className="text-sm font-medium tracking-tight text-[var(--sidebar-foreground)]">
+            Concierge
+          </span>
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <p className="mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-          Start here
-        </p>
+      <nav className="flex-1 overflow-y-auto px-2 pb-4">
         <NavRow
           href="/dashboard"
           icon={Home}
           title="Overview"
-          tagline="Your journey at a glance"
           active={pathname === "/dashboard"}
         />
 
-        <p className="mb-2 mt-5 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-          Your journey
+        <p className="mb-1 mt-5 px-2.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Workspace
         </p>
 
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {JOURNEY_STEPS.map((step) => (
             <JourneyStepBlock key={step.id} step={step} pathname={pathname} />
           ))}
         </div>
       </nav>
-
-      <div className="border-t border-[var(--sidebar-border)] px-5 py-4">
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Built on{" "}
-          <span className="font-medium text-primary/90">0G Storage</span>,{" "}
-          <span className="font-medium text-primary/90">Compute</span> &{" "}
-          <span className="font-medium text-primary/90">Chain</span>
-        </p>
-      </div>
     </aside>
   );
 }
@@ -80,60 +64,41 @@ function JourneyStepBlock({
           href={step.href}
           icon={step.icon}
           title={step.shortTitle}
-          tagline={step.tagline}
           active={isStepActive}
           soon={isSoon}
         />
       ) : (
-        <NavRow
-          icon={step.icon}
-          title={step.shortTitle}
-          tagline={step.tagline}
-          disabled
-          soon
-        />
+        <NavRow icon={step.icon} title={step.shortTitle} disabled soon />
       )}
 
-      {step.subSteps && step.subSteps.length > 0 && (
-        <ul className="mb-2 ml-[2.65rem] mt-1 space-y-0.5 border-l border-[var(--sidebar-border)] pl-3">
+      {step.subSteps && step.subSteps.length > 0 && isStepActive && (
+        <ul className="mb-1 ml-3 mt-0.5 space-y-0.5 border-l hairline pl-2.5">
           {step.subSteps.map((sub) => {
             const live = sub.href !== "#";
             const active = isPathActive(pathname, sub.href);
-
+            if (!live) {
+              return (
+                <li
+                  key={sub.id}
+                  className="px-2 py-1 text-xs text-muted-foreground/50"
+                >
+                  {sub.name}
+                </li>
+              );
+            }
             return (
               <li key={sub.id}>
-                {live ? (
-                  <Link
-                    href={sub.href}
-                    className={cn(
-                      "group block rounded-md px-2 py-1.5 transition-colors",
-                      active
-                        ? "bg-primary/[0.07] text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "block text-[13px] leading-tight",
-                        active && "font-medium"
-                      )}
-                    >
-                      {sub.name}
-                    </span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground/80 group-hover:text-muted-foreground">
-                      {sub.description}
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="px-2 py-1.5 opacity-45">
-                    <span className="block text-[13px] leading-tight text-muted-foreground">
-                      {sub.name}
-                    </span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground/70">
-                      {sub.description}
-                    </span>
-                  </div>
-                )}
+                <Link
+                  href={sub.href}
+                  className={cn(
+                    "block rounded-md px-2 py-1 text-xs transition-colors",
+                    active
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {sub.name}
+                </Link>
               </li>
             );
           })}
@@ -147,7 +112,6 @@ function NavRow({
   href,
   icon: Icon,
   title,
-  tagline,
   active = false,
   disabled = false,
   soon = false,
@@ -155,62 +119,30 @@ function NavRow({
   href?: string;
   icon: LucideIcon;
   title: string;
-  tagline: string;
   active?: boolean;
   disabled?: boolean;
   soon?: boolean;
 }) {
   const className = cn(
-    "group relative flex gap-3 rounded-xl px-2.5 py-2.5 transition-colors",
-    active &&
-      "bg-primary/[0.06] before:absolute before:left-0 before:top-3 before:bottom-3 before:w-[3px] before:rounded-full before:bg-primary",
-    !active &&
-      !disabled &&
-      "hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
-    disabled && "cursor-default opacity-60"
-  );
-
-  const iconWrap = cn(
-    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-    active
-      ? "bg-primary/15 text-primary"
-      : "bg-muted/50 text-muted-foreground group-hover:bg-muted/70 group-hover:text-foreground",
-    disabled && "bg-muted/30 text-muted-foreground/50"
+    "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+    active && "bg-muted text-foreground",
+    !active && !disabled && "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+    disabled && "cursor-default opacity-40"
   );
 
   const body = (
     <>
-      <span className={iconWrap}>
-        <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.25 : 2} />
-      </span>
-      <span className="min-w-0 flex-1 pt-0.5">
-        <span className="flex items-center gap-1.5">
-          <span
-            className={cn(
-              "truncate text-[13px] font-medium leading-tight",
-              active ? "text-foreground" : "text-foreground/85",
-              disabled && "text-muted-foreground"
-            )}
-          >
-            {title}
-          </span>
-          {soon && (
-            <span className="shrink-0 rounded px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide bg-muted text-muted-foreground">
-              Soon
-            </span>
-          )}
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+      <span className="min-w-0 flex-1 truncate font-medium">{title}</span>
+      {soon && (
+        <span className="text-[9px] uppercase tracking-wide text-muted-foreground">
+          Soon
         </span>
-        <span className="mt-0.5 block truncate text-[11px] leading-snug text-muted-foreground">
-          {tagline}
-        </span>
-      </span>
+      )}
     </>
   );
 
-  if (disabled || !href) {
-    return <div className={className}>{body}</div>;
-  }
-
+  if (disabled || !href) return <div className={className}>{body}</div>;
   return (
     <Link href={href} className={className}>
       {body}

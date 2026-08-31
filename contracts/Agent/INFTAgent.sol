@@ -203,27 +203,33 @@ contract INFTAgent is Initializable, ERC721Upgradeable, OwnableUpgradeable {
     // --------------------
 
     /**
-     * @dev Override hook to update encryptionKeyOwner after transfers.
-     * When token changes owner, rotate the encryptionKeyOwner to the new owner.
+     * @dev OZ v5 hook — keep agentByOwner + encryption key owner in sync on transfer/burn.
      */
-    function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 tokenId
-) internal virtual {
-    // Update encryption key owner when transferred between users
-    if (from != address(0) && to != address(0)) {
-        _encryptedData[tokenId].encryptionKeyOwner = to;
-    }
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal virtual override returns (address) {
+        address from = _ownerOf(tokenId);
 
-    // If token is burned
-    if (to == address(0) && from != address(0)) {
-        if (agentByOwner[from] == tokenId) {
-            agentByOwner[from] = 0;
+        if (from != address(0) && to != address(0)) {
+            // Transfer between users
+            _encryptedData[tokenId].encryptionKeyOwner = to;
+            if (agentByOwner[from] == tokenId) {
+                agentByOwner[from] = 0;
+            }
+            require(agentByOwner[to] == 0, "Recipient already has an agent");
+            agentByOwner[to] = tokenId;
+        } else if (to == address(0) && from != address(0)) {
+            // Burn path (also cleared explicitly in burnAgent)
+            if (agentByOwner[from] == tokenId) {
+                agentByOwner[from] = 0;
+            }
+            emit AgentBurned(from, tokenId);
         }
-        emit AgentBurned(from, tokenId);
+
+        return super._update(to, tokenId, auth);
     }
-}
 
     /**
      * @notice Burn an agent token. Only token owner can burn.
@@ -244,7 +250,6 @@ contract INFTAgent is Initializable, ERC721Upgradeable, OwnableUpgradeable {
         delete agentDomain[tokenId];
 
         _burn(tokenId);
-        emit AgentBurned(owner_, tokenId);
     }
 
     // --------------------
