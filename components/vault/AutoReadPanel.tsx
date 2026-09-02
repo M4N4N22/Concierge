@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -30,9 +30,9 @@ export function AutoReadPanel() {
     resumeQueue,
   } = useAutoIndex();
   const [setupOpen, setSetupOpen] = useState(false);
+  const seededRef = useRef(false);
 
-  const enableAutoRead = () => {
-    setAutoReadEnabled(true);
+  const enqueueStoredOnly = () => {
     for (const file of files) {
       if (!isStoredOnly(file)) continue;
       enqueueIndex({
@@ -42,6 +42,20 @@ export function AutoReadPanel() {
       });
     }
   };
+
+  const enableAutoRead = () => {
+    setAutoReadEnabled(true);
+    enqueueStoredOnly();
+  };
+
+  /** When auto-read defaults ON (compute funded), seed stored-only files once. */
+  useEffect(() => {
+    if (!autoReadEnabled || !readiness.canCompute || seededRef.current) return;
+    if (files.length === 0) return;
+    seededRef.current = true;
+    enqueueStoredOnly();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once per mount when ready
+  }, [autoReadEnabled, readiness.canCompute, files.length]);
 
   const toggle = () => {
     if (!autoReadEnabled) {
@@ -53,6 +67,7 @@ export function AutoReadPanel() {
       return;
     }
     setAutoReadEnabled(false);
+    seededRef.current = false;
   };
 
   const onSetupClose = () => {
@@ -83,9 +98,9 @@ export function AutoReadPanel() {
             )}
           </div>
           <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">
-            When enabled, new uploads are sent through 0G Compute to categorize
-            and summarize so Chat can answer questions. Files always save — if
-            your ledger runs out, indexing pauses until you fund again.
+            Like Drive sync for knowledge — new uploads get categorized so Chat
+            can use them. On by default when compute is funded. Files always
+            save; if your ledger runs out, indexing pauses until you fund again.
           </p>
           {autoReadEnabled && paused && (
             <p className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">

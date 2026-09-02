@@ -59,6 +59,81 @@ export type AskableLoadResult = {
   indexedCount: number;
 };
 
+async function resolveVaultFileEvidence(
+  file: VaultFile,
+  fetchContent: (rootHash: string) => Promise<string>
+): Promise<{ evidence: VaultEvidence; kind: "structured" | "indexed" } | null> {
+  try {
+    const raw = await fetchContent(file.rootHash);
+
+    if (isEvidenceCategory(file.category)) {
+      const pack = parseStructuredEvidence(raw);
+      if (pack) return { evidence: pack, kind: "structured" };
+    }
+
+    const hasInsight =
+      file.insightsCID &&
+      file.insightsCID !== "" &&
+      file.insightsCID !== "0x" &&
+      file.insightsCID !== "0x" + "0".repeat(64);
+
+    if (hasInsight) {
+      let summary = raw;
+      try {
+        summary = await fetchContent(file.insightsCID);
+      } catch {
+        /* use file body if summary CID unavailable */
+      }
+      if (summary && !summary.includes("File not found")) {
+        return {
+          evidence: evidenceFromInsightSummary({
+            rootHash: file.rootHash,
+            category: file.category !== "unassigned" ? file.category : "document",
+            summary: summary.slice(0, 4000),
+            title: file.category !== "unassigned" ? file.category : undefined,
+          }),
+          kind: "indexed",
+        };
+      }
+    }
+
+    if (raw && !raw.includes("File not found")) {
+      const structured = parseStructuredEvidence(raw);
+      if (structured) return { evidence: structured, kind: "structured" };
+
+      return {
+        evidence: evidenceFromInsightSummary({
+          rootHash: file.rootHash,
+          category: file.category !== "unassigned" ? file.category : "document",
+          summary: raw.slice(0, 4000),
+          title: file.category !== "unassigned" ? file.category : undefined,
+        }),
+        kind: "indexed",
+      };
+    }
+  } catch {
+    /* skip unreadable file */
+  }
+  return null;
+}
+
+export async function loadEvidenceForFiles(args: {
+  files: VaultFile[];
+  rootHashes: string[];
+  fetchContent: (rootHash: string) => Promise<string>;
+}): Promise<VaultEvidence[]> {
+  const wanted = new Set(args.rootHashes);
+  const evidence: VaultEvidence[] = [];
+
+  for (const file of args.files) {
+    if (!wanted.has(file.rootHash)) continue;
+    const resolved = await resolveVaultFileEvidence(file, args.fetchContent);
+    if (resolved) evidence.push(resolved.evidence);
+  }
+
+  return evidence;
+}
+
 export async function loadAskableEvidence(args: {
   files: VaultFile[];
   fetchContent: (rootHash: string) => Promise<string>;
@@ -76,46 +151,12 @@ export async function loadAskableEvidence(args: {
   for (const file of candidates) {
     if (evidence.length >= limit) break;
 
-    try {
-      const raw = await args.fetchContent(file.rootHash);
+    const resolved = await resolveVaultFileEvidence(file, args.fetchContent);
+    if (!resolved) continue;
 
-      if (isEvidenceCategory(file.category)) {
-        const pack = parseStructuredEvidence(raw);
-        if (pack) {
-          evidence.push(pack);
-          structuredCount++;
-          continue;
-        }
-      }
-
-      const hasInsight =
-        file.insightsCID &&
-        file.insightsCID !== "" &&
-        file.insightsCID !== "0x" &&
-        file.insightsCID !== "0x" + "0".repeat(64);
-
-      if (hasInsight) {
-        let summary = raw;
-        try {
-          summary = await args.fetchContent(file.insightsCID);
-        } catch {
-          /* use file body if summary CID unavailable */
-        }
-        if (summary && !summary.includes("File not found")) {
-          evidence.push(
-            evidenceFromInsightSummary({
-              rootHash: file.rootHash,
-              category: file.category !== "unassigned" ? file.category : "document",
-              summary: summary.slice(0, 4000),
-              title: file.category !== "unassigned" ? file.category : undefined,
-            })
-          );
-          indexedCount++;
-        }
-      }
-    } catch {
-      /* skip unreadable file */
-    }
+    evidence.push(resolved.evidence);
+    if (resolved.kind === "structured") structuredCount++;
+    else indexedCount++;
   }
 
   return { evidence, structuredCount, indexedCount };

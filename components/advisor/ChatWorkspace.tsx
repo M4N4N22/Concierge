@@ -2,12 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useAccount, useSignMessage } from "wagmi";
-import { ArrowUp, Loader2, Paperclip } from "lucide-react";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import { useAccount, useChainId, useSignMessage } from "wagmi";
+import {
+  ArrowUp,
+  Lightbulb,
+  Loader2,
+  MessageCircle,
+  Paperclip,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatReadinessPanel } from "@/components/advisor/ChatReadinessPanel";
+import {
+  AttachmentChip,
+  ChatAttachmentControls,
+  useChatAttachments,
+} from "@/components/advisor/ChatAttachments";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
-import { useUserFiles } from "@/hooks/useUserFiles";
+import { useUserFiles, type VaultFile } from "@/hooks/useUserFiles";
 import { usefetchFileContent } from "@/hooks/useFileContent";
 import { useAgenticId } from "@/hooks/useAgenticId";
 import type { VaultEvidence } from "@/lib/evidence";
@@ -15,17 +29,44 @@ import { loadAskableEvidence } from "@/lib/vault/askableContext";
 import {
   countAgentKnowledge,
   resolveChatReadiness,
+  type ChatIntent,
 } from "@/lib/chat/chatReadiness";
 import type { BoardSession } from "@/lib/board";
 import { boardAuthMessage } from "@/lib/boardAuthMessage";
+import { readCachedPersonality } from "@/lib/agentPersonality";
+import { vaultCategoryLabel } from "@/lib/copy/vaultTerms";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { LucideIcon } from "lucide-react";
 
-const SUGGESTIONS = [
-  "Where did I spend the most?",
-  "Summarize my wallet activity",
-  "Any unusual transactions I should review?",
-  "What recurring spends stand out?",
+const APP_ICON = "/circle-conc-new.png";
+
+type VaultQuestion = {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  prompt: string;
+};
+
+const CASUAL_SUGGESTIONS: VaultQuestion[] = [
+  {
+    icon: MessageCircle,
+    title: "Intro",
+    description: "Meet your Concierge",
+    prompt: "Who are you and what can you help with?",
+  },
+  {
+    icon: Sparkles,
+    title: "Briefing",
+    description: "Start the day",
+    prompt: "Give me a quick briefing for today.",
+  },
+  {
+    icon: Lightbulb,
+    title: "Focus",
+    description: "Prioritize the week",
+    prompt: "What should I focus on this week?",
+  },
 ];
 
 type ChatMessage = {
@@ -33,6 +74,7 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   meta?: string;
+  attachments?: { label: string }[];
 };
 
 function formatAssistant(session: BoardSession): string {
@@ -63,7 +105,10 @@ function renderContent(text: string) {
     }
     if (line.startsWith("• ")) {
       return (
-        <p key={i} className="mb-1 pl-2 text-sm leading-relaxed text-muted-foreground">
+        <p
+          key={i}
+          className="mb-1 pl-2 text-sm leading-relaxed text-muted-foreground"
+        >
           {line}
         </p>
       );
@@ -77,41 +122,148 @@ function renderContent(text: string) {
   });
 }
 
+function greetingName(
+  address: string | undefined,
+  agentTokenId: bigint | undefined,
+  chainId: number
+) {
+  if (agentTokenId != null) {
+    const cached = readCachedPersonality(chainId, agentTokenId);
+    if (cached.displayName?.trim()) return cached.displayName.trim();
+  }
+  if (address) return `${address.slice(0, 6)}…${address.slice(-4)}`;
+  return null;
+}
+
+function formatUploadedAt(ts: number) {
+  const d = new Date(ts * 1000);
+  const now = Date.now();
+  const diff = now - d.getTime();
+  if (diff < 86400000) return "today";
+  if (diff < 86400000 * 2) return "yesterday";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function fallbackQuestions(files: VaultFile[]): VaultQuestion[] {
+  const recent = [...files]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 3);
+  if (!recent.length) {
+    return [
+      {
+        icon: Lightbulb,
+        title: "Vault overview",
+        description: "Start with what you have stored",
+        prompt: "Summarize what my vault knows so far.",
+      },
+    ];
+  }
+  return recent.map((f) => ({
+    icon: Sparkles,
+    title: vaultCategoryLabel(f.category),
+    description: `Uploaded ${formatUploadedAt(f.timestamp)}`,
+    prompt: `What can you tell me from my ${vaultCategoryLabel(f.category).toLowerCase()} upload?`,
+  }));
+}
+
+async function buildVaultContext(
+  files: VaultFile[],
+  fetchFileContent: (hash: string) => Promise<string>
+) {
+  const recent = [...files].sort((a, b) => b.timestamp - a.timestamp).slice(0, 8);
+  return Promise.all(
+    recent.map(async (f) => {
+      let summary = "";
+      if (f.insightsCID && f.insightsCID !== "0x" + "0".repeat(64)) {
+        try {
+          summary = (await fetchFileContent(f.insightsCID)).slice(0, 500);
+        } catch {
+          summary = f.category;
+        }
+      }
+      return {
+        category: f.category,
+        summary: summary || "stored — run Insights for a summary",
+        uploadedAt: formatUploadedAt(f.timestamp),
+        rootHash: f.rootHash,
+      };
+    })
+  );
+}
+
+function parseIntent(raw: string | null): ChatIntent {
+  return raw === "casual" ? "casual" : "vault";
+}
+
 export function ChatWorkspace() {
-  const { isConnected, address, chainId } = useAccount();
+  const searchParams = useSearchParams();
+  const chainId = useChainId();
+  const { isConnected, address } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { files, refetch } = useUserFiles();
   const { fetchFileContent } = usefetchFileContent();
   const { agent } = useAgenticId();
   const { readiness, loading: ledgerLoading } = useComputeLedgerContext();
 
+  const [intent, setIntent] = useState<ChatIntent>(() =>
+    parseIntent(searchParams.get("intent"))
+  );
   const [evidence, setEvidence] = useState<VaultEvidence[]>([]);
-  const [knowledgeMeta, setKnowledgeMeta] = useState({ structured: 0, indexed: 0 });
+  const [knowledgeMeta, setKnowledgeMeta] = useState({
+    structured: 0,
+    indexed: 0,
+  });
   const [loadingEvidence, setLoadingEvidence] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [tipsLoading, setTipsLoading] = useState(false);
+  const [tipSummary, setTipSummary] = useState<string | null>(null);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<VaultQuestion[]>(
+    []
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const tipsFetchedRef = useRef(false);
+
+  useEffect(() => {
+    setIntent(parseIntent(searchParams.get("intent")));
+  }, [searchParams]);
+
+  const {
+    attachments,
+    uploading: attachmentsUploading,
+    readyEvidence,
+    deviceInputRef,
+    removeAttachment,
+    clearAttachments,
+    attachFromVault,
+    attachFromDevice,
+  } = useChatAttachments({
+    files,
+    fetchFileContent,
+    onVaultChange: () => refetch({ silent: true }),
+  });
 
   const knowledgeFileCount = useMemo(() => countAgentKnowledge(files), [files]);
 
-  const chatReadiness = useMemo(
-    () =>
-      resolveChatReadiness({
-        isConnected,
-        loadingEvidence: loadingEvidence || ledgerLoading,
-        totalFiles: files.length,
-        knowledgeFiles: knowledgeFileCount,
-        askableCount: evidence.length,
-        canCompute: readiness.canCompute,
-        hasLedger: readiness.hasLedger,
-        hasBalance: readiness.hasBalance,
-        hasFundedProvider: readiness.hasFundedProvider,
-      }),
+  const readinessInput = useMemo(
+    () => ({
+      isConnected,
+      loadingEvidence:
+        intent === "vault" && (loadingEvidence || ledgerLoading),
+      totalFiles: files.length,
+      knowledgeFiles: knowledgeFileCount,
+      askableCount: evidence.length,
+      canCompute: readiness.canCompute,
+      hasLedger: readiness.hasLedger,
+      hasBalance: readiness.hasBalance,
+      hasFundedProvider: readiness.hasFundedProvider,
+    }),
     [
       evidence.length,
       files.length,
+      intent,
       isConnected,
       knowledgeFileCount,
       ledgerLoading,
@@ -121,6 +273,16 @@ export function ChatWorkspace() {
       readiness.hasFundedProvider,
       readiness.hasLedger,
     ]
+  );
+
+  const chatReadiness = useMemo(
+    () => resolveChatReadiness({ intent, ...readinessInput }),
+    [intent, readinessInput]
+  );
+
+  const casualReadiness = useMemo(
+    () => resolveChatReadiness({ intent: "casual", ...readinessInput }),
+    [readinessInput]
   );
 
   const loadEvidence = useCallback(async () => {
@@ -147,17 +309,87 @@ export function ChatWorkspace() {
     }
   }, [fetchFileContent, isConnected, refetch]);
 
+  const loadVaultTips = useCallback(
+    async (force = false) => {
+      if (intent !== "vault") return;
+      if (!isConnected || !readiness.canCompute) {
+        setSuggestedQuestions(fallbackQuestions(files));
+        return;
+      }
+      setTipsLoading(true);
+      try {
+        const synced = await refetch({ silent: true });
+        const vaultContext = await buildVaultContext(synced, fetchFileContent);
+        const res = await fetch("/api/chatTips", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vaultContext }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Tips failed");
+
+        const questions: VaultQuestion[] = (json.questions ?? []).map(
+          (q: { title: string; description: string; prompt: string }) => ({
+            icon: Lightbulb,
+            title: q.title,
+            description: q.description,
+            prompt: q.prompt,
+          })
+        );
+        setTipSummary(json.summary ?? null);
+        setSuggestedQuestions(
+          questions.length ? questions : fallbackQuestions(synced)
+        );
+        tipsFetchedRef.current = true;
+      } catch (err: unknown) {
+        if (force) {
+          toast.error(err instanceof Error ? err.message : "Tips failed");
+        }
+        setSuggestedQuestions(fallbackQuestions(files));
+      } finally {
+        setTipsLoading(false);
+      }
+    },
+    [fetchFileContent, files, intent, isConnected, readiness.canCompute, refetch]
+  );
+
+  useEffect(() => {
+    if (intent === "casual") {
+      setSuggestedQuestions(CASUAL_SUGGESTIONS);
+      setTipSummary(null);
+      tipsFetchedRef.current = true;
+      return;
+    }
+    tipsFetchedRef.current = false;
+    setSuggestedQuestions([]);
+    setTipSummary(null);
+  }, [intent]);
+
   useEffect(() => {
     void loadEvidence();
   }, [loadEvidence]);
 
   useEffect(() => {
+    if (
+      intent === "vault" &&
+      chatReadiness.canSend &&
+      !tipsFetchedRef.current &&
+      !tipsLoading
+    ) {
+      void loadVaultTips();
+    }
+  }, [chatReadiness.canSend, intent, loadVaultTips, tipsLoading]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
 
+  const name = greetingName(address, agent?.tokenId, chainId);
+  const empty = messages.length === 0;
+
   const send = async (text: string) => {
     const question = text.trim();
-    if (!question || sending) return;
+    if (!question || sending || attachmentsUploading) return;
 
     if (!chatReadiness.canSend) {
       toast.error(chatReadiness.title);
@@ -165,23 +397,57 @@ export function ChatWorkspace() {
     }
     if (!address) return;
 
+    const attachedLabels = attachments
+      .filter((a) => a.status === "ready")
+      .map((a) => ({ label: a.label }));
+    const messageEvidence = (() => {
+      if (intent === "casual") {
+        return readyEvidence.length ? readyEvidence : [];
+      }
+      if (!readyEvidence.length) return evidence;
+      const seen = new Set<string>();
+      const merged: typeof evidence = [];
+      for (const pack of [...readyEvidence, ...evidence]) {
+        if (seen.has(pack.id)) continue;
+        seen.add(pack.id);
+        merged.push(pack);
+      }
+      return merged;
+    })();
+
+    const modeHint =
+      intent === "casual"
+        ? "\n\n[Mode: casual conversation with Concierge personality. Vault data optional unless files are attached.]"
+        : "\n\n[Mode: answer from the user's vault knowledge.]";
+    const fullQuestion = `${question}${modeHint}`;
+
     setInput("");
     setMessages((m) => [
       ...m,
-      { id: `u_${Date.now()}`, role: "user", content: question },
+      {
+        id: `u_${Date.now()}`,
+        role: "user",
+        content: question,
+        attachments: attachedLabels.length ? attachedLabels : undefined,
+      },
     ]);
+    clearAttachments();
     setSending(true);
 
     try {
       const timestamp = Date.now();
-      const message = boardAuthMessage({ wallet: address, timestamp, question });
+      const message = boardAuthMessage({
+        wallet: address,
+        timestamp,
+        question: fullQuestion,
+      });
       const signature = await signMessageAsync({ message });
       const res = await fetch("/api/boardSession", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question,
-          evidence,
+          question: fullQuestion,
+          evidence: messageEvidence,
           mode: "auto",
           agentTokenId: agent?.tokenId.toString(),
           chainId,
@@ -199,7 +465,7 @@ export function ChatWorkspace() {
           id: `a_${Date.now()}`,
           role: "assistant",
           content: formatAssistant(session),
-          meta: `${session.consensus.verdict} · ${Math.round(session.consensus.confidence * 100)}% · ${session.computeMode}`,
+          meta: `${session.consensus.verdict} · ${Math.round(session.consensus.confidence * 100)}% · ${session.computeMode}${intent === "casual" ? " · casual" : ""}`,
         },
       ]);
     } catch (err: unknown) {
@@ -219,36 +485,51 @@ export function ChatWorkspace() {
     }
   };
 
-  const empty = messages.length === 0;
-
   const inputPlaceholder = !chatReadiness.canSend
     ? chatReadiness.blocker === "disconnected"
-      ? "Connect wallet to chat…"
+      ? "Connect wallet to start…"
       : chatReadiness.blocker === "no_files"
-        ? "Add vault files first…"
+        ? intent === "vault"
+          ? "Add vault files first…"
+          : "Finish setup — or switch to Casual…"
         : chatReadiness.blocker === "no_knowledge"
-          ? "Run Insights to build agent knowledge…"
+          ? intent === "vault"
+            ? "Run Insights on your files…"
+            : "Finish setup — or switch to Casual…"
           : chatReadiness.blocker === "compute"
-            ? "Finish compute setup to chat…"
+            ? "Finish compute setup…"
             : chatReadiness.blocker === "loading"
-              ? "Loading agent knowledge…"
-              : "Fix vault loading to chat…"
-    : "Ask about your vault…";
+              ? "Loading vault knowledge…"
+              : intent === "vault"
+                ? "Fix vault loading — or switch to Casual…"
+                : "Fix setup…"
+    : intent === "casual"
+      ? "Say anything…"
+      : "Ask what your vault knows…";
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem-2rem)] min-h-[28rem] flex-col gap-3 pb-1">
-      <header className="flex shrink-0 flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0 space-y-1">
-          <h1 className="text-2xl font-semibold sm:text-3xl">
-            Talk to your vault
-          </h1>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            Chat works from agent knowledge. Fund compute, run
-            Insights to categorize and summarize, then ask questions grounded in
-            what your agent actually understands.
-          </p>
-        </div>
+    <div className="relative flex h-[calc(100vh-3.5rem-2rem)] min-h-[28rem] flex-col overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 opacity-60"
+        aria-hidden
+      >
+        <div className="absolute left-1/2 top-[12%] h-64 w-64 -translate-x-1/2 rounded-full bg-[color-mix(in_srgb,var(--brand)_18%,transparent)] blur-3xl" />
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between gap-3 px-1 pb-2">
+        <span className="rounded-full border border-border/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold">
+          Concierge
+        </span>
         <div className="flex flex-wrap items-center gap-2">
+          {chatReadiness.canSend && intent === "vault" ? (
+            <span className="rounded-full bg-muted/70 px-3 py-1 text-[11px] font-medium tabular-nums text-muted-foreground">
+              {evidence.length} file{evidence.length === 1 ? "" : "s"} in context
+            </span>
+          ) : chatReadiness.canSend && intent === "casual" ? (
+            <span className="rounded-full bg-muted/70 px-3 py-1 text-[11px] font-medium text-muted-foreground">
+              Casual
+            </span>
+          ) : null}
           {agent ? (
             <Link
               href="/dashboard/agent/mint"
@@ -257,180 +538,482 @@ export function ChatWorkspace() {
               Agentic #{agent.tokenId.toString()}
             </Link>
           ) : isConnected ? (
-            <Button asChild size="sm" variant="outline" className="rounded-full">
-              <Link href="/dashboard/agent/mint">Mint Agentic ID</Link>
+            <Button asChild size="sm" variant="outline" className="h-8 rounded-full text-xs">
+              <Link href="/dashboard/agent/mint">Mint ID</Link>
             </Button>
           ) : null}
-          {chatReadiness.canSend ? (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--success)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--success)]">
-              {evidence.length} file{evidence.length === 1 ? "" : "s"} ready
-            </span>
-          ) : null}
+          <Button asChild size="sm" variant="ghost" className="h-8 rounded-full text-xs">
+            <Link href="/dashboard/vault/my-files">Vault</Link>
+          </Button>
         </div>
-      </header>
+      </div>
 
-      <div className=" relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        {!chatReadiness.canSend && empty ? (
-          <div className="shrink-0 border-b border-border/40 p-4 sm:px-6">
-            <ChatReadinessPanel
-              readiness={chatReadiness}
-              onRefresh={() => void loadEvidence()}
-              refreshing={loadingEvidence || ledgerLoading}
+      {empty ? (
+        <div className="brand-scroll flex flex-1 flex-col items-center overflow-y-auto px-4 pb-8 pt-6 sm:px-6">
+          <AppIconHero />
+
+          <p className="text-sm font-medium text-[var(--brand)]">
+            {name ? `Hello, ${name}` : "Hello"}
+          </p>
+          <h1 className="mt-1 max-w-lg text-center text-2xl font-semibold tracking-tight sm:text-3xl">
+            How can I assist you today?
+          </h1>
+          <p className="mt-2 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
+            {intent === "casual"
+              ? "Chat with Concierge — personality first, vault optional."
+              : "Ask what your vault knows."}
+          </p>
+
+          {!chatReadiness.canSend ? (
+            <div className="mt-6 w-full max-w-2xl space-y-3">
+              <ChatReadinessPanel
+                readiness={chatReadiness}
+                onRefresh={() => void loadEvidence()}
+                refreshing={loadingEvidence || ledgerLoading}
+              />
+              {intent === "vault" &&
+              !chatReadiness.canSend &&
+              casualReadiness.canSend ? (
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => setIntent("casual")}
+                  >
+                    Switch to Casual
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="mt-8 w-full max-w-2xl">
+            <ChatInputCard
+              input={input}
+              setInput={setInput}
+              placeholder={inputPlaceholder}
+              sending={sending}
+              canSend={chatReadiness.canSend}
+              attachmentsUploading={attachmentsUploading}
+              onSend={() => void send(input)}
+              textareaRef={textareaRef}
+              tipsLoading={tipsLoading}
+              onTips={() => void loadVaultTips(true)}
+              intent={intent}
+              files={files}
+              attachments={attachments}
+              deviceInputRef={deviceInputRef}
+              onDeviceSelect={(list) => void attachFromDevice(list)}
+              onVaultAttach={(hashes) => void attachFromVault(hashes)}
+              onRemoveAttachment={removeAttachment}
+              onIntentChange={setIntent}
             />
           </div>
-        ) : null}
 
-        <div className="brand-scroll flex-1 overflow-y-auto px-4 py-6 sm:px-8">
-          {empty ? (
-            <div className="mx-auto flex max-w-2xl flex-col items-center pt-4 text-center sm:pt-8">
-              {chatReadiness.canSend ? (
-                <>
-                  <h2 className="text-xl font-semibold sm:text-2xl">
-                    What do you want to know?
-                  </h2>
-                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    {evidence.length} knowledge file{evidence.length === 1 ? "" : "s"}{" "}
-                    loaded
-                    {knowledgeMeta.indexed > 0
-                      ? ` · ${knowledgeMeta.indexed} from Insights`
-                      : ""}
-                    {knowledgeMeta.structured > 0
-                      ? ` · ${knowledgeMeta.structured} structured`
-                      : ""}
-                    . Pick a prompt or type your own.
+          {chatReadiness.canSend ? (
+            <>
+              <div className="mt-8 flex w-full max-w-3xl items-center justify-between gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {intent === "casual" ? "Try asking" : "Suggested questions"}
+                </p>
+                {intent === "vault" && tipsLoading ? (
+                  <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Reading recent uploads…
+                  </span>
+                ) : intent === "vault" && tipSummary ? (
+                  <p className="max-w-sm truncate text-[11px] text-muted-foreground">
+                    {tipSummary}
                   </p>
-                  <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
-                    {SUGGESTIONS.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => void send(s)}
+                ) : null}
+              </div>
+              <div className="mt-3 grid w-full max-w-3xl gap-3 sm:grid-cols-3">
+                {(intent === "vault" &&
+                tipsLoading &&
+                suggestedQuestions.length === 0
+                  ? [1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="h-28 animate-pulse rounded-2xl bg-muted/40"
+                      />
+                    ))
+                  : suggestedQuestions.map((q) => (
+                      <QuestionCard
+                        key={q.prompt}
+                        question={q}
                         disabled={sending}
-                        className="rounded-2xl bg-muted/50 px-4 py-3 text-left text-sm transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] disabled:opacity-40"
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h2 className="text-xl font-semibold sm:text-2xl">
-                    Almost ready to chat
-                  </h2>
-                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    Complete the steps above — wallet, vault files, agent
-                    knowledge, and compute — then come back here to ask questions.
-                  </p>
-                  <div className="mt-6 flex flex-wrap justify-center gap-2">
-                    <Button asChild variant="outline" className="rounded-full">
-                      <Link href="/dashboard/vault/my-files">Vault</Link>
-                    </Button>
-                    <Button asChild variant="outline" className="rounded-full">
-                      <Link href="/dashboard/vault/insights">Insights desk</Link>
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
+                        onSelect={() => void send(q.prompt)}
+                      />
+                    )))}
+              </div>
+              {intent === "vault" && knowledgeMeta.indexed > 0 ? (
+                <p className="mt-4 text-center text-[11px] text-muted-foreground">
+                  {evidence.length} knowledge file{evidence.length === 1 ? "" : "s"}
+                  {knowledgeMeta.indexed > 0
+                    ? ` · ${knowledgeMeta.indexed} from Insights`
+                    : ""}
+                </p>
+              ) : null}
+            </>
           ) : (
-            <div className="mx-auto max-w-2xl space-y-6">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={cn(
-                    "flex",
-                    m.role === "user" ? "justify-end" : "justify-start"
-                  )}
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              {intent === "vault" && casualReadiness.canSend ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => setIntent("casual")}
                 >
-                  <div
-                    className={cn(
-                      "max-w-[85%] rounded-3xl px-4 py-3",
-                      m.role === "user"
-                        ? "bg-[var(--brand)] text-white"
-                        : "bg-muted/60 text-foreground"
-                    )}
-                  >
-                    {m.role === "assistant" ? (
-                      <div>{renderContent(m.content)}</div>
-                    ) : (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {m.content}
-                      </p>
-                    )}
-                    {m.meta ? (
-                      <p className="mt-2 text-[10px] opacity-60">{m.meta}</p>
-                    ) : null}
-                  </div>
-                </div>
+                  Try Casual
+                </Button>
+              ) : null}
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/dashboard/vault/my-files">Open Vault</Link>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/dashboard/vault/insights">Insights desk</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="brand-scroll flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+            <div className="mx-auto max-w-2xl space-y-8">
+              {messages.map((m) => (
+                <MessageBlock key={m.id} message={m} />
               ))}
               {sending ? (
-                <div className="flex justify-start">
-                  <div className="flex items-center gap-2 rounded-3xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+                <div className="flex items-start gap-3">
+                  <AssistantAvatar />
+                  <div className="flex items-center gap-2 rounded-2xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Thinking with your agent knowledge…
+                    {intent === "casual"
+                      ? "Thinking…"
+                      : "Reading your vault…"}
                   </div>
                 </div>
               ) : null}
               <div ref={bottomRef} />
             </div>
-          )}
-        </div>
-
-        <div className="shrink-0 border-t border-border/50 px-3 py-3 sm:px-6 sm:py-4">
-          <div className="mx-auto max-w-2xl space-y-2">
-            {!chatReadiness.canSend && !empty ? (
-              <ChatReadinessPanel
-                readiness={chatReadiness}
-                compact
-                onRefresh={() => void loadEvidence()}
-                refreshing={loadingEvidence || ledgerLoading}
-              />
-            ) : null}
-
-            <div className="flex items-end gap-2 rounded-[1.5rem] bg-muted/50 px-3 py-2 ring-1 ring-border/60 focus-within:ring-[var(--brand)]/40">
-              <Link
-                href="/dashboard/vault/my-files"
-                className="mb-1.5 rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                title="Manage vault files"
-              >
-                <Paperclip className="h-4 w-4" />
-              </Link>
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void send(input);
-                  }
-                }}
-                rows={1}
-                placeholder={inputPlaceholder}
-                disabled={sending}
-                className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent py-2.5 text-sm outline-none placeholder:text-muted-foreground"
-              />
-              <Button
-                size="icon"
-                className="mb-1 size-9 shrink-0 rounded-full"
-                disabled={sending || !input.trim() || !chatReadiness.canSend}
-                onClick={() => void send(input)}
-              >
-                {sending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowUp className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <p className="text-center text-[10px] text-muted-foreground">
-              {chatReadiness.canSend
-                ? "Vault Q&A · trading lives under Trading & Finance"
-                : chatReadiness.title}
-            </p>
           </div>
+
+          <div className="shrink-0 border-t border-border/40 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] px-4 py-4 backdrop-blur-sm sm:px-6">
+            <div className="mx-auto max-w-2xl space-y-2">
+              {!chatReadiness.canSend ? (
+                <ChatReadinessPanel
+                  readiness={chatReadiness}
+                  compact
+                  onRefresh={() => void loadEvidence()}
+                  refreshing={loadingEvidence || ledgerLoading}
+                />
+              ) : null}
+              <ChatInputCard
+                input={input}
+                setInput={setInput}
+                placeholder={inputPlaceholder}
+                sending={sending}
+                canSend={chatReadiness.canSend}
+                attachmentsUploading={attachmentsUploading}
+                onSend={() => void send(input)}
+                textareaRef={textareaRef}
+                tipsLoading={tipsLoading}
+                onTips={() => void loadVaultTips(true)}
+                intent={intent}
+                files={files}
+                attachments={attachments}
+                deviceInputRef={deviceInputRef}
+                onDeviceSelect={(list) => void attachFromDevice(list)}
+                onVaultAttach={(hashes) => void attachFromVault(hashes)}
+                onRemoveAttachment={removeAttachment}
+                onIntentChange={setIntent}
+                compact
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function IntentToggle({
+  intent,
+  onChange,
+  inline,
+}: {
+  intent: ChatIntent;
+  onChange: (intent: ChatIntent) => void;
+  inline?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex gap-0.5 rounded-full bg-muted/50 p-0.5",
+        !inline && "mt-5"
+      )}
+    >
+      {(
+        [
+          { id: "casual" as const, label: "Casual" },
+          { id: "vault" as const, label: "Your data" },
+        ] as const
+      ).map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          className={cn(
+            "rounded-full font-semibold transition-colors",
+            inline ? "px-2.5 py-1 text-[10px]" : "px-4 py-1.5 text-xs",
+            intent === opt.id
+              ? "bg-[var(--surface)] text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AppIconHero() {
+  return (
+    <div className="relative mb-6 flex h-[4.5rem] w-[4.5rem] items-center justify-center sm:h-20 sm:w-20">
+      <div
+        className="absolute inset-0 scale-150 rounded-full opacity-80"
+     
+        aria-hidden
+      />
+      <Image
+        src={APP_ICON}
+        alt="Concierge"
+        width={80}
+        height={80}
+        priority
+        className="relative h-full w-full object-contain"
+      />
+    </div>
+  );
+}
+
+function AssistantAvatar() {
+  return (
+    <Image
+      src={APP_ICON}
+      alt=""
+      width={32}
+      height={32}
+      className="h-8 w-8 shrink-0 rounded-xl object-contain ring-1 ring-border/40"
+    />
+  );
+}
+
+function MessageBlock({ message }: { message: ChatMessage }) {
+  if (message.role === "user") {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-2xl bg-[color-mix(in_srgb,var(--brand)_92%,#000)] px-4 py-3 text-white shadow-sm">
+          {message.attachments?.length ? (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {message.attachments.map((a) => (
+                <span
+                  key={a.label}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium"
+                >
+                  <Paperclip className="h-3 w-3 opacity-80" />
+                  {a.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            {message.content}
+          </p>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-3">
+      <AssistantAvatar />
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">Concierge</p>
+        <div className="rounded-2xl border border-border/50 bg-[var(--surface)] px-4 py-3 shadow-sm">
+          {renderContent(message.content)}
+        </div>
+        {message.meta ? (
+          <p className="text-[10px] text-muted-foreground">{message.meta}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function QuestionCard({
+  question,
+  disabled,
+  onSelect,
+}: {
+  question: VaultQuestion;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  const Icon = question.icon;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onSelect}
+      className="group flex flex-col gap-3 rounded-2xl border border-border/50 bg-[var(--surface)] p-4 text-left shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--brand)_35%,transparent)] hover:shadow-md disabled:opacity-40"
+    >
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground transition-colors group-hover:bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] group-hover:text-[var(--brand)]">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold">{question.title}</p>
+        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          {question.description}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+function ChatInputCard({
+  input,
+  setInput,
+  placeholder,
+  sending,
+  canSend,
+  attachmentsUploading,
+  onSend,
+  textareaRef,
+  tipsLoading,
+  onTips,
+  intent,
+  files,
+  attachments,
+  deviceInputRef,
+  onDeviceSelect,
+  onVaultAttach,
+  onRemoveAttachment,
+  onIntentChange,
+  compact,
+}: {
+  input: string;
+  setInput: (v: string) => void;
+  placeholder: string;
+  sending: boolean;
+  canSend: boolean;
+  attachmentsUploading: boolean;
+  onSend: () => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  tipsLoading: boolean;
+  onTips: () => void;
+  intent: ChatIntent;
+  files: VaultFile[];
+  attachments: ReturnType<typeof useChatAttachments>["attachments"];
+  deviceInputRef: React.RefObject<HTMLInputElement | null>;
+  onDeviceSelect: (files: FileList) => void;
+  onVaultAttach: (rootHashes: string[]) => void;
+  onRemoveAttachment: (id: string) => void;
+  onIntentChange: (intent: ChatIntent) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[1.75rem] border border-border/60 bg-[var(--surface)] shadow-sm ring-1 ring-border/30 transition-shadow focus-within:ring-[color-mix(in_srgb,var(--brand)_35%,transparent)]",
+        compact ? "p-3" : "p-4 sm:p-5"
+      )}
+    >
+      {attachments.length ? (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {attachments.map((a) => (
+            <AttachmentChip
+              key={a.id}
+              attachment={a}
+              onRemove={() => onRemoveAttachment(a.id)}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <textarea
+        ref={textareaRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            onSend();
+          }
+        }}
+        rows={compact ? 1 : 2}
+        placeholder={placeholder}
+        disabled={sending}
+        className={cn(
+          "w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground",
+          compact ? "min-h-[40px] py-1" : "min-h-[72px] py-1"
+        )}
+      />
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <IntentToggle
+            intent={intent}
+            onChange={onIntentChange}
+            inline
+          />
+          {intent === "vault" ? (
+            <button
+              type="button"
+              disabled={tipsLoading || !canSend}
+              onClick={onTips}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                canSend
+                  ? "bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_18%,transparent)]"
+                  : "bg-muted/50 text-muted-foreground"
+              )}
+            >
+              {tipsLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              Tips
+            </button>
+          ) : null}
+          <ChatAttachmentControls
+            files={files}
+            attachments={attachments}
+            uploading={attachmentsUploading}
+            disabled={!canSend || sending}
+            deviceInputRef={deviceInputRef}
+            onDeviceSelect={onDeviceSelect}
+            onVaultAttach={onVaultAttach}
+          />
+        </div>
+
+        <Button
+          size="icon"
+          className="size-9 rounded-full shadow-sm"
+          disabled={
+            sending || attachmentsUploading || !input.trim() || !canSend
+          }
+          onClick={onSend}
+        >
+          {sending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowUp className="h-4 w-4" />
+          )}
+        </Button>
       </div>
     </div>
   );

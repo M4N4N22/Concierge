@@ -24,7 +24,10 @@ import {
 import { StatCard, EmptyChart } from "@/components/dashboard/StatCard";
 import { EarningsHistogram } from "@/components/dashboard/DashboardCharts";
 import { greetingForHour } from "@/components/dashboard/DashboardHero";
-import { getAgentDisplayName } from "@/lib/agentDisplayName";
+import {
+  getAgentBio,
+  getAgentDisplayName,
+} from "@/lib/agentDisplayName";
 import { resolveAgentPresentation } from "@/lib/agentProfile";
 import { useAgenticId } from "@/hooks/useAgenticId";
 import { useUserFiles } from "@/hooks/useUserFiles";
@@ -58,7 +61,7 @@ const GUIDE: GuideItem[] = [
     id: "rent",
     icon: KeyRound,
     title: "Rent vs transfer",
-    body: "Rent shares timed access — you keep ownership. Transfer gives the NFT away for free with no marketplace fee.",
+    body: "Rent shares timed Concierge access (vault-shaped personality) — you keep ownership and private files. Transfer gives the NFT away for free with no marketplace fee.",
   },
 ];
 
@@ -72,7 +75,7 @@ const PATHS = [
   {
     href: "/dashboard/ecosystem/rent",
     title: "Rent",
-    detail: "Timed access · keep ownership",
+    detail: "Concierge access · keep ownership",
     icon: KeyRound,
   },
   {
@@ -125,6 +128,7 @@ export default function EcosystemHub() {
       aiSignature: agent.aiSignature,
       files,
       displayName: getAgentDisplayName(chainId, agent.tokenId),
+      bio: getAgentBio(chainId, agent.tokenId),
     });
   }, [agent, chainId, files]);
 
@@ -294,7 +298,7 @@ export default function EcosystemHub() {
               ? agent.access === "rental"
                 ? `Rental · expires ${agent.rentalExpiresAt ? new Date(agent.rentalExpiresAt * 1000).toLocaleDateString() : "soon"}`
                 : agentPresentation
-                  ? `${agentPresentation.specialtyLabel} · ready to list`
+                  ? "Concierge · ready to list"
                   : "Owner · ready to list"
               : "Mint to participate in the ecosystem"
           }
@@ -315,7 +319,7 @@ export default function EcosystemHub() {
               </div>
               {hasAgent ? (
                 <Button asChild size="sm" variant="outline" className="rounded-full">
-                  <Link href="/dashboard/agent/learning">Agent profile</Link>
+                  <Link href="/dashboard/agent/mint">Agent profile</Link>
                 </Button>
               ) : null}
             </div>
@@ -343,9 +347,9 @@ export default function EcosystemHub() {
                         {agentPresentation?.title ?? `Agentic #${agent.tokenId.toString()}`}
                       </p>
                       <p className="mt-0.5 text-sm text-muted-foreground">
-                        {agentPresentation?.specialtyLabel ?? "Agent"}
-                        {" · "}
-                        Agentic {agentPresentation?.tokenLabel ?? `#${agent.tokenId.toString()}`}
+                        Concierge · Agentic{" "}
+                        {agentPresentation?.tokenLabel ??
+                          `#${agent.tokenId.toString()}`}
                         {agentPresentation && agentPresentation.fileCount > 0
                           ? ` · ${agentPresentation.fileCount} vault files`
                           : ""}

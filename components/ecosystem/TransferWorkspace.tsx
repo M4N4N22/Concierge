@@ -12,7 +12,7 @@ import {
   TransferAgentCard,
   TransferInfoPanel,
 } from "@/components/ecosystem/TransferPanel";
-import { getAgentDisplayName } from "@/lib/agentDisplayName";
+import { getAgentBio, getAgentDisplayName } from "@/lib/agentDisplayName";
 import { resolveAgentPresentation } from "@/lib/agentProfile";
 import { useMarketplace } from "@/hooks/useMarketplace";
 import { useAgenticId } from "@/hooks/useAgenticId";
@@ -41,6 +41,7 @@ export default function TransferWorkspace() {
         aiSignature: agent.aiSignature,
         files,
         displayName: getAgentDisplayName(chainId, agent.tokenId),
+        bio: getAgentBio(chainId, agent.tokenId),
       })
     : null;
 

@@ -251,7 +251,7 @@ export function buildDashboardActions(args: {
       id: "ledger-fund",
       priority: "recommended",
       title: "Fund your Compute ledger",
-      detail: "Deposit OG so Insights, Chat, and Trading agents can run.",
+      detail: "Deposit OG so Insights and chat can run inference.",
       href: "/dashboard/vault/insights",
       cta: "Add OG",
     });
@@ -281,25 +281,51 @@ export function buildDashboardActions(args: {
     });
   }
 
-  if (args.stats.vaultFiles > 0 && args.stats.chatSessions === 0) {
+  if (args.stats.vaultFiles > 0 && args.stats.agentKnowledge === 0) {
+    actions.push({
+      id: "chat-blocked",
+      priority: "recommended",
+      title: "Build agent knowledge before chat",
+      detail:
+        "You have stored files, but Concierge can’t use raw uploads yet. Run Insights or Quick add.",
+      href: "/dashboard/vault/insights",
+      cta: "Open Insights",
+    });
+  } else if (
+    args.stats.agentKnowledge > 0 &&
+    args.canCompute &&
+    args.stats.chatSessions === 0
+  ) {
     actions.push({
       id: "chat",
       priority: "recommended",
       title: "Start your first chat",
-      detail: "Ask about spending, wallet activity, or uploaded documents.",
+      detail: "Ask Concierge about vault knowledge — or chat casually.",
       href: "/dashboard/advisor/chat",
-      cta: "Open Chat",
+      cta: "Open chat",
     });
   }
 
-  if (!args.hasAgent && args.stats.chatSessions > 0) {
+  if (!args.hasAgent && args.stats.agentKnowledge > 0) {
     actions.push({
       id: "mint-agent",
       priority: "recommended",
       title: "Mint your Agentic ID",
-      detail: "On-chain identity that binds your vault intelligence to you.",
+      detail:
+        "One Concierge identity per wallet — bound to your vault. Required to list, rent, or transfer.",
       href: "/dashboard/agent/mint",
-      cta: "Mint agent",
+      cta: "Mint Agentic ID",
+    });
+  }
+
+  if (args.hasAgent && args.stats.agentKnowledge > 0) {
+    actions.push({
+      id: "ecosystem",
+      priority: "optional",
+      title: "List or rent your Concierge",
+      detail: "Marketplace sale, timed rentals, or free P2P transfer.",
+      href: "/dashboard/ecosystem",
+      cta: "Open Ecosystem",
     });
   }
 
@@ -307,17 +333,8 @@ export function buildDashboardActions(args: {
     actions.push({
       id: "trade-review",
       priority: "optional",
-      title: "Review trade desk activity",
-      detail: `${args.stats.tradeDecisions} agent decision${args.stats.tradeDecisions === 1 ? "" : "s"} saved — confirm or adjust on the desk.`,
-      href: "/dashboard/trading/desk",
-      cta: "Open Desk",
-    });
-  } else if (args.hasAgent && args.stats.agentKnowledge > 0) {
-    actions.push({
-      id: "trade-start",
-      priority: "optional",
-      title: "Get a trade suggestion",
-      detail: "Agents analyze balances and propose Buy, Sell, or Hold — you confirm swaps.",
+      title: "Review trading desk activity",
+      detail: `${args.stats.tradeDecisions} decision${args.stats.tradeDecisions === 1 ? "" : "s"} saved — secondary to the vault loop.`,
       href: "/dashboard/trading/desk",
       cta: "Open Desk",
     });
@@ -369,12 +386,12 @@ export function buildJourneyProgress(args: {
     {
       id: "insights",
       label: "Insights",
-      done: args.stats.analyzedFiles > 0 && args.ledgerExists,
+      done: args.stats.agentKnowledge > 0 && args.ledgerExists,
       href: "/dashboard/vault/insights",
     },
     {
       id: "chat",
-      label: "Chat",
+      label: "chat",
       done: args.stats.chatSessions > 0,
       href: "/dashboard/advisor/chat",
     },
@@ -383,12 +400,6 @@ export function buildJourneyProgress(args: {
       label: "Agentic ID",
       done: args.hasAgent,
       href: "/dashboard/agent/mint",
-    },
-    {
-      id: "trade",
-      label: "Trading",
-      done: args.stats.tradeDecisions > 0,
-      href: "/dashboard/trading/desk",
     },
     {
       id: "ecosystem",
@@ -404,6 +415,5 @@ const JOURNEY_PROGRESS_TEMPLATE: JourneyProgress[] = [
   { id: "insights", label: "Insights", done: false, href: "/dashboard/vault/insights" },
   { id: "chat", label: "Chat", done: false, href: "/dashboard/advisor/chat" },
   { id: "agent", label: "Agentic ID", done: false, href: "/dashboard/agent/mint" },
-  { id: "trade", label: "Trading", done: false, href: "/dashboard/trading/desk" },
   { id: "ecosystem", label: "Ecosystem", done: false, href: "/dashboard/ecosystem" },
 ];

@@ -70,6 +70,11 @@ export function AutoIndexProvider({
   const [processing, setProcessing] = useState(false);
   const processingRef = useRef(false);
   const pausedNotifiedRef = useRef(false);
+  const autoReadEnabledRef = useRef(false);
+
+  useEffect(() => {
+    autoReadEnabledRef.current = autoReadEnabled;
+  }, [autoReadEnabled]);
 
   useEffect(() => {
     if (!address) {
@@ -78,10 +83,25 @@ export function AutoIndexProvider({
       setPaused(false);
       return;
     }
-    setAutoReadEnabledState(loadAutoIndexPref(address));
+    const saved = loadAutoIndexPref(address);
+    // Default ON once the user has funded compute (Drive-like: upload → Concierge learns).
+    // Explicit off is respected until they turn it back on.
+    const enabled = saved === null ? readiness.canCompute : saved;
+    autoReadEnabledRef.current = enabled;
+    setAutoReadEnabledState(enabled);
     setQueue(loadIndexQueue(address));
     setPaused(loadIndexPaused(address));
-  }, [address]);
+  }, [address, readiness.canCompute]);
+
+  /** First time compute becomes ready and user never opted out → enable auto-read. */
+  useEffect(() => {
+    if (!address || !isConnected) return;
+    if (!readiness.canCompute) return;
+    if (loadAutoIndexPref(address) !== null) return;
+    saveAutoIndexPref(address, true);
+    autoReadEnabledRef.current = true;
+    setAutoReadEnabledState(true);
+  }, [address, isConnected, readiness.canCompute]);
 
   const persistQueue = useCallback(
     (next: IndexQueueItem[]) => {
@@ -96,6 +116,7 @@ export function AutoIndexProvider({
     (enabled: boolean) => {
       if (!address) return;
       saveAutoIndexPref(address, enabled);
+      autoReadEnabledRef.current = enabled;
       setAutoReadEnabledState(enabled);
       if (enabled) {
         setPaused(false);
@@ -125,7 +146,7 @@ export function AutoIndexProvider({
 
   const enqueueIndex = useCallback(
     (item: EnqueueInput) => {
-      if (!address || !autoReadEnabled) return;
+      if (!address || !autoReadEnabledRef.current) return;
       const category = item.category ?? "unassigned";
       if (shouldSkipAutoIndex(category)) return;
 
@@ -143,7 +164,7 @@ export function AutoIndexProvider({
       });
       setJobStates((s) => ({ ...s, [item.rootHash]: "queued" }));
     },
-    [address, autoReadEnabled]
+    [address]
   );
 
   const processQueue = useCallback(async () => {

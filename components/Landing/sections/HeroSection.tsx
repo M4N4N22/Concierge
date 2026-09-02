@@ -31,9 +31,8 @@ export function HeroSection() {
               className="landing-fade mt-5 text-7xl font-semibold leading-[1.08]   sm:text-7xl lg:text-[4.4rem]"
               style={{ animationDelay: "80ms" }}
             >
-              Your wallet-owned{" "}
-              <span className="text-[var(--brand)]">AI stack</span> for every
-              decision
+              Your vault-backed{" "}
+              <span className="text-[var(--brand)]">Concierge</span> on 0G
             </h1>
           </div>
 
@@ -42,8 +41,8 @@ export function HeroSection() {
               className="landing-fade text-base leading-relaxed text-muted-foreground sm:text-[1.05rem]"
               style={{ animationDelay: "100ms" }}
             >
-              Vault your data. Run 0G Compute. Mint an Agentic ID. Chat and
-              trade with an agent you own.
+              Store knowledge on 0G Storage. Fund Compute so Concierge can read
+              it. Mint one Agentic ID — then chat, or list it on the ecosystem.
             </p>
 
             <div

@@ -97,14 +97,14 @@ export function Sidebar() {
           href="/dashboard"
           icon={Home}
           title="Home"
-          explainer="Command desk"
+          explainer="Vault → knowledge → Concierge"
           active={pathname === "/dashboard"}
           expanded={expanded}
         />
 
         {expanded ? (
           <p className="mb-1 mt-4 px-2.5 text-[10px] font-medium     text-[var(--sidebar-muted)]">
-            Workspace
+            Concierge
           </p>
         ) : (
           <div className="my-2 mx-auto h-px w-6 bg-[var(--sidebar-border)]" />
@@ -138,6 +138,7 @@ function JourneyStepBlock({
   const isStepActive =
     (step.href && isPathActive(pathname, step.href)) || !!subActive;
   const isSoon = step.status === "coming-soon";
+  const isSecondary = step.status === "secondary";
 
   return (
     <div>
@@ -149,6 +150,7 @@ function JourneyStepBlock({
           explainer={step.tagline}
           active={isStepActive}
           soon={isSoon}
+          secondary={isSecondary}
           expanded={expanded}
         />
       ) : (
@@ -207,6 +209,7 @@ function NavRow({
   active = false,
   disabled = false,
   soon = false,
+  secondary = false,
   expanded,
 }: {
   href?: string;
@@ -216,6 +219,7 @@ function NavRow({
   active?: boolean;
   disabled?: boolean;
   soon?: boolean;
+  secondary?: boolean;
   expanded: boolean;
 }) {
   const className = cn(
@@ -225,7 +229,8 @@ function NavRow({
     !active &&
       !disabled &&
       "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-accent)] hover:text-white",
-    disabled && "cursor-default opacity-40"
+    disabled && "cursor-default opacity-40",
+    secondary && !active && "opacity-70"
   );
 
   const body = (
@@ -238,6 +243,11 @@ function NavRow({
             {soon && (
               <span className="text-[9px]     text-[var(--sidebar-muted)]">
                 Soon
+              </span>
+            )}
+            {secondary && !soon && (
+              <span className="text-[9px]     text-[var(--sidebar-muted)]">
+                Extra
               </span>
             )}
           </span>

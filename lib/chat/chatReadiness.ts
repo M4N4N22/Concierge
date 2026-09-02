@@ -1,6 +1,8 @@
 import { isAgentKnowledge } from "@/lib/copy/vaultTerms";
 import type { VaultFile } from "@/hooks/useUserFiles";
 
+export type ChatIntent = "casual" | "vault";
+
 export type ChatBlocker =
   | "disconnected"
   | "no_files"
@@ -11,6 +13,7 @@ export type ChatBlocker =
   | null;
 
 export type ChatReadinessInput = {
+  intent: ChatIntent;
   isConnected: boolean;
   loadingEvidence: boolean;
   totalFiles: number;
@@ -89,7 +92,35 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       blocker: "disconnected",
       title: "Connect your wallet",
       detail:
-        "Chat runs on-chain with your vault. Connect a 0G wallet to see what your agent can use and send your first question.",
+        input.intent === "casual"
+          ? "Connect a 0G wallet to chat with Concierge."
+          : "Chat runs on your vault. Connect a 0G wallet to ask what your files know.",
+      steps,
+    };
+  }
+
+  if (input.intent === "casual") {
+    if (!input.canCompute) {
+      const computeDetail = !input.hasLedger
+        ? "Create your compute ledger on the Insights desk — Chat uses 0G Compute."
+        : !input.hasBalance
+          ? "Deposit OG into your ledger so inference can run when you send a message."
+          : "Fund at least one AI model provider on the Insights desk before Chat can respond.";
+
+      return {
+        canSend: false,
+        blocker: "compute",
+        title: "Finish compute setup",
+        detail: computeDetail,
+        steps,
+      };
+    }
+
+    return {
+      canSend: true,
+      blocker: null,
+      title: "Ready to chat",
+      detail: "Casual mode · compute funded",
       steps,
     };
   }
@@ -99,7 +130,8 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       canSend: false,
       blocker: "loading",
       title: "Loading agent knowledge…",
-      detail: "Checking which vault files Chat can read — structured evidence and Insights summaries.",
+      detail:
+        "Checking which vault files Chat can read — structured evidence and Insights summaries.",
       steps,
     };
   }
@@ -110,7 +142,7 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       blocker: "no_files",
       title: "No vault files yet",
       detail:
-        "Uploads are stored on 0G first. Add files or use Quick add in Vault, then run Insights so Chat has agent knowledge to work from.",
+        "Uploads land on 0G first. Add files in Vault, then run Insights so Chat can answer from them.",
       steps,
     };
   }
@@ -120,14 +152,14 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       canSend: false,
       blocker: "no_knowledge",
       title: "Stored files — not agent knowledge yet",
-      detail: `You have ${input.totalFiles} stored file${input.totalFiles === 1 ? "" : "s"}, but Chat can't use raw uploads. Run Insights to categorize and summarize, or use Quick add for structured entries.`,
+      detail: `You have ${input.totalFiles} stored file${input.totalFiles === 1 ? "" : "s"}, but Chat can't use raw uploads. Run Insights or use Quick add.`,
       steps,
     };
   }
 
   if (!input.canCompute) {
     const computeDetail = !input.hasLedger
-      ? "Create your compute ledger on the Insights desk — Chat uses 0G Compute to answer from your vault."
+      ? "Create your compute ledger on the Insights desk — Chat uses 0G Compute."
       : !input.hasBalance
         ? "Deposit OG into your ledger so inference can run when you send a message."
         : "Fund at least one AI model provider on the Insights desk before Chat can respond.";
@@ -147,7 +179,7 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       blocker: "load_failed",
       title: "Couldn't load agent knowledge",
       detail:
-        "Your vault has knowledge files, but Chat couldn't read them from storage. Try Refresh, or re-run Insights on the files that failed.",
+        "Your vault has knowledge files, but Chat couldn't read them from storage. Try Refresh or re-run Insights.",
       steps,
     };
   }

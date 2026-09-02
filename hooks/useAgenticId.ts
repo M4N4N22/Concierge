@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import {
   AGENT_ADDRESSES,
   MARKETPLACE_ADDRESSES,
@@ -12,6 +12,12 @@ import { INFT_AGENT_ABI } from "@/lib/INFTAgentAbi";
 import { AGENT_MARKETPLACE_ABI } from "@/lib/marketplaceAbi";
 import { isConfiguredContract } from "@/lib/agentAccess";
 import { useINFTAgent } from "@/hooks/useINFTAgent";
+import {
+  fingerprintVaultEvidence,
+  type VaultSealStatus,
+  compareVaultSeal,
+} from "@/lib/agenticMint";
+import type { VaultFile } from "@/hooks/useUserFiles";
 
 export type MyAgenticId = {
   tokenId: bigint;
@@ -38,7 +44,7 @@ function configuredAgentChain(chainId: number | undefined): number | null {
 export function useAgenticId() {
   const { address, isConnected, chainId } = useAccount();
   const publicClient = usePublicClient();
-  const { updateProfile, updateMetadata } = useINFTAgent();
+  const { updateProfile, updateMetadata, getEncryptedMetadata } = useINFTAgent();
   const [agent, setAgent] = useState<MyAgenticId | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -253,6 +259,69 @@ export function useAgenticId() {
     [agent?.access, refetch, updateMetadata, updateProfile]
   );
 
+  /** Compute expected vault seal from live files (does not write chain). */
+  const expectedVaultSeal = useCallback(
+    (files: VaultFile[]): Hex | null => {
+      if (!address || !agent) return null;
+      return fingerprintVaultEvidence(address, agent.vault, files);
+    },
+    [address, agent]
+  );
+
+  /** Compare on-chain encrypted metadata to current vault file roots. */
+  const checkVaultSeal = useCallback(
+    async (files: VaultFile[]): Promise<{
+      status: VaultSealStatus;
+      onChain: string | null;
+      expected: Hex | null;
+    }> => {
+      const expected = expectedVaultSeal(files);
+      if (!agent || !expected) {
+        return { status: "unknown", onChain: null, expected: null };
+      }
+      try {
+        const raw = await getEncryptedMetadata(agent.tokenId);
+        const onChain = typeof raw === "string" ? raw : String(raw);
+        return {
+          status: compareVaultSeal(onChain, expected),
+          onChain,
+          expected,
+        };
+      } catch {
+        return { status: "unknown", onChain: null, expected };
+      }
+    },
+    [agent, expectedVaultSeal, getEncryptedMetadata]
+  );
+
+  /**
+   * Push current vault fingerprint on-chain (owners only).
+   * Chat does not need this — use before marketplace list for attestation honesty.
+   */
+  const refreshVaultSeal = useCallback(
+    async (files: VaultFile[]) => {
+      if (!address) throw new Error("Wallet not connected");
+      if (!agent) throw new Error("No Agentic ID");
+      if (agent.access === "rental") {
+        throw new Error("Renters cannot refresh vault seal — ownership required");
+      }
+      const seal = fingerprintVaultEvidence(address, agent.vault, files);
+      try {
+        const raw = await getEncryptedMetadata(agent.tokenId);
+        const onChain = typeof raw === "string" ? raw : String(raw);
+        if (compareVaultSeal(onChain, seal) === "current") {
+          return { skipped: true as const, seal, tx: null };
+        }
+      } catch {
+        /* proceed to write */
+      }
+      const tx = await updateMetadata(agent.tokenId, seal);
+      await refetch();
+      return { skipped: false as const, seal, tx };
+    },
+    [address, agent, getEncryptedMetadata, refetch, updateMetadata]
+  );
+
   return {
     agent,
     loading,
@@ -260,6 +329,9 @@ export function useAgenticId() {
     refetch,
     bindBoardSession,
     bindTradeMemory,
+    checkVaultSeal,
+    refreshVaultSeal,
+    expectedVaultSeal,
     hasAgent: !!agent,
   };
 }

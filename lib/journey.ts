@@ -13,8 +13,8 @@ export type JourneyStepId =
   | "insights"
   | "chat"
   | "agentic-id"
-  | "trading"
-  | "ecosystem";
+  | "ecosystem"
+  | "trading";
 
 export interface JourneySubStep {
   id: string;
@@ -32,13 +32,13 @@ export interface JourneyStep {
   description: string;
   href?: string;
   icon: LucideIcon;
-  status: "live" | "coming-soon";
+  status: "live" | "coming-soon" | "secondary";
   subSteps?: JourneySubStep[];
 }
 
 /**
- * Concierge journey: vault → intelligence → chat → own the agent → trade → ecosystem.
- * Agentic ID (formerly INFT) sits before Trading so ownership precedes desk use.
+ * Concierge spine: vault → knowledge → chat → own ID → ecosystem.
+ * Trading is secondary — same Concierge, trading mode — not the core loop.
  */
 export const JOURNEY_STEPS: JourneyStep[] = [
   {
@@ -46,9 +46,9 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     step: 1,
     title: "Vault",
     shortTitle: "Vault",
-    tagline: "Store files and build agent knowledge",
+    tagline: "Store files on 0G",
     description:
-      "Everything lands on 0G Storage. Wallet sync, CSV, and Insights turn stored files into agent knowledge Chat and Trading can use.",
+      "Uploads land on 0G Storage and your Vault registry. Use Quick add for structured packs Chat can read immediately, or upload files and run Insights next.",
     href: "/dashboard/vault/my-files",
     icon: Upload,
     status: "live",
@@ -58,9 +58,9 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     step: 2,
     title: "Insights",
     shortTitle: "Insights",
-    tagline: "Auto-categorize and summarize vault files",
+    tagline: "Turn storage into agent knowledge",
     description:
-      "0G Compute reads your files, assigns categories, and generates concise summaries stored back on-chain.",
+      "Fund 0G Compute, then categorize and summarize vault files. Stored-only uploads become agent knowledge chat can use.",
     href: "/dashboard/vault/insights",
     icon: Sparkles,
     status: "live",
@@ -70,9 +70,9 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     step: 3,
     title: "Chat",
     shortTitle: "Chat",
-    tagline: "Ask about your vault — not trading",
+    tagline: "Ask what your vault knows",
     description:
-      "Chat with vault evidence about spend, activity, and documents. Trading and finance live under Trading & Finance.",
+      "One Concierge workspace — questions grounded in your uploads and Insights. Tips suggest what to ask based on recent vault data.",
     href: "/dashboard/advisor/chat",
     icon: MessageSquare,
     status: "live",
@@ -82,67 +82,21 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     step: 4,
     title: "Agentic ID",
     shortTitle: "Agentic ID",
-    tagline: "Mint your on-chain AI agent identity",
+    tagline: "Your portable personality",
     description:
-      "Mint an Agentic ID (formerly INFT) bound to your vault. Encrypted metadata fingerprints your Concierge intelligence on 0G Chain — then use Chat, Desk, and Ecosystem.",
+      "Mint one Agentic ID per wallet — digital fingerprint and ownership of your Concierge. Name, bio, vault seal. Knowledge stays in the live vault; chat uses it without reminting.",
     href: "/dashboard/agent/mint",
     icon: Fingerprint,
     status: "live",
-    subSteps: [
-      {
-        id: "mint",
-        name: "Mint",
-        href: "/dashboard/agent/mint",
-        description: "Mint your Agentic ID on 0G Chain",
-      },
-      {
-        id: "learning",
-        name: "Learning",
-        href: "/dashboard/agent/learning",
-        description: "Train domain specialists on vault evidence",
-      },
-      {
-        id: "recommendations",
-        name: "Recommendations",
-        href: "/dashboard/agent/recommendations",
-        description: "Review actionable insights per domain",
-      },
-    ],
-  },
-  {
-    id: "trading",
-    step: 5,
-    title: "Trading & Finance",
-    shortTitle: "Trading",
-    tagline: "Desk, agents, and strategies",
-    description:
-      "Simple OG/USDC desk with agent Buy/Sell/Hold suggestions, plus a strategy builder for structured plays.",
-    href: "/dashboard/trading",
-    icon: CandlestickChart,
-    status: "live",
-    subSteps: [
-      {
-        id: "desk",
-        name: "Desk",
-        href: "/dashboard/trading/desk",
-        description: "Balances, agent suggest, quote & confirm",
-      },
-      {
-        id: "strategies",
-        name: "Strategies",
-        href: "/dashboard/trading/strategies",
-        description: "Spot templates live · options spreads soon",
-      },
-    ],
   },
   {
     id: "ecosystem",
-    step: 6,
+    step: 5,
     title: "Ecosystem",
     shortTitle: "Ecosystem",
-    tagline: "List, rent, or transfer Agentic IDs",
+    tagline: "List, rent, or transfer",
     description:
-      "Marketplace, rentals, and P2P transfer for data-backed Agentic IDs — list, rent access without surrendering ownership, or transfer with intelligence intact.",
+      "Marketplace sale, timed Concierge rentals (keep ownership; renters get personality access, not your Drive dump), or free P2P transfer — vault binding travels with the token.",
     href: "/dashboard/ecosystem",
     icon: Store,
     status: "live",
@@ -151,19 +105,45 @@ export const JOURNEY_STEPS: JourneyStep[] = [
         id: "marketplace",
         name: "Marketplace",
         href: "/dashboard/ecosystem/marketplace",
-        description: "Discover and acquire data-backed agents",
+        description: "Buy or sell Concierge Agentic IDs",
       },
       {
         id: "rent",
         name: "Rent",
         href: "/dashboard/ecosystem/rent",
-        description: "Share agent access without giving up ownership",
+        description: "Share timed Concierge access — not a private file dump",
       },
       {
         id: "transfer",
         name: "Transfer",
         href: "/dashboard/ecosystem/trade",
-        description: "Transfer Agentic IDs with intelligence intact",
+        description: "Send your Agentic ID P2P — no marketplace fee",
+      },
+    ],
+  },
+  {
+    id: "trading",
+    step: 6,
+    title: "Trading desk",
+    shortTitle: "Trading",
+    tagline: "Secondary · same Concierge",
+    description:
+      "Optional desk for OG/USDC suggestions from your Concierge. Core product is vault → knowledge → chat → Agentic ID.",
+    href: "/dashboard/trading",
+    icon: CandlestickChart,
+    status: "secondary",
+    subSteps: [
+      {
+        id: "desk",
+        name: "Desk",
+        href: "/dashboard/trading/desk",
+        description: "Balances and agent Buy/Sell/Hold suggest",
+      },
+      {
+        id: "strategies",
+        name: "Strategies",
+        href: "/dashboard/trading/strategies",
+        description: "Strategy templates · still maturing",
       },
     ],
   },
@@ -190,16 +170,19 @@ export function getStepByPath(pathname: string): JourneyStep | undefined {
   return undefined;
 }
 
+/** Next step in the core spine (skips secondary trading). */
 export function getNextStep(currentId: JourneyStepId): JourneyStep | undefined {
-  const idx = JOURNEY_STEPS.findIndex((s) => s.id === currentId);
-  if (idx < 0 || idx >= JOURNEY_STEPS.length - 1) return undefined;
-  return JOURNEY_STEPS[idx + 1];
+  const core = JOURNEY_STEPS.filter((s) => s.status !== "secondary");
+  const idx = core.findIndex((s) => s.id === currentId);
+  if (idx < 0 || idx >= core.length - 1) return undefined;
+  return core[idx + 1];
 }
 
 export function getPrevStep(currentId: JourneyStepId): JourneyStep | undefined {
-  const idx = JOURNEY_STEPS.findIndex((s) => s.id === currentId);
+  const core = JOURNEY_STEPS.filter((s) => s.status !== "secondary");
+  const idx = core.findIndex((s) => s.id === currentId);
   if (idx <= 0) return undefined;
-  return JOURNEY_STEPS[idx - 1];
+  return core[idx - 1];
 }
 
 /** Match pathname to a specific nav href (step or sub-step). */

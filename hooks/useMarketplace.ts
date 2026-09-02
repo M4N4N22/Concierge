@@ -27,6 +27,7 @@ import {
 } from "@/lib/wallet/marketplaceTx";
 
 import { fetchVaultFilesForUser } from "@/lib/vault/fetchVaultFilesForUser";
+import { fetchPersonalityFromUri } from "@/lib/agentPersonality";
 import type { VaultFile } from "@/hooks/useUserFiles";
 
 type VaultFileSummary = Pick<VaultFile, "category" | "insightsCID">;
@@ -41,6 +42,8 @@ export type SaleListingView = {
   aiSignature: string;
   vaultFileCount: number;
   vaultFiles: VaultFileSummary[];
+  displayName?: string;
+  bio?: string;
 };
 
 export type RentListingView = {
@@ -54,6 +57,8 @@ export type RentListingView = {
   aiSignature: string;
   vaultFileCount: number;
   vaultFiles: VaultFileSummary[];
+  displayName?: string;
+  bio?: string;
 };
 
 function firstConfiguredMarketChain(): number | null {
@@ -232,6 +237,7 @@ export function useMarketplace() {
       } catch {
         vaultFileCount = 0;
       }
+      const personality = await fetchPersonalityFromUri(card.embeddingURI);
       out.push({
         tokenId,
         seller: sale[0],
@@ -240,6 +246,8 @@ export function useMarketplace() {
         vaultFileCount,
         vaultFiles,
         ...card,
+        displayName: personality?.name || undefined,
+        bio: personality?.bio || undefined,
       });
     }
     return out;
@@ -284,6 +292,7 @@ export function useMarketplace() {
       } catch {
         vaultFileCount = 0;
       }
+      const personality = await fetchPersonalityFromUri(card.embeddingURI);
       out.push({
         tokenId,
         owner: rentRow[0],
@@ -293,6 +302,8 @@ export function useMarketplace() {
         vaultFileCount,
         vaultFiles,
         ...card,
+        displayName: personality?.name || undefined,
+        bio: personality?.bio || undefined,
       });
     }
     return out;

@@ -52,15 +52,15 @@ export const DOMAIN_META: Record<
   { title: string; description: string }
 > = {
   finance: {
-    title: "Finance Agent",
-    description: "Analyzes spending patterns and offers optimization insights from your vault.",
+    title: "Finance focus",
+    description: "Ask about spending, bills, and wallet activity using matching vault files.",
   },
   travel: {
-    title: "Travel Agent",
-    description: "Learns from your past trips to personalize future travel advice.",
+    title: "Travel focus",
+    description: "Ask about trips and bookings using travel-related vault evidence.",
   },
   subscription: {
-    title: "Subscription Agent",
-    description: "Tracks recurring payments and suggests smart cancellations or alternatives.",
+    title: "Subscriptions focus",
+    description: "Ask about recurring payments and renewals using subscription evidence.",
   },
 };

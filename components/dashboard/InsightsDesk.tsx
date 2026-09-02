@@ -90,7 +90,7 @@ function InsightsBody() {
     stats.labeled > 0 || readiness.canCompute
       ? {
         href: "/dashboard/advisor/chat",
-        label: "Continue to Chat",
+        label: "Continue to chat",
       }
       : stats.total === 0
         ? {

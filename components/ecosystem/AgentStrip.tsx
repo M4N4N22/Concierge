@@ -5,7 +5,7 @@ import { Clock, Fingerprint } from "lucide-react";
 import { useChainId } from "wagmi";
 import { Button } from "@/components/ui/button";
 import type { MyAgenticId } from "@/hooks/useAgenticId";
-import { getAgentDisplayName } from "@/lib/agentDisplayName";
+import { getAgentBio, getAgentDisplayName } from "@/lib/agentDisplayName";
 import { resolveAgentPresentation } from "@/lib/agentProfile";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +58,7 @@ export function AgentStrip({
     domain: agent.domain,
     aiSignature: agent.aiSignature,
     displayName: getAgentDisplayName(chainId, agent.tokenId),
+    bio: getAgentBio(chainId, agent.tokenId),
   });
 
   return (
@@ -77,7 +78,7 @@ export function AgentStrip({
                   : "bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]"
               )}
             >
-              {agent.access === "rental" ? "Rental" : presentation.specialtyLabel}
+              {agent.access === "rental" ? "Rental" : "Owner"}
             </span>
           </div>
           <p className="truncate text-[11px] text-muted-foreground">
