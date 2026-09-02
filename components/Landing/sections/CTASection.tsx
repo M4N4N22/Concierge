@@ -19,11 +19,11 @@ export function CTASection() {
               Go
             </p>
             <h2 className="mt-4 text-3xl font-semibold   text-white sm:text-5xl">
-              Wire your wallet to the 0G stack.
+              Own your Concierge on 0G.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-white/65">
-              Vault on Storage. Insights on Compute. Agentic ID on Chain. Then
-              Chat and Trade like you own the agent — because you do.
+              Vault on Storage. Knowledge via Compute. One Agentic ID on Chain —
+              then chat, or list it on the ecosystem.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Button

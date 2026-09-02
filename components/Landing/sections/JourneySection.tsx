@@ -3,44 +3,37 @@ import Link from "next/link";
 const BEATS = [
   {
     n: "01",
-    title: "Save your data in the vault",
+    title: "Save files in your vault",
     detail: "Storage",
-    body: "Sync a wallet, upload a spreadsheet, paste notes. Everything lands on 0G Storage and shows up in your vault.",
+    body: "Sync a wallet, upload a spreadsheet, paste notes. Everything lands on 0G Storage and shows up in your Vault registry.",
     href: "/dashboard/vault/my-files",
   },
   {
     n: "02",
-    title: "Run Insights when you’re ready",
+    title: "Turn storage into agent knowledge",
     detail: "Compute",
-    body: "Fund compute once. Label and summarize your files so Chat and Desk aren’t staring at raw dumps.",
+    body: "Fund compute once. Run Insights to categorize and summarize — Concierge can’t use raw uploads until they’re knowledge.",
     href: "/dashboard/vault/insights",
   },
   {
     n: "03",
-    title: "Chat with your data",
+    title: "Chat with your Concierge",
     detail: "Compute + vault",
-    body: "Ask about spending and documents. Answers stay grounded in what you uploaded — advisory, not trading theater.",
+    body: "Ask about spending and documents. Answers stay grounded in agent knowledge — not filenames alone.",
     href: "/dashboard/advisor/chat",
   },
   {
     n: "04",
-    title: "Mint your Agentic ID",
-    detail: "Chain + Agentic ID",
-    body: "One agent per wallet, linked to your vault. That’s ownership — not a rented login.",
+    title: "Mint one Agentic ID",
+    detail: "Chain",
+    body: "One Concierge identity per wallet — your portable personality. Chat casually or ask vault questions in chat; finance, travel, and subscriptions are focus chips there — not separate agents.",
     href: "/dashboard/agent/mint",
   },
   {
     n: "05",
-    title: "Trade with agents you control",
-    detail: "Desk",
-    body: "They suggest Buy / Sell / Hold from balances. You size, quote OG/USDC, and confirm. Nothing sneaks through.",
-    href: "/dashboard/trading/desk",
-  },
-  {
-    n: "06",
     title: "List, rent, or transfer",
     detail: "Ecosystem",
-    body: "Move the Agentic ID across wallets. The agent’s memory travels with it — marketplace, rent, or send.",
+    body: "Sell on the marketplace, rent timed Concierge access while you keep ownership (not a private file dump), or send P2P. The vault binding travels with the ID.",
     href: "/dashboard/ecosystem",
   },
 ];
@@ -57,8 +50,8 @@ export function JourneySection() {
             The path you actually walk
           </h2>
           <p className="mt-4 text-muted-foreground leading-relaxed">
-            Six beats from empty wallet to owned agent. Each step maps to a 0G
-            layer — not a slide in a pitch deck.
+            Vault → knowledge → chat → ownable Agentic ID → ecosystem. Trading
+            desk is optional — same Concierge, secondary mode.
           </p>
         </div>
 
@@ -80,7 +73,7 @@ export function JourneySection() {
                     {beat.body}
                   </p>
                 </div>
-                <span className="text-[11px] font-semibold    text-[var(--brand)] sm:text-right">
+                <span className="text-xs font-medium text-muted-foreground sm:text-right">
                   {beat.detail}
                 </span>
               </Link>

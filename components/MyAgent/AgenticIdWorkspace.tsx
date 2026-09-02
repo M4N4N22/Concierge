@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   Fingerprint,
-  GraduationCap,
   KeyRound,
   Layers,
   Loader2,
@@ -28,20 +27,17 @@ import {
   CollapsibleGuideRail,
   type GuideItem,
 } from "@/components/dashboard/CollapsibleGuideRail";
-import { cn } from "@/lib/utils";
 import { useINFTAgent } from "@/hooks/useINFTAgent";
 import { useAgenticId } from "@/hooks/useAgenticId";
 import { useUserFiles } from "@/hooks/useUserFiles";
 import { VAULT_ADDRESSES } from "@/lib/addresses";
 import { zeroGMainnet, zeroGTestnet } from "@/lib/wagmi/config";
 import { buildAgenticMintPayload } from "@/lib/agenticMint";
-import { setAgentDisplayName } from "@/lib/agentDisplayName";
 import {
-  inferSpecialtyFromFiles,
-  specialtyToDomain,
-  type AgentSpecialty,
-} from "@/lib/agentProfile";
-import { AGENT_DOMAINS, DOMAIN_META } from "@/lib/domains";
+  cachePersonalityLocally,
+  publishPersonality,
+} from "@/lib/agentPersonality";
+import { defaultAgentDomain } from "@/lib/agentProfile";
 import { getTxExplorerUrl, truncateHash } from "@/lib/explorer";
 import { AgentProfileCard } from "@/components/MyAgent/AgentProfileCard";
 
@@ -50,25 +46,25 @@ const GUIDE: GuideItem[] = [
     id: "what",
     icon: Fingerprint,
     title: "What is an Agentic ID?",
-    body: "On-chain AI agent identity (formerly INFT). You mint once per wallet — ownership and encrypted metadata travel together when you transfer or list it.",
+    body: "On-chain ownership of your Concierge — vault-bound, rentable, transferable. Not a trained model and not a freeze of your files at mint.",
   },
   {
     id: "mint",
     icon: KeyRound,
     title: "Mint",
-    body: "Creates your Agentic ID on 0G Chain, bound to the Concierge vault contract. One mint per wallet on this contract.",
+    body: "Creates your Agentic ID on 0G Chain, bound to the Concierge vault contract. One mint per wallet. Chat keeps learning from new uploads after mint.",
   },
   {
     id: "metadata",
     icon: Lock,
-    title: "Encrypted metadata",
-    body: "A bytes32 fingerprint derived from your vault evidence roots. It identifies this agent’s intelligence without exposing file contents on-chain.",
+    title: "Vault seal",
+    body: "Optional on-chain attestation of vault file roots — not the agent brain. Refresh before listing if you want the chain to match today’s vault. Chat never waits on this.",
   },
   {
     id: "vault",
     icon: Layers,
     title: "Vault binding",
-    body: "The token stores your vault contract address so Chat, Learning, and Desk can ground in the same evidence registry.",
+    body: "The token stores your vault contract address. Chat, Learning, and Desk always read the live vault registry — uploads and Insights feed knowledge continuously.",
   },
   {
     id: "use",
@@ -80,7 +76,7 @@ const GUIDE: GuideItem[] = [
     id: "ecosystem",
     icon: Store,
     title: "Ecosystem",
-    body: "List, rent, or transfer your Agentic ID. Transfers keep vault reference and encrypted metadata on the token.",
+    body: "List, rent, or transfer access to this Concierge. Refresh the vault seal first if you want on-chain attestation to match current files.",
   },
   {
     id: "standard",
@@ -96,20 +92,6 @@ function networkLabel(chainId: number) {
   if (chainId === zeroGMainnet.id) return "0G Mainnet";
   if (chainId === zeroGTestnet.id) return "Galileo";
   return `Chain ${chainId}`;
-}
-
-const SPECIALTY_OPTIONS: AgentSpecialty[] = [...AGENT_DOMAINS, "general"];
-
-function specialtyLabel(specialty: AgentSpecialty): string {
-  if (specialty === "general") return "General Concierge";
-  return DOMAIN_META[specialty].title.replace(/ Agent$/, "");
-}
-
-function specialtyDescription(specialty: AgentSpecialty): string {
-  if (specialty === "general") {
-    return "Balanced assistant across all vault evidence.";
-  }
-  return DOMAIN_META[specialty].description;
 }
 
 export default function AgenticIdWorkspace() {
@@ -131,18 +113,12 @@ export default function AgenticIdWorkspace() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [minting, setMinting] = useState(false);
   const [lastTx, setLastTx] = useState<string | null>(null);
-  const [specialty, setSpecialty] = useState<AgentSpecialty>("general");
   const [displayName, setDisplayName] = useState("");
-  const [domain, setDomain] = useState("general.concierge");
+  const [bio, setBio] = useState("");
+  const [domain, setDomain] = useState(defaultAgentDomain());
   const [embeddingURI, setEmbeddingURI] = useState("");
   const [aiSignature, setAiSignature] = useState("concierge_v1");
   const [encryptedHash, setEncryptedHash] = useState<`0x${string}` | "">("");
-
-  useEffect(() => {
-    if (files.length > 0) {
-      setSpecialty(inferSpecialtyFromFiles(files));
-    }
-  }, [files]);
 
   const autoPayload = useMemo(() => {
     if (!address || !vaultAddress) return null;
@@ -150,23 +126,16 @@ export default function AgenticIdWorkspace() {
       owner: address,
       vault: vaultAddress,
       files,
-      specialty,
     });
-  }, [address, vaultAddress, files, specialty]);
-
-  useEffect(() => {
-    if (!showAdvanced) {
-      setDomain(specialtyToDomain(specialty));
-    }
-  }, [showAdvanced, specialty]);
+  }, [address, vaultAddress, files]);
 
   useEffect(() => {
     if (!autoPayload) return;
-    setDomain(autoPayload.domain);
+    if (!showAdvanced) setDomain(autoPayload.domain);
     setEmbeddingURI(autoPayload.embeddingURI);
     setAiSignature(autoPayload.aiSignature);
     setEncryptedHash(autoPayload.encryptedHash);
-  }, [autoPayload]);
+  }, [autoPayload, showAdvanced]);
 
   useEffect(() => {
     if (isConnected) void refetchFiles({ silent: true });
@@ -181,7 +150,7 @@ export default function AgenticIdWorkspace() {
     !minting;
 
   const primaryCta = hasAgent
-    ? { href: "/dashboard/advisor/chat", label: "Continue to Chat" }
+    ? { href: "/dashboard/advisor/chat", label: "Continue to chat" }
     : files.length === 0 && isConnected
       ? { href: "/dashboard/vault/my-files", label: "Add evidence first" }
       : null;
@@ -193,20 +162,45 @@ export default function AgenticIdWorkspace() {
     }
     setMinting(true);
     try {
+      let personalityUri =
+        embeddingURI.trim() || `0g://concierge/${address.toLowerCase()}`;
+
+      if (displayName.trim() || bio.trim()) {
+        const published = await publishPersonality({
+          name: displayName.trim() || "Concierge Agent",
+          bio: bio.trim(),
+        });
+        if (published) {
+          personalityUri = published.uri;
+        } else {
+          toast.message(
+            "Minting without on-chain personality — Storage upload failed; you can publish name/bio later"
+          );
+        }
+      }
+
       const tx = await mintAgent({
         vault: vaultAddress,
         encryptedHash,
-        domain: domain.trim() || specialtyToDomain(specialty),
-        embeddingURI:
-          embeddingURI.trim() || `0g://concierge/${address.toLowerCase()}`,
+        domain: domain.trim() || defaultAgentDomain(),
+        embeddingURI: personalityUri,
         aiSignature: aiSignature.trim() || "concierge_v1",
       });
       setLastTx(tx);
       const next = await refetch();
-      if (next && displayName.trim()) {
-        setAgentDisplayName(chainId, next.tokenId, displayName.trim());
+      if (next && (displayName.trim() || bio.trim())) {
+        cachePersonalityLocally(
+          chainId,
+          next.tokenId,
+          displayName.trim(),
+          bio.trim()
+        );
       }
-      toast.success("Agentic ID minted on 0G Chain");
+      toast.success(
+        displayName.trim() || bio.trim()
+          ? "Agentic ID minted — personality on Storage for marketplace"
+          : "Agentic ID minted on 0G Chain"
+      );
     } catch (err) {
       console.error(err);
       const msg =
@@ -229,8 +223,8 @@ export default function AgenticIdWorkspace() {
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
             {hasAgent
-              ? "On-chain ownership of your Concierge agent — vault-bound encrypted metadata on 0G Chain."
-              : "Mint once per wallet. Encrypted metadata fingerprints your vault so Chat, Desk, and Ecosystem share one identity."}
+              ? "One Concierge identity on-chain — ownership and rentable access. Your vault keeps learning; the NFT does not freeze knowledge at mint."
+              : "Mint once per wallet. Name it, bind it to your vault, then keep uploading — Chat reads the live vault, not a mint-time snapshot."}
           </p>
         </div>
         {primaryCta ? (
@@ -258,7 +252,7 @@ export default function AgenticIdWorkspace() {
                 {!isConnected ? "—" : filesLoading ? "…" : files.length}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Evidence used in the mint fingerprint
+                Vault files included in the genesis seal
               </p>
             </div>
 
@@ -333,33 +327,27 @@ export default function AgenticIdWorkspace() {
                     Continue with Concierge
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    Your Agentic ID unlocks the rest of the journey
+                    Personality is ready — chat or list it on the ecosystem
                   </p>
                 </div>
                 <div className="grid gap-2 border-t border-border/50 px-5 py-4 sm:grid-cols-2">
                   <ContinueCard
                     href="/dashboard/advisor/chat"
                     icon={MessageSquare}
-                    title="Chat"
-                    detail="Ask about vault evidence"
-                  />
-                  <ContinueCard
-                    href="/dashboard/agent/learning"
-                    icon={GraduationCap}
-                    title="Learning"
-                    detail="Train domain specialists"
-                  />
-                  <ContinueCard
-                    href="/dashboard/trading/desk"
-                    icon={CandlestickChart}
-                    title="Trading desk"
-                    detail="Suggest · quote · confirm"
+                    title="chat"
+                    detail="Casual chat or ask your data"
                   />
                   <ContinueCard
                     href="/dashboard/ecosystem"
                     icon={Store}
                     title="Ecosystem"
                     detail="List, rent, or transfer"
+                  />
+                  <ContinueCard
+                    href="/dashboard/trading/desk"
+                    icon={CandlestickChart}
+                    title="Trading desk"
+                    detail="Suggest · quote · confirm"
                   />
                 </div>
               </section>
@@ -372,7 +360,7 @@ export default function AgenticIdWorkspace() {
                     Mint Agentic ID
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    Fingerprint is derived from vault evidence · confirm in wallet
+                    Genesis seal from current vault · Chat keeps learning after mint · confirm in wallet
                   </p>
                 </div>
                 <Button
@@ -412,7 +400,7 @@ export default function AgenticIdWorkspace() {
                         Vault is empty (optional)
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        You can mint now with a wallet fingerprint, or add
+                        You can mint now with a wallet-only genesis seal, or add
                         evidence first for a richer metadata hash.
                       </p>
                       <Button asChild size="sm" variant="outline" className="mt-3">
@@ -436,18 +424,18 @@ export default function AgenticIdWorkspace() {
                     />
                     <ReadyLine
                       done={files.length > 0}
-                      label="Evidence fingerprint"
+                      label="Genesis vault seal"
                       detail={
                         filesLoading
                           ? "Loading…"
                           : files.length > 0
                             ? `${files.length} file${files.length === 1 ? "" : "s"} hashed`
-                            : "Empty vault · wallet-only fingerprint"
+                            : "Empty vault · wallet-only seal"
                       }
                     />
                     <ReadyLine
                       done={!!encryptedHash}
-                      label="Encrypted metadata hash"
+                      label="Encrypted metadata (seal)"
                       detail={
                         encryptedHash
                           ? truncateHash(encryptedHash, 10, 8)
@@ -462,49 +450,44 @@ export default function AgenticIdWorkspace() {
 
                   <div className="space-y-3 rounded-2xl bg-muted/40 p-4">
                     <div>
-                      <p className="text-sm font-medium">What is this agent for?</p>
+                      <p className="text-sm font-medium">Name your Concierge</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Pick a specialty — stored on-chain as your agent domain
-                        (e.g. finance.concierge).
+                  One agent per wallet is your portable personality. Use chat
+                  later for casual chat or vault questions — finance, travel, and
+                  subscriptions are focus chips there, not agent types.
                       </p>
                     </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {SPECIALTY_OPTIONS.map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setSpecialty(option)}
-                          className={cn(
-                            "rounded-2xl border px-3.5 py-3 text-left transition-colors",
-                            specialty === option
-                              ? "border-[color-mix(in_srgb,var(--brand)_35%,transparent)] bg-[color-mix(in_srgb,var(--brand)_8%,var(--surface))]"
-                              : "border-transparent bg-[var(--surface)] hover:bg-muted/50"
-                          )}
-                        >
-                          <p className="text-sm font-semibold">
-                            {specialtyLabel(option)}
-                          </p>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {specialtyDescription(option)}
-                          </p>
-                        </button>
-                      ))}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Display name (optional)
+                      </label>
+                      <Input
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="e.g. Manan's Concierge"
+                        className="rounded-xl"
+                        maxLength={64}
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Published to 0G Storage at mint so marketplace &amp; rent
+                        show your personality.
+                      </p>
                     </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Display name (optional)
-                    </label>
-                    <Input
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder={`e.g. My ${specialtyLabel(specialty)}`}
-                      className="rounded-xl"
-                      maxLength={64}
-                    />
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Short description (optional)
+                      </label>
+                      <Input
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        placeholder="What this agent helps with"
+                        className="rounded-xl"
+                        maxLength={240}
+                      />
+                    </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Shown in your dashboard — saved on this device after mint.
+                      Saved on this device after mint · on-chain domain stays{" "}
+                      {defaultAgentDomain()}
                     </p>
                   </div>
 

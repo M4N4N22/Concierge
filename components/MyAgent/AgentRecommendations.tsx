@@ -44,13 +44,13 @@ const GUIDE: GuideItem[] = [
     id: "what",
     icon: Sparkles,
     title: "What are recommendations?",
-    body: "Actionable tips for one specialist domain, generated from your vault categories and insight summaries via 0G Compute.",
+    body: "Actionable tips for one focus lens — finance, travel, or subscriptions — from matching vault files via 0G Compute. Not a separate agent type.",
   },
   {
     id: "domain",
     icon: BrainCircuit,
-    title: "Pick a domain",
-    body: "Finance, travel, or subscriptions. Choose from Learning, or switch domains here — each run uses matching vault context.",
+    title: "Pick a lens",
+    body: "Choose from Learning, or switch here — each run uses vault context that matches that focus area.",
   },
   {
     id: "compute",
@@ -62,13 +62,13 @@ const GUIDE: GuideItem[] = [
     id: "learning",
     icon: GraduationCap,
     title: "Back to Learning",
-    body: "Domain progress and sync live on Learning. Return there to refresh vault mapping before regenerating recommendations.",
+    body: "Focus coverage and sync live on Learning. Return there to refresh vault mapping before regenerating recommendations.",
   },
   {
     id: "mint",
     icon: Fingerprint,
     title: "Agentic ID",
-    body: "Recommendations use vault data. Mint an Agentic ID when you want on-chain ownership of the Concierge agent identity.",
+    body: "Recommendations use vault data. Mint one Concierge identity for on-chain ownership — lenses stay off the NFT type.",
   },
 ];
 
@@ -182,13 +182,13 @@ export default function AgentRecommendations() {
             Agentic ID · Recommendations
           </p>
           <h1 className="text-2xl font-semibold   sm:text-3xl">
-            {meta ? `${meta.title.replace(/ Agent$/, "")} tips` : "Recommendations"}
+            {meta ? meta.title.replace(/ focus$/, "") + " tips" : "Recommendations"}
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
             {meta
               ? data?.summary ||
                 "0G Compute tips grounded in matching vault evidence."
-              : "Pick a specialist domain to generate actionable recommendations from your vault."}
+              : "Pick a focus lens to generate tips from matching vault files."}
           </p>
         </div>
         <Button asChild className="rounded-full px-5" variant="outline">
@@ -214,7 +214,7 @@ export default function AgentRecommendations() {
                 <BrainCircuit className="h-4 w-4 text-muted-foreground" />
               </div>
               <p className="mt-5 text-2xl font-semibold  ">
-                {!domain ? "—" : meta?.title.replace(/ Agent$/, "")}
+                {!domain ? "—" : meta?.title.replace(/ focus$/, "")}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {domain
@@ -266,9 +266,9 @@ export default function AgentRecommendations() {
           {/* Domain picker */}
           <section className="bento overflow-hidden">
             <div className="px-5 py-4">
-              <h2 className="text-sm font-semibold  ">Domain</h2>
+              <h2 className="text-sm font-semibold  ">Focus lens</h2>
               <p className="text-xs text-muted-foreground">
-                Switch specialty — regenerates recommendations
+                Switch lens — regenerates recommendations from matching vault files
               </p>
             </div>
             <div className="flex flex-wrap gap-2 border-t border-border/50 px-5 py-4">
@@ -286,7 +286,7 @@ export default function AgentRecommendations() {
                         : "bg-muted/60 text-foreground hover:bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]"
                     )}
                   >
-                    {DOMAIN_META[d].title.replace(/ Agent$/, "")}
+                    {DOMAIN_META[d].title.replace(/ focus$/, "")}
                   </button>
                 );
               })}

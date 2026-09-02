@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       {
         source: "/dashboard/advisor/talk",
         destination: "/dashboard/advisor/chat",
-        permanent: true,
+        permanent: false,
       },
       {
         source: "/dashboard/advisor/trade",

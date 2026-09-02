@@ -1,7 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import AgentLearning from "@/components/MyAgent/AgentLearning";
-
-export default function LearningPage() {
-  return <AgentLearning />;
+/** Learning merged into Chat. */
+export default function LearningRedirectPage() {
+  redirect("/dashboard/advisor/chat");
 }

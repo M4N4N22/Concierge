@@ -39,31 +39,31 @@ const GUIDE: GuideItem[] = [
     id: "what",
     icon: GraduationCap,
     title: "What is Learning?",
-    body: "Maps vault evidence into domain specialists — finance, travel, subscriptions — so your Agentic ID can focus recommendations.",
+    body: "Query your Concierge through focus lenses — finance, travel, subscriptions — using matching vault evidence. Lenses are not separate agents.",
   },
   {
     id: "sync",
     icon: RefreshCw,
     title: "Sync vault",
-    body: "Pulls on-chain file categories and insight summaries from 0G Storage, then scores how much each domain has learned.",
+    body: "Pulls on-chain file categories and insight summaries from 0G Storage, then scores how much evidence matches each focus lens.",
   },
   {
     id: "progress",
     icon: BrainCircuit,
-    title: "Domain progress",
-    body: "Progress rises when vault files match that domain’s categories (spend, travel, subscriptions, etc.). Run Insights first for better labels.",
+    title: "Focus coverage",
+    body: "Progress rises when vault files match that lens (spend, travel, subscriptions, etc.). Run Insights first for better labels.",
   },
   {
     id: "recs",
     icon: Sparkles,
     title: "Recommendations",
-    body: "Open a domain to generate actionable tips with 0G Compute, grounded in the vault context for that specialty.",
+    body: "Open a lens to generate actionable tips with 0G Compute, grounded in vault context for that focus area.",
   },
   {
     id: "mint",
     icon: Fingerprint,
     title: "Agentic ID",
-    body: "Learning works from vault files alone. Mint an Agentic ID so ownership and identity travel with your Concierge agent.",
+    body: "Learning works from vault files alone. Mint one Concierge identity so ownership travels with your agent — not one ID per specialty.",
   },
 ];
 
@@ -139,11 +139,12 @@ export default function AgentLearning() {
             Agentic ID · Learning
           </p>
           <h1 className="text-2xl font-semibold   sm:text-3xl">
-            Domain learning
+            Focus lenses
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Sync vault evidence, score specialist domains, then open
-            recommendations powered by 0G Compute.
+            Sync vault evidence, score how it matches finance, travel, or
+            subscriptions, then open a lens for recommendations — one Concierge,
+            many query modes.
           </p>
         </div>
         {primaryCta ? (
@@ -170,7 +171,7 @@ export default function AgentLearning() {
                 {!isConnected ? "—" : filesLoading ? "…" : stats.total}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Available for domain matching
+                Available for lens matching
               </p>
             </div>
 
@@ -185,7 +186,7 @@ export default function AgentLearning() {
                 {!isConnected ? "—" : stats.matched}
               </p>
               <p className="mt-1 text-[11px] text-white/75">
-                Files mapped to a specialist
+                Files matching a focus lens
               </p>
             </div>
 
@@ -225,7 +226,7 @@ export default function AgentLearning() {
               <GraduationCap className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
               <p className="text-sm font-medium">Connect wallet to sync learning</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Domain progress reads vault files on your 0G chain
+                Focus coverage reads vault files on your 0G chain
               </p>
             </div>
           ) : (

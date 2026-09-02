@@ -388,7 +388,7 @@ export function HomeDashboard() {
                   <BrainCircuit className="h-8 w-8 text-muted-foreground/50" />
                   <p className="text-xs text-muted-foreground">
                     {showConnected
-                      ? "Create a ledger to run Insights, Chat, and Trading agents."
+                      ? "Create a ledger to run Insights and Chat."
                       : "Connect wallet to check ledger status."}
                   </p>
                   {showConnected && (
@@ -420,7 +420,8 @@ export function HomeDashboard() {
               <QuickLink href="/dashboard/vault/insights" label="Insights" />
               <QuickLink href="/dashboard/advisor/chat" label="Chat" />
               <QuickLink href="/dashboard/agent/mint" label="Agentic ID" />
-              <QuickLink href="/dashboard/trading/desk" label="Trading desk" />
+              <QuickLink href="/dashboard/ecosystem" label="Ecosystem" />
+              <QuickLink href="/dashboard/trading/desk" label="Trading desk (extra)" />
             </nav>
           </div>
         </aside>

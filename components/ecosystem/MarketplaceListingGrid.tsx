@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { MyAgenticId } from "@/hooks/useAgenticId";
 import type { SaleListingView } from "@/hooks/useMarketplace";
+import { getAgentBio, getAgentDisplayName } from "@/lib/agentDisplayName";
 import { resolveAgentPresentation } from "@/lib/agentProfile";
 import { truncateHash } from "@/lib/explorer";
 import {
@@ -14,6 +15,7 @@ import {
   netAfterMarketplaceFee,
 } from "@/lib/marketplaceConstants";
 import { cn } from "@/lib/utils";
+import { useChainId } from "wagmi";
 
 export function SaleListingTile({
   listing,
@@ -38,6 +40,8 @@ export function SaleListingTile({
     aiSignature: listing.aiSignature,
     files: listing.vaultFiles,
     vaultFileCount: listing.vaultFileCount,
+    displayName: listing.displayName,
+    bio: listing.bio,
   });
 
   return (
@@ -53,10 +57,13 @@ export function SaleListingTile({
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--brand)_12%,var(--surface))] text-[var(--brand)]">
             <Fingerprint className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold">{presentation.title}</p>
             <p className="text-xs text-muted-foreground">
-              {presentation.specialtyLabel} · Agentic {presentation.tokenLabel}
+              {presentation.focusTags.length
+                ? `${presentation.focusTags.slice(0, 2).join(" · ")} · `
+                : ""}
+              Agentic {presentation.tokenLabel}
               {listing.vaultFileCount > 0
                 ? ` · ${listing.vaultFileCount} vault file${listing.vaultFileCount === 1 ? "" : "s"}`
                 : ""}
@@ -71,6 +78,11 @@ export function SaleListingTile({
       </div>
 
       <div className="px-4 pb-3">
+        {listing.bio?.trim() ? (
+          <p className="mb-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {listing.bio.trim()}
+          </p>
+        ) : null}
         <p className="text-2xl font-semibold tabular-nums tracking-tight">
           {listing.priceOg}
           <span className="ml-1.5 text-sm font-medium text-muted-foreground">
@@ -133,11 +145,14 @@ export function MarketplaceSellCard({
   const canList =
     isConnected && hasAgent && agent?.access === "owner" && !loading && !saleActive;
 
+  const chainId = useChainId();
   const presentation = agent
     ? resolveAgentPresentation({
         tokenId: agent.tokenId,
         domain: agent.domain,
         aiSignature: agent.aiSignature,
+        displayName: getAgentDisplayName(chainId, agent.tokenId),
+        bio: getAgentBio(chainId, agent.tokenId),
       })
     : null;
 
@@ -149,7 +164,8 @@ export function MarketplaceSellCard({
         </p>
         <h2 className="mt-1 text-lg font-semibold">List your Agentic ID</h2>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          {MARKETPLACE_FEE_LABEL} platform fee · you keep the rest
+          {MARKETPLACE_FEE_LABEL} platform fee · refresh vault seal on Agentic ID
+          first if you want on-chain attestation current
         </p>
       </div>
 
@@ -181,7 +197,7 @@ export function MarketplaceSellCard({
                 {presentation?.title ?? `#${agent.tokenId.toString()}`}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {presentation?.specialtyLabel ?? "Agent"} · Agentic{" "}
+                Concierge · Agentic{" "}
                 {presentation?.tokenLabel ?? `#${agent.tokenId.toString()}`}
               </p>
             </div>

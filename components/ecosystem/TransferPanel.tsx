@@ -80,8 +80,7 @@ export function TransferAgentCard({
                 {presentation?.title ?? `#${agent.tokenId.toString()}`}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {presentation?.specialtyLabel ?? "Agent"} · Vault{" "}
-                {truncateHash(agent.vault, 10, 8)}
+                Concierge · Vault {truncateHash(agent.vault, 10, 8)}
               </p>
             </div>
 

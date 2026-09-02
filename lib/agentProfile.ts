@@ -1,76 +1,25 @@
-import {
-  AGENT_DOMAINS,
-  DOMAIN_META,
-  matchFileToDomain,
-  type AgentDomain,
-} from "@/lib/domains";
+import { matchFileToDomain, type AgentDomain } from "@/lib/domains";
+import { vaultCategoryLabel } from "@/lib/copy/vaultTerms";
 import type { VaultFile } from "@/hooks/useUserFiles";
-
-export type AgentSpecialty = AgentDomain | "general";
 
 export type ProfileBinding = "vault" | "board" | "trade" | "unknown";
 
 export type AgentPresentation = {
   title: string;
   subtitle: string;
-  specialty: AgentSpecialty;
-  specialtyLabel: string;
+  /** Vault focus lenses present in evidence (not agent type). */
+  focusTags: string[];
   tokenLabel: string;
   binding: ProfileBinding;
   bindingLabel: string;
   fileCount: number;
   indexedFileCount: number;
-  isLegacyDomain: boolean;
 };
 
-const SPECIALTY_LABELS: Record<AgentSpecialty, string> = {
-  finance: "Finance",
-  travel: "Travel",
-  subscription: "Subscriptions",
-  general: "General",
-};
+const DEFAULT_DOMAIN = "concierge.agent";
 
-const LEGACY_DOMAIN = "concierge.agent";
-
-export function parseSpecialtyFromDomain(domain: string): AgentSpecialty | null {
-  const normalized = domain.trim().toLowerCase();
-  for (const specialty of AGENT_DOMAINS) {
-    if (normalized === `${specialty}.concierge`) return specialty;
-  }
-  if (normalized === "general.concierge") return "general";
-  return null;
-}
-
-export function specialtyToDomain(specialty: AgentSpecialty): string {
-  return `${specialty}.concierge`;
-}
-
-export function inferSpecialtyFromFiles(
-  files: Pick<VaultFile, "category">[]
-): AgentSpecialty {
-  if (!files.length) return "general";
-
-  const counts: Record<AgentDomain, number> = {
-    finance: 0,
-    travel: 0,
-    subscription: 0,
-  };
-
-  for (const file of files) {
-    const match = matchFileToDomain(file.category);
-    if (match) counts[match] += 1;
-  }
-
-  let best: AgentDomain | null = null;
-  let bestCount = 0;
-  for (const domain of AGENT_DOMAINS) {
-    if (counts[domain] > bestCount) {
-      best = domain;
-      bestCount = counts[domain];
-    }
-  }
-
-  return best ?? "general";
+export function defaultAgentDomain(): string {
+  return DEFAULT_DOMAIN;
 }
 
 export function parseProfileBinding(aiSignature: string): ProfileBinding {
@@ -88,51 +37,95 @@ const BINDING_LABELS: Record<ProfileBinding, string> = {
   unknown: "Custom profile",
 };
 
+const FOCUS_LABELS: Record<AgentDomain, string> = {
+  finance: "Finance",
+  travel: "Travel",
+  subscription: "Subscriptions",
+};
+
+/** Which chat focus chips appear in this vault — not the agent’s type. */
+export function vaultFocusTags(
+  files: Pick<VaultFile, "category">[]
+): string[] {
+  const seen = new Set<AgentDomain>();
+  for (const file of files) {
+    const match = matchFileToDomain(file.category);
+    if (match) seen.add(match);
+  }
+  return (["finance", "travel", "subscription"] as AgentDomain[])
+    .filter((d) => seen.has(d))
+    .map((d) => FOCUS_LABELS[d]);
+}
+
+function topCategoryLabels(
+  files: Pick<VaultFile, "category">[],
+  limit = 3
+): string[] {
+  const counts = new Map<string, number>();
+  for (const file of files) {
+    const key = file.category?.trim();
+    if (!key || key === "unassigned") continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([cat]) => vaultCategoryLabel(cat));
+}
+
+export function buildVaultSubtitle(args: {
+  fileCount: number;
+  files: Pick<VaultFile, "category">[];
+  bio?: string | null;
+}): string {
+  const bio = args.bio?.trim();
+  if (bio) return bio;
+
+  if (!args.fileCount) {
+    return "Personal AI agent on 0G — add vault files so Chat and Learning have something to work with.";
+  }
+
+  const labels = topCategoryLabels(args.files);
+  const focus = vaultFocusTags(args.files);
+  const parts = [
+    `Grounded in ${args.fileCount} vault file${args.fileCount === 1 ? "" : "s"}`,
+  ];
+  if (labels.length) {
+    parts.push(labels.join(", "));
+  } else if (focus.length) {
+    parts.push(`focus: ${focus.join(", ").toLowerCase()}`);
+  }
+  return `${parts.join(" · ")}.`;
+}
+
 export function resolveAgentPresentation(args: {
   tokenId: bigint;
-  domain: string;
+  domain?: string;
   aiSignature?: string;
   files?: Pick<VaultFile, "category" | "insightsCID">[];
   vaultFileCount?: number;
   displayName?: string | null;
+  bio?: string | null;
 }): AgentPresentation {
   const files = args.files ?? [];
   const fileCount = args.vaultFileCount ?? files.length;
-  const parsed = parseSpecialtyFromDomain(args.domain);
-  const isLegacyDomain =
-    !args.domain.trim() || args.domain.trim().toLowerCase() === LEGACY_DOMAIN;
-
-  const specialty =
-    parsed ?? (files.length ? inferSpecialtyFromFiles(files) : "general");
-
-  const domainMeta =
-    specialty !== "general" ? DOMAIN_META[specialty as AgentDomain] : null;
-
-  const defaultTitle =
-    domainMeta?.title.replace(/ Agent$/, " Concierge") ?? "Concierge Agent";
-
-  const title = args.displayName?.trim() || defaultTitle;
-  const subtitle =
-    domainMeta?.description ??
-    (fileCount
-      ? `Grounded in ${fileCount} vault file${fileCount === 1 ? "" : "s"} — Chat, Learning, and Desk use this evidence.`
-      : "Personal AI agent on 0G — add vault files to sharpen recommendations.");
-
   const binding = parseProfileBinding(args.aiSignature ?? "");
   const indexedFileCount = files.length
     ? files.filter((f) => f.insightsCID?.trim()).length
     : 0;
 
   return {
-    title,
-    subtitle,
-    specialty,
-    specialtyLabel: SPECIALTY_LABELS[specialty],
+    title: args.displayName?.trim() || "Concierge Agent",
+    subtitle: buildVaultSubtitle({
+      fileCount,
+      files,
+      bio: args.bio,
+    }),
+    focusTags: vaultFocusTags(files),
     tokenLabel: `#${args.tokenId.toString()}`,
     binding,
     bindingLabel: BINDING_LABELS[binding],
     fileCount,
     indexedFileCount,
-    isLegacyDomain,
   };
 }

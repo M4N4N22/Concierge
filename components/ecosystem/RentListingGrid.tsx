@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { MyAgenticId } from "@/hooks/useAgenticId";
 import type { RentListingView } from "@/hooks/useMarketplace";
+import { getAgentBio, getAgentDisplayName } from "@/lib/agentDisplayName";
 import { resolveAgentPresentation } from "@/lib/agentProfile";
 import { truncateHash } from "@/lib/explorer";
 import {
@@ -14,6 +15,7 @@ import {
   netAfterMarketplaceFee,
 } from "@/lib/marketplaceConstants";
 import { cn } from "@/lib/utils";
+import { useChainId } from "wagmi";
 
 export const RENT_DURATIONS = [
   { label: "1 day", sec: 86_400 },
@@ -52,6 +54,8 @@ export function RentListingTile({
     aiSignature: listing.aiSignature,
     files: listing.vaultFiles,
     vaultFileCount: listing.vaultFileCount,
+    displayName: listing.displayName,
+    bio: listing.bio,
   });
 
   return (
@@ -67,10 +71,13 @@ export function RentListingTile({
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--brand)_12%,var(--surface))] text-[var(--brand)]">
             <KeyRound className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold">{presentation.title}</p>
             <p className="text-xs text-muted-foreground">
-              {presentation.specialtyLabel} · Agentic {presentation.tokenLabel}
+              {presentation.focusTags.length
+                ? `${presentation.focusTags.slice(0, 2).join(" · ")} · `
+                : ""}
+              Agentic {presentation.tokenLabel}
               {listing.vaultFileCount > 0
                 ? ` · ${listing.vaultFileCount} vault file${listing.vaultFileCount === 1 ? "" : "s"}`
                 : ""}
@@ -85,6 +92,11 @@ export function RentListingTile({
       </div>
 
       <div className="px-4 pb-3">
+        {listing.bio?.trim() ? (
+          <p className="mb-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {listing.bio.trim()}
+          </p>
+        ) : null}
         <p className="text-2xl font-semibold tabular-nums tracking-tight">
           {listing.priceOg}
           <span className="ml-1.5 text-sm font-medium text-muted-foreground">
@@ -94,7 +106,7 @@ export function RentListingTile({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
             <Clock className="h-3 w-3" />
-            {durationLabel} lease
+            {durationLabel} Concierge access
           </span>
           <span className="text-[11px] text-muted-foreground">
             Owner {truncateHash(listing.owner)}
@@ -159,11 +171,14 @@ export function RentOfferCard({
   const canList =
     isConnected && hasAgent && agent?.access === "owner" && !loading && !rentActive;
 
+  const chainId = useChainId();
   const presentation = agent
     ? resolveAgentPresentation({
         tokenId: agent.tokenId,
         domain: agent.domain,
         aiSignature: agent.aiSignature,
+        displayName: getAgentDisplayName(chainId, agent.tokenId),
+        bio: getAgentBio(chainId, agent.tokenId),
       })
     : null;
 
@@ -175,14 +190,15 @@ export function RentOfferCard({
         </p>
         <h2 className="mt-1 text-lg font-semibold">List for rent</h2>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Timed access — you keep the NFT · {MARKETPLACE_FEE_LABEL} fee
+          Renters get timed Concierge access — not your private Drive files. You
+          keep the NFT · {MARKETPLACE_FEE_LABEL} fee
         </p>
       </div>
 
       <div className="space-y-4 p-6">
         {!isConnected ? (
           <p className="text-sm text-muted-foreground">
-            Connect your wallet to offer a lease.
+            Connect your wallet to offer Concierge access.
           </p>
         ) : !hasAgent || !agent ? (
           <>
@@ -201,13 +217,13 @@ export function RentOfferCard({
           <>
             <div className="rounded-2xl bg-muted/45 px-4 py-3.5">
               <p className="text-xs font-medium text-muted-foreground">
-                Your agent
+                Your Concierge
               </p>
               <p className="mt-1 text-base font-semibold">
                 {presentation?.title ?? `#${agent.tokenId.toString()}`}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {presentation?.specialtyLabel ?? "Agent"} · Agentic{" "}
+                Personality access · Agentic{" "}
                 {presentation?.tokenLabel ?? `#${agent.tokenId.toString()}`}
               </p>
             </div>

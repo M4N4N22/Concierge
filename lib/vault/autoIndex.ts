@@ -26,18 +26,16 @@ export type FileKnowledgeStatus =
   | "paused"
   | "failed";
 
-export function loadAutoIndexPref(wallet: string | undefined): boolean {
-  if (typeof window === "undefined" || !wallet) return false;
+export function loadAutoIndexPref(wallet: string | undefined): boolean | null {
+  if (typeof window === "undefined" || !wallet) return null;
   try {
     const raw = localStorage.getItem(AUTO_INDEX_PREF_KEY);
-    if (!raw) return false;
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as AutoIndexPreference;
-    return (
-      parsed.enabled === true &&
-      parsed.wallet.toLowerCase() === wallet.toLowerCase()
-    );
+    if (parsed.wallet.toLowerCase() !== wallet.toLowerCase()) return null;
+    return parsed.enabled === true;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -130,7 +128,7 @@ export const AUTO_READ_FAQ = [
   {
     id: "what",
     title: "What is Auto-read?",
-    body: "After each upload, Concierge sends the file through 0G Compute to assign a category and summary so Chat can answer questions about it.",
+    body: "After each upload, Concierge sends the file through 0G Compute to assign a category and summary so Chat can answer questions about it. On by default once compute is funded.",
   },
   {
     id: "cost",
@@ -150,6 +148,6 @@ export const AUTO_READ_FAQ = [
   {
     id: "manual",
     title: "Manual Insights",
-    body: "The Insights page still lets you batch re-analyze or fix labels. Auto-read is the hands-free default.",
+    body: "The Insights page still lets you batch re-analyze or fix labels. Auto-read is the hands-free default — like Drive sync for knowledge.",
   },
 ] as const;

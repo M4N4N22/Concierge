@@ -105,8 +105,9 @@ export default function RentWorkspace() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold sm:text-2xl">Rent</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Timed access without transferring ownership
+          <p className="mt-0.5 max-w-xl text-sm text-muted-foreground">
+            Timed Concierge access shaped by the owner&apos;s vault — not a dump
+            of their private files. Ownership stays with the lessor.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -190,8 +191,8 @@ export default function RentWorkspace() {
                 title={tab === "mine" ? "No offers yet" : "No rentals yet"}
                 detail={
                   tab === "mine"
-                    ? "Offer a lease from the panel on the right."
-                    : "Be the first lessor — or check back soon."
+                    ? "Offer timed Concierge access from the panel on the right."
+                    : "Be the first to rent out Concierge access — or check back soon."
                 }
                 action={
                   !hasAgent
@@ -228,7 +229,7 @@ export default function RentWorkspace() {
                         try {
                           await rent(r.tokenId, r.priceWei);
                           toast.success(
-                            "Rental started — access granted until expiry"
+                            "Rental started — Concierge access until expiry"
                           );
                           await refreshAll();
                         } catch (err: unknown) {

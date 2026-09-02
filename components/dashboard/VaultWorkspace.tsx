@@ -230,7 +230,7 @@ function VaultBody() {
 
           href: "/dashboard/advisor/chat",
 
-          label: "Continue to Chat",
+          label: "Continue to chat",
 
         }
 

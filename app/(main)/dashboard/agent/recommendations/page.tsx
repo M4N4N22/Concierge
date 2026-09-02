@@ -1,18 +1,6 @@
-import { Suspense } from "react";
-import AgentRecommendations from "@/components/MyAgent/AgentRecommendations";
-import { Loader2 } from "lucide-react";
+import { redirect } from "next/navigation";
 
-export default function AgentRecommendationsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center gap-2 py-24 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Loading recommendations…</span>
-        </div>
-      }
-    >
-      <AgentRecommendations />
-    </Suspense>
-  );
+/** Recommendations merged into Chat tips. */
+export default function RecommendationsRedirectPage() {
+  redirect("/dashboard/advisor/chat");
 }

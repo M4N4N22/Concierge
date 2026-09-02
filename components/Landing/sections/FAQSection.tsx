@@ -9,28 +9,32 @@ import { Button } from "@/components/ui/button";
 
 const FAQS = [
   {
+    q: "What does Concierge actually do?",
+    a: "It’s your vault-backed AI identity on 0G: store files on Storage, fund Compute so Concierge can read them, mint one Agentic ID, then chat — or list, rent, or transfer that ID.",
+  },
+  {
     q: "How is this different from ChatGPT?",
-    a: "ChatGPT doesn’t know your wallet or files. Concierge answers from what you save in your vault on 0G Storage, using 0G Compute you fund yourself.",
+    a: "ChatGPT doesn’t know your wallet or files. Concierge answers from agent knowledge in your vault — structured packs or Insights summaries — using 0G Compute you fund yourself.",
+  },
+  {
+    q: "I uploaded files — why can’t I chat?",
+    a: "Uploads are stored first (like Drive). Chat needs agent knowledge: Quick add structured data, or run Insights after funding compute. The Chat page checklist shows what’s missing.",
   },
   {
     q: "What is an Agentic ID?",
-    a: "Your on-chain AI agent identity (formerly called an INFT). Mint one per wallet, link it to your vault, then list, rent, or transfer it.",
+    a: "One on-chain Concierge identity per wallet, bound to your vault. It’s ownership and rentable access — not a separate “smarter” model by itself.",
   },
   {
-    q: "Where is my data stored?",
-    a: "In your vault on 0G Storage — wallet history, spreadsheets, notes. Concierge doesn’t keep a copy on our servers.",
+    q: "Are finance / travel / subscription separate agents?",
+    a: "No. Those are chat focus chips — ways to bias answers over matching vault files on the same Concierge personality.",
   },
   {
     q: "Does trading happen automatically?",
-    a: "No. Agents suggest Buy, Sell, or Hold. You choose the size, review the OG/USDC quote, and confirm in your wallet.",
+    a: "No. The trading desk is optional. Agents can suggest Buy, Sell, or Hold; you confirm. Core product is vault → knowledge → chat → Agentic ID.",
   },
   {
     q: "What does it cost?",
     a: "You pay 0G network fees: gas, storage, and Compute. There’s no Concierge subscription.",
-  },
-  {
-    q: "Can I take my agent elsewhere?",
-    a: "Yes. Your vault files and Agentic ID live on-chain. Export anytime — disconnecting the app doesn’t delete them.",
   },
 ];
 
@@ -40,7 +44,7 @@ export function FAQSection() {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div>
-            <p className="text-[11px] font-semibold    text-[var(--brand)]">
+            <p className="text-[11px] font-semibold   text-[var(--brand)]">
               FAQ
             </p>
             <h2 className="mt-3 text-3xl font-semibold   sm:text-5xl">

@@ -2,30 +2,30 @@ import Link from "next/link";
 
 const SURFACES = [
   {
-    title: "Chat",
-    line: "Ask the vault. Skip the generic lecture.",
-    body: "Spend patterns, documents, wallet activity — grounded in your files. Trading lives next door.",
-    href: "/dashboard/advisor/chat",
+    title: "Vault & Insights",
+    line: "Store first. Make it knowledge.",
+    body: "Uploads on 0G Storage. Insights (or Quick add) turn them into agent knowledge Concierge can use.",
+    href: "/dashboard/vault/my-files",
     tone: "surface" as const,
   },
   {
-    title: "Desk",
-    line: "Agents suggest. You confirm.",
-    body: "Buy / Sell / Hold from balances, then quote OG/USDC. Strategies sit one click away.",
-    href: "/dashboard/trading/desk",
+    title: "Chat",
+    line: "Ask your Concierge.",
+    body: "Grounded in agent knowledge — not raw dumps. Needs funded compute plus vault files Concierge can read.",
+    href: "/dashboard/advisor/chat",
     tone: "brand" as const,
   },
   {
     title: "Agentic ID",
-    line: "Mint once. Carry the intelligence.",
-    body: "Vault-bound identity on 0G Chain. Learn domains, then list, rent, or transfer.",
+    line: "Mint once. Own the identity.",
+    body: "One Concierge per wallet, vault-bound. chat casually or ask your data — focus chips are query modes, not separate agents.",
     href: "/dashboard/agent/mint",
     tone: "ink" as const,
   },
   {
     title: "Ecosystem",
-    line: "Move agents like assets.",
-    body: "Marketplace sales, timed rentals, P2P transfer — ownership and metadata travel together.",
+    line: "List, rent, or transfer.",
+    body: "Marketplace, Concierge rentals, P2P send — ownership and vault binding travel with the ID.",
     href: "/dashboard/ecosystem",
     tone: "surface" as const,
   },
@@ -36,11 +36,11 @@ export function ProductSection() {
     <section id="product" className="scroll-mt-24 px-6 py-20 sm:px-8 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-xl">
-          <p className="text-[11px] font-semibold    text-[var(--brand)]">
-            Desk
+          <p className="text-[11px] font-semibold   text-[var(--brand)]">
+            Product
           </p>
           <h2 className="mt-3 text-3xl font-semibold   sm:text-5xl">
-            Where the stack shows up
+            Where Concierge shows up
           </h2>
         </div>
 
@@ -80,18 +80,16 @@ export function ProductSection() {
                   className={`relative text-[11px] font-semibold     ${
                     item.tone === "surface"
                       ? "text-[var(--brand)]"
-                      : "text-[var(--brand)]"
+                      : "text-white/80"
                   }`}
                 >
                   {item.title}
                 </p>
-                <div className="relative mt-10">
-                  <h3
-                    className={`text-2xl font-semibold   sm:text-3xl ${title}`}
-                  >
+                <div className="relative mt-auto pt-8">
+                  <h3 className={`text-xl font-semibold sm:text-2xl ${title}`}>
                     {item.line}
                   </h3>
-                  <p className={`mt-3 text-sm leading-relaxed ${muted}`}>
+                  <p className={`mt-2 text-sm leading-relaxed ${muted}`}>
                     {item.body}
                   </p>
                 </div>
