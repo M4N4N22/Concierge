@@ -24,7 +24,7 @@ function clampConfidence(n: number): number {
 }
 
 function firstLine(text: string, max = 80): string {
-  const line = text.split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? "Evidence pack";
+  const line = text.split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? "Parsed file";
   return line.length > max ? `${line.slice(0, max - 1)}…` : line;
 }
 

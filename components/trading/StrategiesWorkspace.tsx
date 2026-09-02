@@ -73,12 +73,12 @@ export function StrategiesWorkspace() {
   return (
     <div className="flex flex-col gap-5 pb-6">
       <header className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
+        <p className="text-[11px] font-semibold    text-[var(--brand)]">
           Trading & Finance
         </p>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            <h1 className="text-2xl font-semibold   sm:text-3xl">
               Strategies
             </h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
@@ -113,7 +113,7 @@ export function StrategiesWorkspace() {
                 </span>
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    "rounded-full px-2 py-0.5 text-[10px] font-semibold    ",
                     s.status === "live"
                       ? "bg-[color-mix(in_srgb,var(--success)_16%,transparent)] text-[var(--success)]"
                       : "bg-muted text-muted-foreground"
@@ -122,10 +122,10 @@ export function StrategiesWorkspace() {
                   {s.status === "live" ? "Live" : "Soon"}
                 </span>
               </div>
-              <p className="mt-4 text-[10px] uppercase tracking-wide text-muted-foreground">
+              <p className="mt-4 text-[10px]     text-muted-foreground">
                 {s.kind}
               </p>
-              <h2 className="mt-1 text-base font-semibold tracking-tight">
+              <h2 className="mt-1 text-base font-semibold  ">
                 {s.title}
               </h2>
               <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">

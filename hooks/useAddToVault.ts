@@ -52,5 +52,35 @@ export function useAddToVault() {
     return txHash;
   };
 
-  return { addFile };
+  const updateInsights = async ({
+    rootHash,
+    category,
+    insightsCID,
+  }: {
+    rootHash: string;
+    category: string;
+    insightsCID: string;
+  }) => {
+    if (!isConnected || !chainId) throw new Error("Wallet not connected");
+
+    const vaultAddress = VAULT_ADDRESSES[chainId] as `0x${string}` | undefined;
+    if (!vaultAddress) {
+      throw new Error(`Vault not configured for chain ${chainId}`);
+    }
+
+    const { VAULT_ABI } = await import("@/lib/vaultAbi");
+
+    const txHash = await writeContractAsync({
+      abi: VAULT_ABI,
+      address: vaultAddress,
+      functionName: "updateInsights",
+      args: [rootHash, category, insightsCID],
+      chainId,
+    });
+
+    await publicClient!.waitForTransactionReceipt({ hash: txHash });
+    return txHash;
+  };
+
+  return { addFile, updateInsights };
 }

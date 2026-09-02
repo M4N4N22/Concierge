@@ -25,7 +25,7 @@ const GUIDE: GuideItem[] = [
     id: "what",
     icon: Sparkles,
     title: "What are Insights?",
-    body: "A cleanup pass on vault files. 0G Compute reads each file, assigns a category, and writes a short summary you can scan before Talk.",
+    body: "A cleanup pass on vault files. 0G Compute reads each file, assigns a category, and writes a short summary you can scan before Chat.",
   },
   {
     id: "ledger",
@@ -48,14 +48,14 @@ const GUIDE: GuideItem[] = [
   {
     id: "desk",
     icon: MessageSquare,
-    title: "Then Talk / Trade",
-    body: "Labeled packs are easier to chat about or brief for a trade. Insights are optional — you can still open Advisor on raw evidence.",
+    title: "Then Chat / Trade",
+    body: "Labeled files are easier to browse. Insights turns stored-only uploads into agent knowledge (category + summary on-chain).",
   },
   {
     id: "auto",
     icon: FileStack,
     title: "Auto-insights",
-    body: "Soon: run Insights automatically when new evidence lands, so the registry stays labeled without a manual batch each time.",
+    body: "Soon: run Insights automatically when new files land, so the registry stays labeled without a manual batch each time.",
     badge: "Soon",
     accent: true,
   },
@@ -89,29 +89,25 @@ function InsightsBody() {
   const primaryCta =
     stats.labeled > 0 || readiness.canCompute
       ? {
-          href: "/dashboard/advisor/talk",
-          label: "Continue to Talk",
-        }
+        href: "/dashboard/advisor/chat",
+        label: "Continue to Chat",
+      }
       : stats.total === 0
         ? {
-            href: "/dashboard/vault/my-files",
-            label: "Add evidence first",
-          }
+          href: "/dashboard/vault/my-files",
+          label: "Add vault files first",
+        }
         : null;
 
   return (
     <div className="flex flex-col gap-4 pb-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
-            Insights
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-semibold   sm:text-3xl">
             Organize your vault
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Fund 0G Compute, then label and summarize vault files so Talk and
-            Trade start from clean packs — not raw dumps.
+            Turn stored files into agent knowledge. Fund your compute ledger, run Insights to categorize and summarize, then Chat and Trade work from what your agent actually understands.
           </p>
         </div>
         {primaryCta ? (
@@ -171,7 +167,7 @@ function InsightsBody() {
                 </span>
                 <Cpu className="h-4 w-4 text-white/70" />
               </div>
-              <p className="relative mt-5 text-2xl font-semibold tracking-tight text-white">
+              <p className="relative mt-5 text-2xl font-semibold   text-white">
                 {!isConnected
                   ? "—"
                   : readiness.canCompute

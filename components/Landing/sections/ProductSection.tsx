@@ -2,10 +2,10 @@ import Link from "next/link";
 
 const SURFACES = [
   {
-    title: "Talk",
+    title: "Chat",
     line: "Ask the vault. Skip the generic lecture.",
     body: "Spend patterns, documents, wallet activity — grounded in your files. Trading lives next door.",
-    href: "/dashboard/advisor/talk",
+    href: "/dashboard/advisor/chat",
     tone: "surface" as const,
   },
   {
@@ -36,10 +36,10 @@ export function ProductSection() {
     <section id="product" className="scroll-mt-24 px-6 py-20 sm:px-8 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
+          <p className="text-[11px] font-semibold    text-[var(--brand)]">
             Desk
           </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-semibold   sm:text-5xl">
             Where the stack shows up
           </h2>
         </div>
@@ -77,7 +77,7 @@ export function ProductSection() {
                   />
                 ) : null}
                 <p
-                  className={`relative text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                  className={`relative text-[11px] font-semibold     ${
                     item.tone === "surface"
                       ? "text-[var(--brand)]"
                       : "text-[var(--brand)]"
@@ -87,7 +87,7 @@ export function ProductSection() {
                 </p>
                 <div className="relative mt-10">
                   <h3
-                    className={`text-2xl font-semibold tracking-tight sm:text-3xl ${title}`}
+                    className={`text-2xl font-semibold   sm:text-3xl ${title}`}
                   >
                     {item.line}
                   </h3>

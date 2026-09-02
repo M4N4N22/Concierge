@@ -17,7 +17,7 @@ export function Header() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 rounded-full bg-[var(--ink)] p-5 text-white shadow-[0_12px_40px_-18px_rgba(0,0,0,0.55)] sm:px-4 dark:bg-[#0a0a0a] dark:ring-1 dark:ring-white/10">
         <Link
           href="/"
-          className="shrink-0 px-2 text-lg font-semibold tracking-tight sm:text-xl"
+          className="shrink-0 px-2 text-lg font-semibold   sm:text-xl"
         >
           Concierge
         </Link>

@@ -225,12 +225,41 @@ export function useAgenticId() {
     [agent?.access, refetch, updateMetadata, updateProfile]
   );
 
+  /** Point Agentic ID at latest trade decision memory on 0G Storage (owners only). */
+  const bindTradeMemory = useCallback(
+    async (args: {
+      tokenId: bigint;
+      memoryRootHash: string;
+      guardSealHash?: `0x${string}`;
+    }) => {
+      if (agent?.access === "rental") {
+        throw new Error("Renters cannot bind trade memory — ownership required");
+      }
+      const embeddingURI = `0g://trade/${args.memoryRootHash}`;
+      const aiSignature = args.guardSealHash
+        ? `trade:${args.guardSealHash}`
+        : `trade:${args.memoryRootHash.slice(0, 18)}`;
+      const tx = await updateProfile(args.tokenId, embeddingURI, aiSignature);
+      if (args.guardSealHash) {
+        try {
+          await updateMetadata(args.tokenId, args.guardSealHash);
+        } catch {
+          /* profile bind is enough */
+        }
+      }
+      await refetch();
+      return tx;
+    },
+    [agent?.access, refetch, updateMetadata, updateProfile]
+  );
+
   return {
     agent,
     loading,
     error,
     refetch,
     bindBoardSession,
+    bindTradeMemory,
     hasAgent: !!agent,
   };
 }

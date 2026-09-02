@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { JOURNEY_STEPS, isPathActive, type JourneyStep } from "@/lib/journey";
 import type { LucideIcon } from "lucide-react";
 import { Home, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { SidebarFeedback } from "@/components/SidebarFeedback";
 
 const STORAGE_KEY = "concierge.sidebar.expanded";
 
@@ -54,17 +55,14 @@ export function Sidebar() {
         <Link
           href="/"
           className={cn(
-            "flex items-center gap-2.5 overflow-hidden ",
+            "flex items-center overflow-hidden ",
             !expanded && "justify-center"
           )}
           title="Concierge"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)] text-[11px] font-semibold text-white">
-            C
-          </span>
           <span
             className={cn(
-              "whitespace-nowrap text-sm font-semibold tracking-tight transition-opacity duration-200",
+              "whitespace-nowrap text-2xl  transition-opacity duration-200 ml-3",
               expanded ? "opacity-100" : "w-0 opacity-0"
             )}
           >
@@ -78,7 +76,7 @@ export function Sidebar() {
             className="rounded-lg p-1.5 text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-accent)] hover:text-white"
             aria-label="Collapse sidebar"
           >
-            <PanelLeftClose className="h-4 w-4" />
+            <PanelLeftClose className="h-5 w-5" />
           </button>
         ) : null}
       </div>
@@ -90,7 +88,7 @@ export function Sidebar() {
           className="mx-auto mb-2 rounded-lg p-2 text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-accent)] hover:text-white"
           aria-label="Expand sidebar"
         >
-          <PanelLeftOpen className="h-4 w-4" />
+          <PanelLeftOpen className="h-5 w-5" />
         </button>
       ) : null}
 
@@ -105,7 +103,7 @@ export function Sidebar() {
         />
 
         {expanded ? (
-          <p className="mb-1 mt-4 px-2.5 text-[10px] font-medium uppercase tracking-wider text-[var(--sidebar-muted)]">
+          <p className="mb-1 mt-4 px-2.5 text-[10px] font-medium     text-[var(--sidebar-muted)]">
             Workspace
           </p>
         ) : (
@@ -121,6 +119,8 @@ export function Sidebar() {
           />
         ))}
       </nav>
+
+      <SidebarFeedback expanded={expanded} />
     </aside>
   );
 }
@@ -230,19 +230,19 @@ function NavRow({
 
   const body = (
     <>
-      <Icon className="h-4 w-4 shrink-0"  />
+      <Icon className="h-5 w-5 shrink-0"  />
       {expanded ? (
         <span className="min-w-0 flex-1 overflow-hidden">
           <span className="flex items-center gap-2">
             <span className="truncate text-sm font-medium">{title}</span>
             {soon && (
-              <span className="text-[9px] uppercase tracking-wide text-[var(--sidebar-muted)]">
+              <span className="text-[9px]     text-[var(--sidebar-muted)]">
                 Soon
               </span>
             )}
           </span>
           {explainer ? (
-            <span className="mt-0.5 block truncate text-[10px] leading-snug text-[var(--sidebar-muted)] hidden">
+            <span className="mt-0.5  truncate text-[10px] leading-snug text-[var(--sidebar-muted)] hidden">
               {explainer}
             </span>
           ) : null}

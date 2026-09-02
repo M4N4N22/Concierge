@@ -28,7 +28,7 @@ export function tradeExecutionEvidence(args: {
     id: createEvidenceId("trade"),
     type: "trade",
     source: "wallet",
-    title: `Trade ${proposal.side.toUpperCase()} ${proposal.pair}`,
+    title: `Trade ${proposal.side.to ()} ${proposal.pair}`,
     summary: `${status} (${mode}): ${quote.amountIn} ${quote.tokenInSymbol} → ~${quote.amountOut} ${quote.tokenOutSymbol}`,
     facts: [
       { key: "proposal_id", value: proposal.id },

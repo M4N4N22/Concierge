@@ -57,12 +57,12 @@ export function ComputeSetupDialog({
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border/50 px-5 py-4">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand)]">
+            <p className="text-[11px] font-semibold     text-[var(--brand)]">
               0G Compute
             </p>
             <h2
               id="compute-setup-title"
-              className="mt-1 text-lg font-semibold tracking-tight"
+              className="mt-1 text-lg font-semibold  "
             >
               {title || "Set up compute for agents"}
             </h2>

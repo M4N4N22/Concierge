@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     if (!auth.question.trim() && evidence.length === 0) {
       return NextResponse.json(
-        { error: "Provide a question and/or evidence packs" },
+        { error: "Provide a question and/or agent knowledge files" },
         { status: 400 }
       );
     }

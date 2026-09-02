@@ -1,83 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Fingerprint,
-  KeyRound,
-  Loader2,
-  RefreshCw,
-  Wallet,
-} from "lucide-react";
+import { KeyRound, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { EcosystemSubnav } from "@/components/ecosystem/EcosystemSubnav";
+import { MarketplaceEmpty } from "@/components/ecosystem/MarketplaceListingGrid";
 import {
-  CollapsibleGuideRail,
-  type GuideItem,
-} from "@/components/dashboard/CollapsibleGuideRail";
-import { cn } from "@/lib/utils";
+  RentListingTile,
+  RentOfferCard,
+  formatRentDuration,
+} from "@/components/ecosystem/RentListingGrid";
 import { useMarketplace, type RentListingView } from "@/hooks/useMarketplace";
 import { useAgenticId } from "@/hooks/useAgenticId";
-import { truncateHash } from "@/lib/explorer";
+import { useEcosystemDashboard } from "@/hooks/useEcosystemDashboard";
+import { formatOgAmount } from "@/lib/dashboard/ecosystemStats";
+import { MARKETPLACE_FEE_LABEL } from "@/lib/marketplaceConstants";
+import { cn } from "@/lib/utils";
 
-const DURATIONS = [
-  { label: "1 day", sec: 86_400 },
-  { label: "7 days", sec: 604_800 },
-  { label: "30 days", sec: 2_592_000 },
-] as const;
-
-const GUIDE: GuideItem[] = [
-  {
-    id: "what",
-    icon: KeyRound,
-    title: "What is Rent?",
-    body: "Time-bound access to an Agentic ID. Renters pay OG; you keep ownership. Access is checked on-chain for Talk and related flows.",
-  },
-  {
-    id: "list",
-    icon: Fingerprint,
-    title: "Offer a lease",
-    body: "Set price and duration. No NFT transfer — only a rental lease is recorded until expiry or cancel.",
-  },
-  {
-    id: "rent",
-    icon: Wallet,
-    title: "Rent access",
-    body: "Pay the listed OG amount to start the lease. When it ends, access returns to the owner only.",
-  },
-  {
-    id: "sell",
-    icon: ArrowUpRight,
-    title: "Want to sell?",
-    body: "Use Marketplace for ownership transfer with payment, or Transfer for a direct P2P send.",
-  },
-];
-
-function formatDuration(sec: number) {
-  if (sec >= 86_400) return `${Math.round(sec / 86_400)}d`;
-  if (sec >= 3600) return `${Math.round(sec / 3600)}h`;
-  return `${sec}s`;
-}
+type BrowseTab = "all" | "mine";
 
 export default function RentWorkspace() {
+  const { isConnected, address } = useAccount();
   const {
     isConfigured,
-    isConnected,
     loading,
     fetchRents,
     listForRent,
     cancelRent,
     rent,
-    address,
   } = useMarketplace();
-  const { agent, hasAgent } = useAgenticId();
+  const { agent, hasAgent, refetch: refetchAgent } = useAgenticId();
+  const { stats, refresh: refreshStats } = useEcosystemDashboard(agent);
 
   const [rents, setRents] = useState<RentListingView[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [priceOg, setPriceOg] = useState("0.05");
   const [durationSec, setDurationSec] = useState(86_400);
+  const [tab, setTab] = useState<BrowseTab>("all");
 
   const refresh = useCallback(async () => {
     if (!isConfigured) {
@@ -96,318 +58,233 @@ export default function RentWorkspace() {
     }
   }, [fetchRents, isConfigured]);
 
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refresh(), refreshStats(), refetchAgent()]);
+  }, [refresh, refreshStats, refetchAgent]);
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const mineCount = rents.filter(
-    (r) => address && r.owner.toLowerCase() === address.toLowerCase()
-  ).length;
+  const rentEarnings = useMemo(
+    () =>
+      stats.activities
+        .filter((a) => a.kind === "rent_in")
+        .reduce((sum, a) => sum + a.netWei, 0n),
+    [stats.activities]
+  );
 
-  const primaryCta = !hasAgent
-    ? { href: "/dashboard/agent/mint", label: "Mint Agentic ID" }
-    : { href: "/dashboard/ecosystem/marketplace", label: "Open Marketplace" };
+  const visible = useMemo(() => {
+    if (tab === "mine" && address) {
+      return rents.filter(
+        (r) => r.owner.toLowerCase() === address.toLowerCase()
+      );
+    }
+    return rents;
+  }, [address, rents, tab]);
+
+  const onList = async () => {
+    if (!agent || agent.access !== "owner") {
+      toast.error("You need to own an Agentic ID to offer a lease");
+      return;
+    }
+    try {
+      await listForRent(agent.tokenId, priceOg, durationSec);
+      toast.success("Rental listed");
+      setTab("mine");
+      await refreshAll();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "List failed");
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-4 pb-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
-            Ecosystem · Rent
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Share access, keep ownership
-          </h1>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            List timed leases on your Agentic ID. Renters pay OG; the token stays
-            yours.
+    <div className="flex flex-col gap-4 pb-8">
+      <EcosystemSubnav />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold sm:text-2xl">Rent</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Timed access without transferring ownership
           </p>
         </div>
-        <Button asChild className="rounded-full px-5" variant="outline">
-          <Link href={primaryCta.href}>
-            {primaryCta.label}
-            <ArrowUpRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </header>
-
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_18.5rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="bento p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Open rentals
-                </span>
-                <KeyRound className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <p className="mt-5 text-3xl font-semibold tabular-nums">
-                {!isConfigured ? "—" : refreshing ? "…" : rents.length}
-              </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Active lease listings
-              </p>
-            </div>
-
-            <div className="bento-brand p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-white/80">Yours</span>
-                <Fingerprint className="h-4 w-4 text-white/80" />
-              </div>
-              <p className="mt-5 text-3xl font-semibold tabular-nums text-white">
-                {!isConnected
-                  ? "—"
-                  : hasAgent && agent
-                    ? `#${agent.tokenId.toString()}`
-                    : "None"}
-              </p>
-              <p className="mt-1 text-[11px] text-white/75">
-                {mineCount > 0
-                  ? `${mineCount} offer${mineCount === 1 ? "" : "s"} by you`
-                  : hasAgent
-                    ? "Ready to offer rent"
-                    : "Mint to offer"}
-              </p>
-            </div>
-
-            <div className="bento-ink relative overflow-hidden p-5">
-              <div
-                className="pointer-events-none absolute -right-6 -top-6 h-12 w-12 rounded-full opacity-100 blur-xl"
-                style={{
-                  background:
-                    "radial-gradient(circle, var(--brand) 100%, transparent 100%)",
-                }}
-              />
-              <div className="relative flex items-center justify-between">
-                <span className="text-xs font-medium text-white/70">Contract</span>
-                <Wallet className="h-4 w-4 text-white/70" />
-              </div>
-              <p className="relative mt-5 text-2xl font-semibold tracking-tight text-white">
-                {isConfigured ? "Live" : "Unset"}
-              </p>
-              <p className="relative mt-1 text-[11px] text-white/65">
-                {isConfigured
-                  ? "Rentals enabled"
-                  : "Deploy marketplace to enable"}
-              </p>
-            </div>
-          </div>
-
-          {!isConfigured ? (
-            <div className="bento px-6 py-10 text-center">
-              <KeyRound className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
-              <p className="text-sm font-medium">Rentals not configured</p>
-              <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-                Deploy the marketplace contract to enable on-chain rent listings.
-                Ownership never leaves the lessor — only a lease is recorded.
-              </p>
-            </div>
-          ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          {isConfigured ? (
             <>
-              <section className="bento overflow-hidden">
-                <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold tracking-tight">
-                      Offer rental access
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      No NFT transfer — renters get a timed lease
-                    </p>
-                  </div>
-                  {!hasAgent ? (
-                    <Button asChild size="sm" variant="outline">
-                      <Link href="/dashboard/agent/mint">Mint first</Link>
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap items-end gap-3 border-t border-border/50 px-5 py-4">
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">
-                      Price (OG)
-                    </label>
-                    <Input
-                      value={priceOg}
-                      onChange={(e) => setPriceOg(e.target.value)}
-                      className="w-36"
-                      disabled={!hasAgent || loading}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">
-                      Duration
-                    </label>
-                    <div className="flex flex-wrap gap-1">
-                      {DURATIONS.map((d) => (
-                        <button
-                          key={d.sec}
-                          type="button"
-                          onClick={() => setDurationSec(d.sec)}
-                          disabled={!hasAgent || loading}
-                          className={cn(
-                            "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                            durationSec === d.sec
-                              ? "bg-[var(--brand)] text-white"
-                              : "bg-muted/60 text-foreground hover:bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]"
-                          )}
-                        >
-                          {d.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="gap-2"
-                    disabled={!isConnected || !hasAgent || loading}
-                    onClick={async () => {
-                      if (!agent) return;
-                      try {
-                        await listForRent(agent.tokenId, priceOg, durationSec);
-                        toast.success("Rental listed");
-                        await refresh();
-                      } catch (err: unknown) {
-                        toast.error(
-                          err instanceof Error ? err.message : "List failed"
-                        );
-                      }
-                    }}
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <KeyRound className="h-4 w-4" />
-                    )}
-                    List for rent
-                  </Button>
-                </div>
-              </section>
-
-              <section className="bento overflow-hidden">
-                <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold tracking-tight">
-                      Open rentals
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      Rent access until the lease expires
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2 shrink-0"
-                    onClick={() => void refresh()}
-                    disabled={refreshing}
-                  >
-                    {refreshing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                    Refresh
-                  </Button>
-                </div>
-
-                <div className="border-t border-border/50 px-5 py-4">
-                  {rents.length === 0 ? (
-                    <div className="rounded-2xl bg-muted/40 px-6 py-10 text-center">
-                      <p className="text-sm font-medium">No active rentals</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Offer a lease on your Agentic ID above
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {rents.map((r) => {
-                        const mine =
-                          !!address &&
-                          r.owner.toLowerCase() === address.toLowerCase();
-                        return (
-                          <div
-                            key={r.tokenId.toString()}
-                            className={cn(
-                              "flex flex-col gap-3 rounded-2xl bg-muted/45 p-4 sm:flex-row sm:items-center sm:justify-between",
-                              mine &&
-                                "bg-[color-mix(in_srgb,var(--brand)_8%,var(--surface))]"
-                            )}
-                          >
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-semibold">
-                                  Agentic #{r.tokenId.toString()}
-                                </p>
-                                <span className="text-sm font-medium tabular-nums">
-                                  {r.priceOg} OG
-                                </span>
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                  {formatDuration(r.durationSec)}
-                                </span>
-                              </div>
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {r.domain || "no domain"} ·{" "}
-                                {truncateHash(r.owner)}
-                                {mine ? " · you" : ""}
-                              </p>
-                            </div>
-                            {mine ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="shrink-0"
-                                disabled={loading}
-                                onClick={async () => {
-                                  try {
-                                    await cancelRent(r.tokenId);
-                                    toast.success("Rental listing cancelled");
-                                    await refresh();
-                                  } catch (err: unknown) {
-                                    toast.error(
-                                      err instanceof Error
-                                        ? err.message
-                                        : "Cancel failed"
-                                    );
-                                  }
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="shrink-0"
-                                disabled={!isConnected || loading}
-                                onClick={async () => {
-                                  try {
-                                    await rent(r.tokenId, r.priceWei);
-                                    toast.success(
-                                      "Rental started — access granted until expiry"
-                                    );
-                                    await refresh();
-                                  } catch (err: unknown) {
-                                    toast.error(
-                                      err instanceof Error
-                                        ? err.message
-                                        : "Rent failed"
-                                    );
-                                  }
-                                }}
-                              >
-                                Rent access
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </section>
+              <span className="rounded-full bg-muted/70 px-3 py-1 text-xs font-medium tabular-nums">
+                {rents.length} offer{rents.length === 1 ? "" : "s"}
+              </span>
+              {isConnected && rentEarnings > 0n ? (
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--success)_12%,transparent)] px-3 py-1 text-xs font-medium tabular-nums text-[var(--success)]">
+                  +{formatOgAmount(rentEarnings)} OG earned
+                </span>
+              ) : null}
+              {isConnected && agent?.access === "rental" && agent.rentalExpiresAt ? (
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] px-3 py-1 text-xs font-medium text-[var(--brand)]">
+                  Your lease active
+                </span>
+              ) : null}
             </>
+          ) : (
+            <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+              Not configured
+            </span>
           )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-1.5 rounded-full"
+            onClick={() => void refreshAll()}
+            disabled={refreshing}
+          >
+            {refreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Refresh
+          </Button>
         </div>
-
-        <CollapsibleGuideRail items={GUIDE} />
       </div>
+
+      {!isConfigured ? (
+        <div className="bento">
+          <MarketplaceEmpty
+            icon={KeyRound}
+            title="Rentals not live on this chain"
+            detail="Deploy the marketplace contract or switch network. Transfer is still free P2P."
+            action={{ href: "/dashboard/ecosystem/trade", label: "Transfer" }}
+          />
+        </div>
+      ) : (
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
+          <section className="bento min-h-[320px] overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 px-5 py-4">
+              <div className="flex gap-1 rounded-full bg-muted/50 p-1">
+                {(["all", "mine"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTab(t)}
+                    className={cn(
+                      "rounded-full px-4 py-1.5 text-xs font-semibold transition-colors",
+                      tab === t
+                        ? "bg-[var(--surface)] text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {t === "all" ? "Browse" : "Yours"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {MARKETPLACE_FEE_LABEL} fee on rentals
+              </p>
+            </div>
+
+            {visible.length === 0 ? (
+              <MarketplaceEmpty
+                icon={KeyRound}
+                title={tab === "mine" ? "No offers yet" : "No rentals yet"}
+                detail={
+                  tab === "mine"
+                    ? "Offer a lease from the panel on the right."
+                    : "Be the first lessor — or check back soon."
+                }
+                action={
+                  !hasAgent
+                    ? { href: "/dashboard/agent/mint", label: "Mint Agentic ID" }
+                    : undefined
+                }
+              />
+            ) : (
+              <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                {visible.map((r) => {
+                  const mine =
+                    !!address &&
+                    r.owner.toLowerCase() === address.toLowerCase();
+                  return (
+                    <RentListingTile
+                      key={r.tokenId.toString()}
+                      listing={r}
+                      durationLabel={formatRentDuration(r.durationSec)}
+                      mine={mine}
+                      loading={loading}
+                      canRent={isConnected && !mine}
+                      onCancel={async () => {
+                        try {
+                          await cancelRent(r.tokenId);
+                          toast.success("Rental offer cancelled");
+                          await refreshAll();
+                        } catch (err: unknown) {
+                          toast.error(
+                            err instanceof Error ? err.message : "Cancel failed"
+                          );
+                        }
+                      }}
+                      onRent={async () => {
+                        try {
+                          await rent(r.tokenId, r.priceWei);
+                          toast.success(
+                            "Rental started — access granted until expiry"
+                          );
+                          await refreshAll();
+                        } catch (err: unknown) {
+                          toast.error(
+                            err instanceof Error ? err.message : "Rent failed"
+                          );
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <aside className="flex flex-col gap-3 lg:sticky lg:top-4">
+            <RentOfferCard
+              agent={agent}
+              hasAgent={hasAgent}
+              isConnected={isConnected}
+              loading={loading}
+              priceOg={priceOg}
+              durationSec={durationSec}
+              onPriceChange={setPriceOg}
+              onDurationChange={setDurationSec}
+              onList={() => void onList()}
+              rentActive={stats.listing?.rentActive}
+              activePriceWei={stats.listing?.rentPriceWei}
+              activeDurationSec={stats.listing?.rentDurationSec}
+            />
+
+            <div className="rounded-[var(--radius)] px-1 text-center text-[11px] text-muted-foreground">
+              <Link
+                href="/dashboard/ecosystem/marketplace"
+                className="font-medium text-[var(--brand)] hover:underline"
+              >
+                Marketplace
+              </Link>
+              {" · "}
+              <Link
+                href="/dashboard/ecosystem/trade"
+                className="font-medium text-[var(--brand)] hover:underline"
+              >
+                Transfer
+              </Link>
+              {" · "}
+              <Link
+                href="/dashboard/ecosystem"
+                className="font-medium text-[var(--brand)] hover:underline"
+              >
+                Hub
+              </Link>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

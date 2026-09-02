@@ -23,6 +23,10 @@ import { cn } from "@/lib/utils";
 import { getStorageScanUrl, truncateHash } from "@/lib/explorer";
 import { toast } from "sonner";
 import { isEvidenceCategory } from "@/lib/evidence";
+import { vaultCategoryLabel } from "@/lib/copy/vaultTerms";
+import { resolveFileKnowledgeStatus } from "@/lib/vault/autoIndex";
+import { useAutoIndex } from "@/components/vault/AutoIndexProvider";
+import { FileKnowledgeBadge } from "@/components/vault/AutoReadPanel";
 
 function parseEvidenceTitle(content: string | null): string | null {
   if (!content || content.includes("File not found")) return null;
@@ -48,7 +52,7 @@ function displayName(file: VaultFile, content: string | null): string {
   if (evidenceTitle) return evidenceTitle;
 
   if (isEvidenceCategory(file.category)) {
-    return file.category.replace("evidence:", "Evidence · ");
+    return vaultCategoryLabel(file.category);
   }
   if (file.category && file.category !== "unassigned") {
     return file.category.charAt(0).toUpperCase() + file.category.slice(1);
@@ -60,7 +64,17 @@ function displayName(file: VaultFile, content: string | null): string {
   return `Document ${truncateHash(file.rootHash, 6, 4)}`;
 }
 
-function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) {
+function VaultFileCard({
+  file,
+  chainId,
+  jobState,
+  paused,
+}: {
+  file: VaultFile;
+  chainId: number;
+  jobState?: "queued" | "running" | "failed";
+  paused: boolean;
+}) {
   const { fetchFileContent } = usefetchFileContent();
   const [expanded, setExpanded] = useState(false);
   const [content, setContent] = useState<string | null>(null);
@@ -99,6 +113,11 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
   const storageAvailable =
     content && !content.includes("File not found") && !error;
   const title = displayName(file, content);
+  const knowledgeStatus = resolveFileKnowledgeStatus(
+    file,
+    jobState,
+    paused
+  );
 
   return (
     <div className="overflow-hidden rounded-2xl bg-muted/45 transition-colors hover:bg-muted/70">
@@ -125,6 +144,7 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
         </div>
 
         <div className="hidden sm:flex items-center gap-2 shrink-0">
+          <FileKnowledgeBadge status={knowledgeStatus} />
           <span
             className={cn(
               "rounded-full px-2 py-0.5 text-[10px] font-medium",
@@ -135,7 +155,7 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
                   : "bg-[var(--surface)] text-foreground"
             )}
           >
-            {file.category}
+            {vaultCategoryLabel(file.category)}
           </span>
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--success)]">
             <Blocks className="h-3 w-3" />
@@ -154,7 +174,7 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
         <div className="space-y-3 border-t border-border/50 px-3.5 py-3.5">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 rounded-2xl bg-[var(--surface)] p-3">
-              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="flex items-center gap-1 text-[10px] font-semibold     text-muted-foreground">
                 <HardDrive className="h-3 w-3" />
                 0G Storage hash
               </p>
@@ -182,7 +202,7 @@ function VaultFileCard({ file, chainId }: { file: VaultFile; chainId: number }) 
             </div>
 
             <div className="space-y-1.5 rounded-2xl bg-[var(--surface)] p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="text-[10px] font-semibold     text-muted-foreground">
                 Storage status
               </p>
               {loading ? (
@@ -245,6 +265,7 @@ export default function FileList({
   const { files, loading, refetch } = useUserFiles();
   const { isConnected } = useAccount();
   const chainId = useChainId();
+  const { jobStates, paused } = useAutoIndex();
   const [search, setSearch] = useState("");
   const [hasFetched, setHasFetched] = useState(false);
 
@@ -313,7 +334,7 @@ export default function FileList({
           <p className="mt-1 text-xs text-muted-foreground">
             {search
               ? "Try a different search term"
-              : "Ingest evidence above — packs appear here once registered"}
+              : "Upload files above — they appear here once registered on 0G"}
           </p>
         </div>
       ) : (
@@ -325,7 +346,13 @@ export default function FileList({
             </p>
           )}
           {filtered.map((file) => (
-            <VaultFileCard key={file.rootHash} file={file} chainId={chainId} />
+            <VaultFileCard
+              key={file.rootHash}
+              file={file}
+              chainId={chainId}
+              jobState={jobStates[file.rootHash]}
+              paused={paused}
+            />
           ))}
         </div>
       )}

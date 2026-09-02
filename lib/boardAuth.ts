@@ -107,7 +107,7 @@ export async function authorizeBoardRequest(
     return {
       ok: false,
       status: 413,
-      error: `At most ${MAX_EVIDENCE_PACKS} evidence packs allowed`,
+      error: `At most ${MAX_EVIDENCE_PACKS} knowledge files allowed`,
     };
   }
   for (const item of evidence) {
@@ -120,7 +120,7 @@ export async function authorizeBoardRequest(
       return {
         ok: false,
         status: 413,
-        error: `Each evidence pack may have at most ${MAX_FACTS_PER_PACK} facts`,
+        error: `Each file may have at most ${MAX_FACTS_PER_PACK} facts`,
       };
     }
   }

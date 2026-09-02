@@ -287,7 +287,7 @@ export default function DemoVaultWizard() {
             <TabsTrigger value="all">All</TabsTrigger>
             {Object.keys(groupedResults).map((category) => (
               <TabsTrigger key={category} value={category}>
-                {category.charAt(0).toUpperCase() + category.slice(1)}
+                {category.charAt(0).to () + category.slice(1)}
               </TabsTrigger>
             ))}
           </TabsList>

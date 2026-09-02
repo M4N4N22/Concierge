@@ -40,15 +40,9 @@ export async function run0GInference(
   const available = BigInt(ledger[1]) - BigInt(ledger[2]);
   const requiredFee = 4_000_437_000_000_000_00n;
   if (available < requiredFee) {
-    try {
-      const topUp = requiredFee - available;
-      await broker.ledger.depositFund(Number(topUp) / 1e18);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(
-        `Compute ledger underfunded — deposit OG then fund a provider. (${msg.slice(0, 120)})`
-      );
-    }
+    throw new Error(
+      "Compute ledger underfunded — deposit OG to the ledger then fund a provider."
+    );
   }
 
   await broker.inference.acknowledgeProviderSigner(modelService.provider);

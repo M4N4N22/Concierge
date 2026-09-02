@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   useAccount,
   useChainId,
@@ -9,7 +9,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { getPublicClient } from "@wagmi/core";
-import { parseEther, formatEther, type Address, type PublicClient } from "viem";
+import { parseEther, formatEther, type Address, type Hash, type PublicClient } from "viem";
 import {
   AGENT_ADDRESSES,
   MARKETPLACE_ADDRESSES,
@@ -18,6 +18,18 @@ import {
 import { isConfiguredContract } from "@/lib/agentAccess";
 import { AGENT_MARKETPLACE_ABI } from "@/lib/marketplaceAbi";
 import { INFT_AGENT_ABI } from "@/lib/INFTAgentAbi";
+import {
+  getPendingNonce,
+  isMarketplaceApproved,
+  isNonceTooLowError,
+  waitForNonceAdvance,
+  waitForReceipt,
+} from "@/lib/wallet/marketplaceTx";
+
+import { fetchVaultFilesForUser } from "@/lib/vault/fetchVaultFilesForUser";
+import type { VaultFile } from "@/hooks/useUserFiles";
+
+type VaultFileSummary = Pick<VaultFile, "category" | "insightsCID">;
 
 export type SaleListingView = {
   tokenId: bigint;
@@ -27,6 +39,8 @@ export type SaleListingView = {
   domain: string;
   embeddingURI: string;
   aiSignature: string;
+  vaultFileCount: number;
+  vaultFiles: VaultFileSummary[];
 };
 
 export type RentListingView = {
@@ -38,6 +52,8 @@ export type RentListingView = {
   domain: string;
   embeddingURI: string;
   aiSignature: string;
+  vaultFileCount: number;
+  vaultFiles: VaultFileSummary[];
 };
 
 function firstConfiguredMarketChain(): number | null {
@@ -55,6 +71,41 @@ export function useMarketplace() {
   const activeChainId = useChainId();
 
   const [loading, setLoading] = useState(false);
+  const txLockRef = useRef(false);
+
+  const writeOnce = useCallback(
+    async (
+      cid: number,
+      publicClient: PublicClient,
+      request: Parameters<typeof writeContractAsync>[0],
+      opts?: { nonce?: number }
+    ): Promise<Hash> => {
+      if (!address) throw new Error("Wallet not connected");
+      const nonce =
+        opts?.nonce ?? (await getPendingNonce(publicClient, address));
+
+      try {
+        const hash = await writeContractAsync({
+          ...request,
+          chainId: cid,
+          nonce,
+        });
+        await waitForReceipt(publicClient, hash);
+        return hash;
+      } catch (err: unknown) {
+        if (!isNonceTooLowError(err)) throw err;
+        const refreshed = await getPendingNonce(publicClient, address);
+        const hash = await writeContractAsync({
+          ...request,
+          chainId: cid,
+          nonce: refreshed,
+        });
+        await waitForReceipt(publicClient, hash);
+        return hash;
+      }
+    },
+    [address, writeContractAsync]
+  );
 
   /** Only the wallet's current chain if marketplace is deployed there — never cross-chain fallback. */
   const marketOnActiveChain = isConfiguredContract(
@@ -165,11 +216,29 @@ export function useMarketplace() {
       })) as readonly [Address, bigint, boolean];
       if (!sale[2]) continue;
       const card = await fetchAgentCard(cid, tokenId);
+      let vaultFileCount = 0;
+      let vaultFiles: VaultFileSummary[] = [];
+      try {
+        const fetched = await fetchVaultFilesForUser({
+          chainId: cid,
+          userAddress: sale[0],
+          publicClient,
+        });
+        vaultFileCount = fetched.length;
+        vaultFiles = fetched.map((f) => ({
+          category: f.category,
+          insightsCID: f.insightsCID,
+        }));
+      } catch {
+        vaultFileCount = 0;
+      }
       out.push({
         tokenId,
         seller: sale[0],
         priceWei: sale[1],
         priceOg: formatEther(sale[1]),
+        vaultFileCount,
+        vaultFiles,
         ...card,
       });
     }
@@ -199,12 +268,30 @@ export function useMarketplace() {
       })) as readonly [Address, bigint, bigint, boolean];
       if (!rentRow[3]) continue;
       const card = await fetchAgentCard(cid, tokenId);
+      let vaultFileCount = 0;
+      let vaultFiles: VaultFileSummary[] = [];
+      try {
+        const fetched = await fetchVaultFilesForUser({
+          chainId: cid,
+          userAddress: rentRow[0],
+          publicClient,
+        });
+        vaultFileCount = fetched.length;
+        vaultFiles = fetched.map((f) => ({
+          category: f.category,
+          insightsCID: f.insightsCID,
+        }));
+      } catch {
+        vaultFileCount = 0;
+      }
       out.push({
         tokenId,
         owner: rentRow[0],
         priceWei: rentRow[1],
         priceOg: formatEther(rentRow[1]),
         durationSec: Number(rentRow[2]),
+        vaultFileCount,
+        vaultFiles,
         ...card,
       });
     }
@@ -213,49 +300,76 @@ export function useMarketplace() {
 
   const approveMarketplace = useCallback(
     async (tokenId: bigint) => {
+      if (!address) throw new Error("Wallet not connected");
       const cid = await ensureMarketplaceChain();
       const market = marketAt(cid);
+      const agent = agentAt(cid);
       const publicClient = clientFor(cid);
-      const tx = await writeContractAsync({
-        address: agentAt(cid),
+
+      const already = await isMarketplaceApproved({
+        publicClient,
+        agent,
+        market,
+        tokenId,
+        owner: address,
+      });
+      if (already) return null;
+
+      const nonceBefore = await getPendingNonce(publicClient, address);
+      const hash = await writeOnce(cid, publicClient, {
+        address: agent,
         abi: INFT_AGENT_ABI,
         functionName: "approve",
         args: [market, tokenId],
-        chainId: cid,
       });
-      await publicClient.waitForTransactionReceipt({ hash: tx });
-      return tx;
+      await waitForNonceAdvance(publicClient, address, nonceBefore);
+      return hash;
     },
-    [agentAt, clientFor, ensureMarketplaceChain, marketAt, writeContractAsync]
+    [
+      address,
+      agentAt,
+      clientFor,
+      ensureMarketplaceChain,
+      marketAt,
+      writeOnce,
+    ]
   );
 
   const listForSale = useCallback(
     async (tokenId: bigint, priceOg: string) => {
+      if (txLockRef.current) {
+        throw new Error("Another marketplace transaction is in progress");
+      }
+      if (!address) throw new Error("Wallet not connected");
+
       const cid = await ensureMarketplaceChain();
       const market = marketAt(cid);
       const publicClient = clientFor(cid);
+
+      txLockRef.current = true;
       setLoading(true);
       try {
         await approveMarketplace(tokenId);
-        const tx = await writeContractAsync({
+
+        const nonce = await getPendingNonce(publicClient, address);
+        return await writeOnce(cid, publicClient, {
           address: market,
           abi: AGENT_MARKETPLACE_ABI,
           functionName: "listForSale",
           args: [tokenId, parseEther(priceOg)],
-          chainId: cid,
-        });
-        await publicClient.waitForTransactionReceipt({ hash: tx });
-        return tx;
+        }, { nonce });
       } finally {
+        txLockRef.current = false;
         setLoading(false);
       }
     },
     [
+      address,
       approveMarketplace,
       clientFor,
       ensureMarketplaceChain,
       marketAt,
-      writeContractAsync,
+      writeOnce,
     ]
   );
 
@@ -282,6 +396,20 @@ export function useMarketplace() {
       const cid = await ensureMarketplaceChain();
       const market = marketAt(cid);
       const publicClient = clientFor(cid);
+      if (!address) throw new Error("Wallet not connected");
+
+      const existingAgent = (await publicClient.readContract({
+        address: agentAt(cid),
+        abi: INFT_AGENT_ABI,
+        functionName: "agentByOwner",
+        args: [address],
+      })) as bigint;
+      if (existingAgent !== 0n) {
+        throw new Error(
+          "You already hold an Agentic ID on this chain — only one per wallet."
+        );
+      }
+
       setLoading(true);
       try {
         const tx = await writeContractAsync({
@@ -298,7 +426,14 @@ export function useMarketplace() {
         setLoading(false);
       }
     },
-    [clientFor, ensureMarketplaceChain, marketAt, writeContractAsync]
+    [
+      address,
+      agentAt,
+      clientFor,
+      ensureMarketplaceChain,
+      marketAt,
+      writeContractAsync,
+    ]
   );
 
   const listForRent = useCallback(

@@ -12,15 +12,15 @@ const BEATS = [
     n: "02",
     title: "Run Insights when you’re ready",
     detail: "Compute",
-    body: "Fund compute once. Label and summarize your files so Talk and Desk aren’t staring at raw dumps.",
+    body: "Fund compute once. Label and summarize your files so Chat and Desk aren’t staring at raw dumps.",
     href: "/dashboard/vault/insights",
   },
   {
     n: "03",
-    title: "Talk to your data",
+    title: "Chat with your data",
     detail: "Compute + vault",
     body: "Ask about spending and documents. Answers stay grounded in what you uploaded — advisory, not trading theater.",
-    href: "/dashboard/advisor/talk",
+    href: "/dashboard/advisor/chat",
   },
   {
     n: "04",
@@ -50,10 +50,10 @@ export function JourneySection() {
     <section id="journey" className="scroll-mt-24 px-6 py-20 sm:px-8 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
+          <p className="text-[11px] font-semibold    text-[var(--brand)]">
             Flow
           </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-semibold   sm:text-5xl">
             The path you actually walk
           </h2>
           <p className="mt-4 text-muted-foreground leading-relaxed">
@@ -73,14 +73,14 @@ export function JourneySection() {
                   {beat.n}
                 </span>
                 <div>
-                  <h3 className="text-xl font-semibold tracking-tight group-hover:text-[var(--brand)] sm:text-2xl">
+                  <h3 className="text-xl font-semibold   group-hover:text-[var(--brand)] sm:text-2xl">
                     {beat.title}
                   </h3>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                     {beat.body}
                   </p>
                 </div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand)] sm:text-right">
+                <span className="text-[11px] font-semibold    text-[var(--brand)] sm:text-right">
                   {beat.detail}
                 </span>
               </Link>

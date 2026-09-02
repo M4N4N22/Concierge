@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { TalkWorkspace } from "@/components/advisor/TalkWorkspace";
-
-export default function AdvisorTalkPage() {
-  return <TalkWorkspace />;
+export default function AdvisorTalkRedirect() {
+  redirect("/dashboard/advisor/chat");
 }
