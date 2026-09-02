@@ -26,6 +26,7 @@ import { EarningsHistogram } from "@/components/dashboard/DashboardCharts";
 import { greetingForHour } from "@/components/dashboard/DashboardHero";
 import { getAgentDisplayName } from "@/lib/agentDisplayName";
 import { resolveAgentPresentation } from "@/lib/agentProfile";
+import { useAgenticId } from "@/hooks/useAgenticId";
 import { useUserFiles } from "@/hooks/useUserFiles";
 import { useEcosystemDashboard } from "@/hooks/useEcosystemDashboard";
 import { MARKETPLACE_ADDRESSES } from "@/lib/addresses";
