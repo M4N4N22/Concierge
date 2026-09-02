@@ -126,7 +126,7 @@ export default function AgentLearning() {
   }, [isConnected, refetch]);
 
   const primaryCta = hasAgent
-    ? { href: "/dashboard/advisor/talk", label: "Continue to Talk" }
+    ? { href: "/dashboard/advisor/chat", label: "Continue to Chat" }
     : isConnected
       ? { href: "/dashboard/agent/mint", label: "Mint Agentic ID" }
       : null;
@@ -135,10 +135,10 @@ export default function AgentLearning() {
     <div className="flex flex-col gap-4 pb-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
+          <p className="text-[11px] font-semibold    text-[var(--brand)]">
             Agentic ID · Learning
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-semibold   sm:text-3xl">
             Domain learning
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
@@ -203,7 +203,7 @@ export default function AgentLearning() {
                 </span>
                 <Fingerprint className="h-4 w-4 text-white/70" />
               </div>
-              <p className="relative mt-5 text-2xl font-semibold tracking-tight text-white">
+              <p className="relative mt-5 text-2xl font-semibold   text-white">
                 {!isConnected
                   ? "—"
                   : hasAgent && agent
@@ -233,7 +233,7 @@ export default function AgentLearning() {
               <section className="bento overflow-hidden">
                 <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-sm font-semibold tracking-tight">
+                    <h2 className="text-sm font-semibold  ">
                       Sync vault & update learning
                     </h2>
                     <p className="text-xs text-muted-foreground">
@@ -268,7 +268,7 @@ export default function AgentLearning() {
 
               <section className="bento overflow-hidden">
                 <div className="px-5 py-4">
-                  <h2 className="text-sm font-semibold tracking-tight">
+                  <h2 className="text-sm font-semibold  ">
                     Specialist domains
                   </h2>
                   <p className="text-xs text-muted-foreground">
@@ -327,7 +327,7 @@ function DomainRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold">{meta.title}</p>
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="text-[10px] font-medium     text-muted-foreground">
             {count} file{count === 1 ? "" : "s"}
           </span>
         </div>

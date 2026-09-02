@@ -2,7 +2,11 @@
 export const AGENT_MARKETPLACE_ABI = [
   {
     type: "constructor",
-    inputs: [{ name: "agentNft_", type: "address" }],
+    inputs: [
+      { name: "agentNft_", type: "address" },
+      { name: "treasury_", type: "address" },
+      { name: "feeBps_", type: "uint256" },
+    ],
     stateMutability: "nonpayable",
   },
   {
@@ -10,6 +14,20 @@ export const AGENT_MARKETPLACE_ABI = [
     name: "agentNft",
     inputs: [],
     outputs: [{ type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "treasury",
+    inputs: [],
+    outputs: [{ type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "feeBps",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
     stateMutability: "view",
   },
   {
@@ -117,5 +135,37 @@ export const AGENT_MARKETPLACE_ABI = [
     inputs: [],
     outputs: [{ type: "uint256[]" }],
     stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "Sold",
+    inputs: [
+      { name: "tokenId", type: "uint256", indexed: true },
+      { name: "seller", type: "address", indexed: true },
+      { name: "buyer", type: "address", indexed: true },
+      { name: "priceWei", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "Rented",
+    inputs: [
+      { name: "tokenId", type: "uint256", indexed: true },
+      { name: "owner", type: "address", indexed: true },
+      { name: "renter", type: "address", indexed: true },
+      { name: "expiresAt", type: "uint64", indexed: false },
+      { name: "priceWei", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "PlatformFeeCollected",
+    inputs: [
+      { name: "tokenId", type: "uint256", indexed: true },
+      { name: "payer", type: "address", indexed: true },
+      { name: "payee", type: "address", indexed: true },
+      { name: "feeWei", type: "uint256", indexed: false },
+      { name: "kind", type: "bytes32", indexed: false },
+    ],
   },
 ] as const;

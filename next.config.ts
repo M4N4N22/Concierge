@@ -14,8 +14,13 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/dashboard/vault/chat",
-        destination: "/dashboard/advisor/talk",
+        destination: "/dashboard/advisor/chat",
         permanent: false,
+      },
+      {
+        source: "/dashboard/advisor/talk",
+        destination: "/dashboard/advisor/chat",
+        permanent: true,
       },
       {
         source: "/dashboard/advisor/trade",

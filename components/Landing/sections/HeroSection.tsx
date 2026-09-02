@@ -28,7 +28,7 @@ export function HeroSection() {
             </div>
 
             <h1
-              className="landing-fade mt-5 text-7xl font-semibold leading-[1.08] tracking-tight sm:text-7xl lg:text-[4.4rem]"
+              className="landing-fade mt-5 text-7xl font-semibold leading-[1.08]   sm:text-7xl lg:text-[4.4rem]"
               style={{ animationDelay: "80ms" }}
             >
               Your wallet-owned{" "}
@@ -42,7 +42,7 @@ export function HeroSection() {
               className="landing-fade text-base leading-relaxed text-muted-foreground sm:text-[1.05rem]"
               style={{ animationDelay: "100ms" }}
             >
-              Vault your data. Run 0G Compute. Mint an Agentic ID. Talk and
+              Vault your data. Run 0G Compute. Mint an Agentic ID. Chat and
               trade with an agent you own.
             </p>
 
@@ -82,7 +82,7 @@ export function HeroSection() {
         >
           <div className="absolute -left-1 top-8 z-20 hidden w-[12rem] rounded-2xl bg-[var(--surface)] p-3.5 shadow-xl  md:block lg:-left-4 lg:top-12">
         
-            <p className="mt-1.5 text-sm font-semibold tracking-tight">
+            <p className="mt-1.5 text-sm font-semibold  ">
               12 files saved
             </p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -92,7 +92,7 @@ export function HeroSection() {
 
           <div className="absolute -right-1 top-16 z-20 hidden w-[12rem] rounded-2xl bg-[var(--surface)] p-3.5 shadow-xl  md:block lg:-right-4">
          
-            <p className="mt-1.5 text-sm font-semibold tracking-tight">
+            <p className="mt-1.5 text-sm font-semibold  ">
               Insights ready
             </p>
             <p className="mt-0.5 text-[11px] text-[var(--success)]">
@@ -102,7 +102,7 @@ export function HeroSection() {
 
           <div className="absolute bottom-16 left-4 z-20 hidden w-[12.5rem] rounded-2xl bg-[var(--surface)] p-3.5 shadow-xl  md:block lg:left-8">
         
-            <p className="mt-1.5 text-sm font-semibold tracking-tight">
+            <p className="mt-1.5 text-sm font-semibold  ">
               Agent #7 minted
             </p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -123,7 +123,7 @@ export function HeroSection() {
                     <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
                   </div>
                   <div className="mx-auto max-w-xs flex-1 truncate rounded-md bg-[var(--surface)] px-3 py-1 text-center font-mono text-[10px] text-muted-foreground ring-1 ring-border/50">
-                    concierge.app / talk
+                    concierge.app / chat
                   </div>
                   <span className="hidden w-10 sm:block" />
                 </div>
@@ -131,14 +131,14 @@ export function HeroSection() {
                 <div className="grid min-h-[18rem] sm:min-h-[22rem] sm:grid-cols-[11rem_minmax(0,1fr)]">
                   {/* Side rail */}
                   <aside className="hidden border-r border-border/60 bg-muted/25 p-3 sm:block">
-                    <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <p className="px-2 text-[10px] font-semibold     text-muted-foreground">
                       Concierge
                     </p>
                     <ul className="mt-3 space-y-1 text-xs">
                       {[
                         ["Vault", true],
                         ["Insights", false],
-                        ["Talk", true],
+                        ["Chat", true],
                         ["Agentic ID", false],
                         ["Desk", false],
                       ].map(([label, active]) => (
@@ -164,14 +164,14 @@ export function HeroSection() {
                     </div>
                   </aside>
 
-                  {/* Main talk pane */}
+                  {/* Main chat pane */}
                   <div className="flex flex-col p-4 sm:p-5">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--brand)]">
-                          Talk
+                        <p className="text-[10px] font-semibold     text-[var(--brand)]">
+                          Chat
                         </p>
-                        <p className="text-sm font-semibold tracking-tight">
+                        <p className="text-sm font-semibold  ">
                           Ask about your vault
                         </p>
                       </div>
@@ -192,7 +192,7 @@ export function HeroSection() {
                         </p>
                       </div>
                       <div className="mt-auto rounded-xl bg-muted/45 px-3 py-2.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <p className="text-[10px] font-semibold    text-muted-foreground">
                           Using
                         </p>
                         <p className="mt-1 text-[12px] text-foreground/85">

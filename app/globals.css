@@ -154,7 +154,24 @@
   border-radius: var(--radius);
 }
 
-/* Brand scrollbars — thin magenta thumb */
+.dashboard-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.dashboard-hero {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand) 92%, white) 0%,
+    color-mix(in srgb, var(--brand) 72%, #6366f1) 55%,
+    color-mix(in srgb, var(--brand) 58%, #4f46e5) 100%
+  );
+  color: white;
+  box-shadow:
+    0 4px 6px color-mix(in srgb, var(--brand) 15%, transparent),
+    0 16px 40px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
 .brand-scroll {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--brand) 55%, transparent) transparent;

@@ -5,3 +5,6 @@ export * from "./quote";
 export * from "./persist";
 export * from "./dex";
 export * from "./suggest";
+export * from "./orchestrator";
+export * from "./memory";
+export * from "./watcher";

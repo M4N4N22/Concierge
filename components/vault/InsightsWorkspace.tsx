@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { useUserFiles, VaultFile } from "@/hooks/useUserFiles";
 import { fetchFileContent } from "@/utils/fetchFileContent";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
+import { useAddToVault } from "@/hooks/useAddToVault";
+import { runInsightsJob } from "@/lib/vault/runInsightsJob";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,8 +32,10 @@ type FileInsight = {
 
 export default function InsightsWorkspace() {
   const { isConnected } = useAccount();
+  const chainId = useChainId();
   const { files, loading: filesLoading, refetch } = useUserFiles();
   const { readiness } = useComputeLedgerContext();
+  const { updateInsights } = useAddToVault();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [insights, setInsights] = useState<Record<string, FileInsight>>({});
@@ -59,20 +63,16 @@ export default function InsightsWorkspace() {
 
   const computeOne = async (file: VaultFile): Promise<FileInsight> => {
     const fileContent = await fetchFileContent(file.rootHash);
-    const res = await fetch("/api/computeInsights", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const result = await runInsightsJob(
+      {
         rootHash: file.rootHash,
         fileName: `vault-${file.rootHash.slice(0, 8)}.txt`,
         content: fileContent,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Compute failed");
-    }
-    return { category: data.category, summary: data.summary };
+        chainId,
+      },
+      updateInsights
+    );
+    return { category: result.category, summary: result.summary };
   };
 
   const runInsights = async () => {
@@ -158,7 +158,7 @@ export default function InsightsWorkspace() {
       <section className="bento overflow-hidden">
         <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold tracking-tight">
+            <h2 className="text-sm font-semibold  ">
               Run AI insights
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -304,7 +304,7 @@ export default function InsightsWorkspace() {
       {hasInsights && categories.length > 0 && (
         <section className="bento overflow-hidden">
           <div className="px-5 py-4">
-            <p className="text-sm font-semibold tracking-tight">
+            <p className="text-sm font-semibold  ">
               Organized vault
             </p>
             <p className="text-xs text-muted-foreground">
@@ -380,7 +380,7 @@ function InsightCard({
   return (
     <div className="rounded-2xl bg-muted/45 p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--brand)]">
+        <span className="text-xs font-semibold     text-[var(--brand)]">
           {category}
         </span>
         <code className="font-mono text-[10px] text-muted-foreground">

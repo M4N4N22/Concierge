@@ -48,13 +48,13 @@ export function JourneyStepHeader({
             </span>
             {tagline ? <span>· {tagline}</span> : null}
             {badge ? (
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]    ">
                 {badge}
               </span>
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-medium tracking-tight text-foreground">
+            <h1 className="text-xl font-medium   text-foreground">
               {title}
             </h1>
             {description ? <Hint text={description} /> : null}

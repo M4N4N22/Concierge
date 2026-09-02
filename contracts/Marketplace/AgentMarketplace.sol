@@ -4,14 +4,24 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+interface IAgentNft is IERC721 {
+    function agentByOwner(address owner) external view returns (uint256);
+}
+
 /**
  * @title AgentMarketplace
  * @notice Non-custodial listings for Concierge Agentic IDs.
  *         Sales: seller approves marketplace; buy() pays seller + transferFrom in one tx.
  *         Rentals: ownership stays with lessor; time-bound access recorded onchain.
+ *         Platform fee (default 2.5%) sent to treasury on sale and rent payments.
  */
 contract AgentMarketplace is ReentrancyGuard {
-    IERC721 public immutable agentNft;
+    IAgentNft public immutable agentNft;
+    address public immutable treasury;
+    uint256 public immutable feeBps;
+
+    uint256 public constant MAX_FEE_BPS = 1000; // 10% cap
+    uint256 public constant DEFAULT_FEE_BPS = 250; // 2.5%
 
     struct SaleListing {
         address seller;
@@ -57,9 +67,44 @@ contract AgentMarketplace is ReentrancyGuard {
         uint256 priceWei
     );
 
-    constructor(address agentNft_) {
+    event PlatformFeeCollected(
+        uint256 indexed tokenId,
+        address indexed payer,
+        address indexed payee,
+        uint256 feeWei,
+        bytes32 kind
+    );
+
+    constructor(address agentNft_, address treasury_, uint256 feeBps_) {
         require(agentNft_ != address(0), "bad agent");
-        agentNft = IERC721(agentNft_);
+        require(treasury_ != address(0), "bad treasury");
+        uint256 bps = feeBps_ == 0 ? DEFAULT_FEE_BPS : feeBps_;
+        require(bps <= MAX_FEE_BPS, "fee too high");
+        agentNft = IAgentNft(agentNft_);
+        treasury = treasury_;
+        feeBps = bps;
+    }
+
+    function _splitFee(uint256 amount) internal view returns (uint256 net, uint256 fee) {
+        fee = (amount * feeBps) / 10_000;
+        net = amount - fee;
+    }
+
+    function _payoutFees(
+        uint256 tokenId,
+        address payer,
+        address payee,
+        uint256 net,
+        uint256 fee,
+        bytes32 kind
+    ) internal {
+        if (fee > 0) {
+            (bool okFee, ) = payable(treasury).call{value: fee}("");
+            require(okFee, "fee payout failed");
+            emit PlatformFeeCollected(tokenId, payer, treasury, fee, kind);
+        }
+        (bool ok, ) = payable(payee).call{value: net}("");
+        require(ok, "payout failed");
     }
 
     // -------- Sales --------
@@ -81,7 +126,6 @@ contract AgentMarketplace is ReentrancyGuard {
         });
         if (!wasActive) _saleTokenIds.push(tokenId);
 
-        // Cancel rent listing on same token if any
         if (rents[tokenId].active) {
             rents[tokenId].active = false;
             emit RentCancelled(tokenId, msg.sender);
@@ -105,14 +149,15 @@ contract AgentMarketplace is ReentrancyGuard {
         address seller = listing.seller;
         require(seller != msg.sender, "self buy");
         require(agentNft.ownerOf(tokenId) == seller, "seller lost ownership");
+        require(agentNft.agentByOwner(msg.sender) == 0, "buyer already has agent");
 
         listing.active = false;
         uint256 price = listing.priceWei;
+        (uint256 sellerAmount, uint256 fee) = _splitFee(price);
 
         agentNft.transferFrom(seller, msg.sender, tokenId);
 
-        (bool ok, ) = payable(seller).call{value: price}("");
-        require(ok, "payout failed");
+        _payoutFees(tokenId, msg.sender, seller, sellerAmount, fee, "sale");
 
         emit Sold(tokenId, seller, msg.sender, price);
     }
@@ -167,14 +212,13 @@ contract AgentMarketplace is ReentrancyGuard {
         );
 
         uint64 expiresAt = uint64(block.timestamp) + listing.durationSec;
-        rentals[tokenId] = Rental({ renter: msg.sender, expiresAt: expiresAt });
+        rentals[tokenId] = Rental({renter: msg.sender, expiresAt: expiresAt});
 
         address owner_ = listing.owner;
         uint256 price = listing.priceWei;
-        // Keep listing active so others can rent after expiry; or cancel — keep active
+        (uint256 ownerAmount, uint256 fee) = _splitFee(price);
 
-        (bool ok, ) = payable(owner_).call{value: price}("");
-        require(ok, "payout failed");
+        _payoutFees(tokenId, msg.sender, owner_, ownerAmount, fee, "rent");
 
         emit Rented(tokenId, owner_, msg.sender, expiresAt, price);
     }

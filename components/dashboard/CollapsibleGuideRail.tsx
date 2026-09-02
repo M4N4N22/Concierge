@@ -39,7 +39,7 @@ export function CollapsibleGuideRail({
     >
       <div className="flex flex-col gap-4">
         <div className="px-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand)]">
+          <p className="text-[11px] font-semibold     text-[var(--brand)]">
             {heading}
           </p>
           {subheading ? (
@@ -76,7 +76,7 @@ export function CollapsibleGuideRail({
                     {item.title}
                   </span>
                   {item.badge ? (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium     text-muted-foreground">
                       {item.badge}
                     </span>
                   ) : null}

@@ -15,15 +15,15 @@ export function CTASection() {
             }}
           />
           <div className="relative max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--brand)]">
+            <p className="text-[11px] font-semibold   tracking-[0.2em] text-[var(--brand)]">
               Go
             </p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+            <h2 className="mt-4 text-3xl font-semibold   text-white sm:text-5xl">
               Wire your wallet to the 0G stack.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-white/65">
               Vault on Storage. Insights on Compute. Agentic ID on Chain. Then
-              Talk and Trade like you own the agent — because you do.
+              Chat and Trade like you own the agent — because you do.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Button

@@ -37,7 +37,7 @@ export function buildFallbackSession(
   const citation = evidenceIds.slice(0, 3);
 
   const analystArg = evidence.length
-    ? `Based on ${evidence.length} evidence pack(s) (${types.join(", ") || "mixed"}), the board should treat this as a structured review of the user's vault context${
+    ? `Based on ${evidence.length} knowledge file(s) (${types.join(", ") || "mixed"}), the board should treat this as a structured review of the user's vault context${
         amounts.length ? ` covering ~$${total.toFixed(2)} in numeric facts` : ""
       }. Proposed focus: ${question.slice(0, 160)}`
     : `No vault evidence yet. Propose collecting a wallet sync and one spend/briefing pack before any action on: ${question.slice(0, 120)}`;
@@ -81,7 +81,7 @@ export function buildFallbackSession(
       stance: hasWallet ? "revise" : "reject",
       argument: hasWallet
         ? "Wallet evidence is present. Block any recommendation that implies unlimited approvals or unverified contract interaction."
-        : "Reject execution guidance until a wallet evidence pack is registered.",
+        : "Reject execution guidance until a wallet sync file is registered.",
       concerns: securityConcerns,
       citations: citation,
     },

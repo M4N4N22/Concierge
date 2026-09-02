@@ -37,7 +37,7 @@ export interface JourneyStep {
 }
 
 /**
- * Concierge journey: vault → intelligence → talk → own the agent → trade → ecosystem.
+ * Concierge journey: vault → intelligence → chat → own the agent → trade → ecosystem.
  * Agentic ID (formerly INFT) sits before Trading so ownership precedes desk use.
  */
 export const JOURNEY_STEPS: JourneyStep[] = [
@@ -46,9 +46,9 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     step: 1,
     title: "Vault",
     shortTitle: "Vault",
-    tagline: "Ingest wallet, CSV, and briefing evidence",
+    tagline: "Store files and build agent knowledge",
     description:
-      "Add schema-first evidence packs to your vault on 0G Storage. Wallet history, CSV exports, and paste briefings normalize into facts agents can use.",
+      "Everything lands on 0G Storage. Wallet sync, CSV, and Insights turn stored files into agent knowledge Chat and Trading can use.",
     href: "/dashboard/vault/my-files",
     icon: Upload,
     status: "live",
@@ -68,12 +68,12 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   {
     id: "chat",
     step: 3,
-    title: "Talk",
-    shortTitle: "Talk",
+    title: "Chat",
+    shortTitle: "Chat",
     tagline: "Ask about your vault — not trading",
     description:
       "Chat with vault evidence about spend, activity, and documents. Trading and finance live under Trading & Finance.",
-    href: "/dashboard/advisor/talk",
+    href: "/dashboard/advisor/chat",
     icon: MessageSquare,
     status: "live",
   },
@@ -84,7 +84,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     shortTitle: "Agentic ID",
     tagline: "Mint your on-chain AI agent identity",
     description:
-      "Mint an Agentic ID (formerly INFT) bound to your vault. Encrypted metadata fingerprints your Concierge intelligence on 0G Chain — then use Talk, Desk, and Ecosystem.",
+      "Mint an Agentic ID (formerly INFT) bound to your vault. Encrypted metadata fingerprints your Concierge intelligence on 0G Chain — then use Chat, Desk, and Ecosystem.",
     href: "/dashboard/agent/mint",
     icon: Fingerprint,
     status: "live",

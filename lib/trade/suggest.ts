@@ -56,7 +56,7 @@ function tradeAgents(
       note:
         side === "hold"
           ? "No ticket — wait for clearer inventory vs cash."
-          : `Ready to draft a ${side.toUpperCase()} ticket if you apply.`,
+          : `Ready to draft a ${side.to ()} ticket if you apply.`,
     },
   ];
 }

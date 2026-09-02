@@ -169,7 +169,7 @@ export default function AgentRecommendations() {
   const primaryCta = domain
     ? { href: "/dashboard/agent/learning", label: "Back to Learning" }
     : hasAgent
-      ? { href: "/dashboard/advisor/talk", label: "Continue to Talk" }
+      ? { href: "/dashboard/advisor/chat", label: "Continue to Chat" }
       : { href: "/dashboard/agent/learning", label: "Open Learning" };
 
   const meta = domain ? DOMAIN_META[domain] : null;
@@ -178,10 +178,10 @@ export default function AgentRecommendations() {
     <div className="flex flex-col gap-4 pb-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
+          <p className="text-[11px] font-semibold    text-[var(--brand)]">
             Agentic ID · Recommendations
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-semibold   sm:text-3xl">
             {meta ? `${meta.title.replace(/ Agent$/, "")} tips` : "Recommendations"}
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
@@ -213,7 +213,7 @@ export default function AgentRecommendations() {
                 </span>
                 <BrainCircuit className="h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="mt-5 text-2xl font-semibold tracking-tight">
+              <p className="mt-5 text-2xl font-semibold  ">
                 {!domain ? "—" : meta?.title.replace(/ Agent$/, "")}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
@@ -250,7 +250,7 @@ export default function AgentRecommendations() {
                 </span>
                 <Fingerprint className="h-4 w-4 text-white/70" />
               </div>
-              <p className="relative mt-5 text-2xl font-semibold tracking-tight text-white">
+              <p className="relative mt-5 text-2xl font-semibold   text-white">
                 {!isConnected
                   ? "—"
                   : hasAgent && agent
@@ -266,7 +266,7 @@ export default function AgentRecommendations() {
           {/* Domain picker */}
           <section className="bento overflow-hidden">
             <div className="px-5 py-4">
-              <h2 className="text-sm font-semibold tracking-tight">Domain</h2>
+              <h2 className="text-sm font-semibold  ">Domain</h2>
               <p className="text-xs text-muted-foreground">
                 Switch specialty — regenerates recommendations
               </p>
@@ -316,7 +316,7 @@ export default function AgentRecommendations() {
             <section className="bento overflow-hidden">
               <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight">
+                  <h2 className="text-sm font-semibold  ">
                     {meta?.title} recommendations
                   </h2>
                   <p className="text-xs text-muted-foreground">
@@ -356,7 +356,7 @@ export default function AgentRecommendations() {
                           <Sparkles className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <p className="text-[10px] font-semibold     text-muted-foreground">
                             Insight #{i + 1}
                           </p>
                           <p className="mt-1 text-sm leading-relaxed">{rec}</p>

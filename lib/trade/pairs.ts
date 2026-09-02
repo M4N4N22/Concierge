@@ -9,7 +9,7 @@ const OG_USDC_ALIASES = new Set([
 
 /** Canonical form used in proposals and quotes. */
 export function normalizeTradePair(pair: string): string {
-  const p = pair.toUpperCase().replace(/\s+/g, "");
+  const p = pair.to ().replace(/\s+/g, "");
   if (OG_USDC_ALIASES.has(p)) return "OG/USDC";
   return p;
 }

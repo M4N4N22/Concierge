@@ -5,7 +5,7 @@ export function LandingFooter() {
     <footer className="border-t border-border/60 px-6 py-10 sm:px-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-lg font-semibold tracking-tight">Concierge</p>
+          <p className="text-lg font-semibold  ">Concierge</p>
           <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
             Storage · Compute · Chain · Agentic ID — composed into a personal
             desk on 0G.

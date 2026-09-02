@@ -35,7 +35,15 @@ import { useUserFiles } from "@/hooks/useUserFiles";
 import { VAULT_ADDRESSES } from "@/lib/addresses";
 import { zeroGMainnet, zeroGTestnet } from "@/lib/wagmi/config";
 import { buildAgenticMintPayload } from "@/lib/agenticMint";
+import { setAgentDisplayName } from "@/lib/agentDisplayName";
+import {
+  inferSpecialtyFromFiles,
+  specialtyToDomain,
+  type AgentSpecialty,
+} from "@/lib/agentProfile";
+import { AGENT_DOMAINS, DOMAIN_META } from "@/lib/domains";
 import { getTxExplorerUrl, truncateHash } from "@/lib/explorer";
+import { AgentProfileCard } from "@/components/MyAgent/AgentProfileCard";
 
 const GUIDE: GuideItem[] = [
   {
@@ -60,13 +68,13 @@ const GUIDE: GuideItem[] = [
     id: "vault",
     icon: Layers,
     title: "Vault binding",
-    body: "The token stores your vault contract address so Talk, Learning, and Desk can ground in the same evidence registry.",
+    body: "The token stores your vault contract address so Chat, Learning, and Desk can ground in the same evidence registry.",
   },
   {
     id: "use",
     icon: MessageSquare,
-    title: "Talk & Desk",
-    body: "After minting, open Talk to ask about vault evidence, or the Trading Desk for agent Buy/Sell/Hold suggestions you still confirm yourself.",
+    title: "Chat & Desk",
+    body: "After minting, open Chat to ask about vault evidence, or the Trading Desk for agent Buy/Sell/Hold suggestions you still confirm yourself.",
   },
   {
     id: "ecosystem",
@@ -90,6 +98,20 @@ function networkLabel(chainId: number) {
   return `Chain ${chainId}`;
 }
 
+const SPECIALTY_OPTIONS: AgentSpecialty[] = [...AGENT_DOMAINS, "general"];
+
+function specialtyLabel(specialty: AgentSpecialty): string {
+  if (specialty === "general") return "General Concierge";
+  return DOMAIN_META[specialty].title.replace(/ Agent$/, "");
+}
+
+function specialtyDescription(specialty: AgentSpecialty): string {
+  if (specialty === "general") {
+    return "Balanced assistant across all vault evidence.";
+  }
+  return DOMAIN_META[specialty].description;
+}
+
 export default function AgenticIdWorkspace() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -109,6 +131,18 @@ export default function AgenticIdWorkspace() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [minting, setMinting] = useState(false);
   const [lastTx, setLastTx] = useState<string | null>(null);
+  const [specialty, setSpecialty] = useState<AgentSpecialty>("general");
+  const [displayName, setDisplayName] = useState("");
+  const [domain, setDomain] = useState("general.concierge");
+  const [embeddingURI, setEmbeddingURI] = useState("");
+  const [aiSignature, setAiSignature] = useState("concierge_v1");
+  const [encryptedHash, setEncryptedHash] = useState<`0x${string}` | "">("");
+
+  useEffect(() => {
+    if (files.length > 0) {
+      setSpecialty(inferSpecialtyFromFiles(files));
+    }
+  }, [files]);
 
   const autoPayload = useMemo(() => {
     if (!address || !vaultAddress) return null;
@@ -116,13 +150,15 @@ export default function AgenticIdWorkspace() {
       owner: address,
       vault: vaultAddress,
       files,
+      specialty,
     });
-  }, [address, vaultAddress, files]);
+  }, [address, vaultAddress, files, specialty]);
 
-  const [domain, setDomain] = useState("concierge.agent");
-  const [embeddingURI, setEmbeddingURI] = useState("");
-  const [aiSignature, setAiSignature] = useState("concierge_v1");
-  const [encryptedHash, setEncryptedHash] = useState<`0x${string}` | "">("");
+  useEffect(() => {
+    if (!showAdvanced) {
+      setDomain(specialtyToDomain(specialty));
+    }
+  }, [showAdvanced, specialty]);
 
   useEffect(() => {
     if (!autoPayload) return;
@@ -145,7 +181,7 @@ export default function AgenticIdWorkspace() {
     !minting;
 
   const primaryCta = hasAgent
-    ? { href: "/dashboard/advisor/talk", label: "Continue to Talk" }
+    ? { href: "/dashboard/advisor/chat", label: "Continue to Chat" }
     : files.length === 0 && isConnected
       ? { href: "/dashboard/vault/my-files", label: "Add evidence first" }
       : null;
@@ -160,13 +196,16 @@ export default function AgenticIdWorkspace() {
       const tx = await mintAgent({
         vault: vaultAddress,
         encryptedHash,
-        domain: domain.trim() || "concierge.agent",
+        domain: domain.trim() || specialtyToDomain(specialty),
         embeddingURI:
           embeddingURI.trim() || `0g://concierge/${address.toLowerCase()}`,
         aiSignature: aiSignature.trim() || "concierge_v1",
       });
       setLastTx(tx);
-      await refetch();
+      const next = await refetch();
+      if (next && displayName.trim()) {
+        setAgentDisplayName(chainId, next.tokenId, displayName.trim());
+      }
       toast.success("Agentic ID minted on 0G Chain");
     } catch (err) {
       console.error(err);
@@ -182,16 +221,16 @@ export default function AgenticIdWorkspace() {
     <div className="flex flex-col gap-4 pb-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
+          <p className="text-[11px] font-semibold    text-[var(--brand)]">
             Agentic ID
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-semibold   sm:text-3xl">
             {hasAgent ? "Your agent identity" : "Mint your Agentic ID"}
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground">
             {hasAgent
               ? "On-chain ownership of your Concierge agent — vault-bound encrypted metadata on 0G Chain."
-              : "Mint once per wallet. Encrypted metadata fingerprints your vault so Talk, Desk, and Ecosystem share one identity."}
+              : "Mint once per wallet. Encrypted metadata fingerprints your vault so Chat, Desk, and Ecosystem share one identity."}
           </p>
         </div>
         {primaryCta ? (
@@ -258,7 +297,7 @@ export default function AgenticIdWorkspace() {
                 <span className="text-xs font-medium text-white/70">Network</span>
                 <Wallet className="h-4 w-4 text-white/70" />
               </div>
-              <p className="relative mt-5 text-2xl font-semibold tracking-tight text-white">
+              <p className="relative mt-5 text-2xl font-semibold   text-white">
                 {!isConnected ? "—" : networkLabel(chainId)}
               </p>
               <p className="relative mt-1 text-[11px] text-white/65">
@@ -279,76 +318,18 @@ export default function AgenticIdWorkspace() {
             </div>
           ) : hasAgent && agent ? (
             <>
-              <section className="bento overflow-hidden">
-                <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold tracking-tight">
-                      Agentic ID #{agent.tokenId.toString()}
-                    </h2>
-                    <p className="text-xs text-muted-foreground">
-                      {agent.access === "rental"
-                        ? "Rental access — Talk & Desk while the lease lasts"
-                        : "You own this Agentic ID and its encrypted metadata"}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    {lastTx ? (
-                      <Button asChild size="sm" variant="outline">
-                        <a
-                          href={getTxExplorerUrl(chainId, lastTx)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Mint tx
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        </a>
-                      </Button>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void refetch()}
-                    >
-                      Refresh
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid gap-2 border-t border-border/50 px-5 py-4 sm:grid-cols-2">
-                  <DetailRow label="Domain" value={agent.domain || "—"} mono />
-                  <DetailRow
-                    label="Access"
-                    value={agent.access === "owner" ? "Owner" : "Rental"}
-                  />
-                  <DetailRow
-                    label="Vault"
-                    value={truncateHash(agent.vault, 10, 8)}
-                    mono
-                  />
-                  <DetailRow
-                    label="Profile URI"
-                    value={agent.embeddingURI || "Not set"}
-                    mono
-                  />
-                  <DetailRow
-                    label="AI signature"
-                    value={agent.aiSignature || "—"}
-                    mono
-                  />
-                  {agent.rentalExpiresAt ? (
-                    <DetailRow
-                      label="Rental ends"
-                      value={new Date(
-                        agent.rentalExpiresAt * 1000
-                      ).toLocaleString()}
-                    />
-                  ) : null}
-                </div>
-              </section>
+              <AgentProfileCard
+                agent={agent}
+                files={files}
+                chainId={chainId}
+                onRefresh={() => void refetch()}
+                refreshing={agentLoading}
+                lastTxHref={lastTx ? getTxExplorerUrl(chainId, lastTx) : null}
+              />
 
               <section className="bento overflow-hidden">
                 <div className="px-5 py-4">
-                  <h2 className="text-sm font-semibold tracking-tight">
+                  <h2 className="text-sm font-semibold  ">
                     Continue with Concierge
                   </h2>
                   <p className="text-xs text-muted-foreground">
@@ -357,9 +338,9 @@ export default function AgenticIdWorkspace() {
                 </div>
                 <div className="grid gap-2 border-t border-border/50 px-5 py-4 sm:grid-cols-2">
                   <ContinueCard
-                    href="/dashboard/advisor/talk"
+                    href="/dashboard/advisor/chat"
                     icon={MessageSquare}
-                    title="Talk"
+                    title="Chat"
                     detail="Ask about vault evidence"
                   />
                   <ContinueCard
@@ -387,7 +368,7 @@ export default function AgenticIdWorkspace() {
             <section className="bento overflow-hidden">
               <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight">
+                  <h2 className="text-sm font-semibold  ">
                     Mint Agentic ID
                   </h2>
                   <p className="text-xs text-muted-foreground">
@@ -479,6 +460,54 @@ export default function AgenticIdWorkspace() {
                     <p className="text-xs text-[var(--danger)]">{agentError}</p>
                   ) : null}
 
+                  <div className="space-y-3 rounded-2xl bg-muted/40 p-4">
+                    <div>
+                      <p className="text-sm font-medium">What is this agent for?</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Pick a specialty — stored on-chain as your agent domain
+                        (e.g. finance.concierge).
+                      </p>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {SPECIALTY_OPTIONS.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setSpecialty(option)}
+                          className={cn(
+                            "rounded-2xl border px-3.5 py-3 text-left transition-colors",
+                            specialty === option
+                              ? "border-[color-mix(in_srgb,var(--brand)_35%,transparent)] bg-[color-mix(in_srgb,var(--brand)_8%,var(--surface))]"
+                              : "border-transparent bg-[var(--surface)] hover:bg-muted/50"
+                          )}
+                        >
+                          <p className="text-sm font-semibold">
+                            {specialtyLabel(option)}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {specialtyDescription(option)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Display name (optional)
+                    </label>
+                    <Input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder={`e.g. My ${specialtyLabel(specialty)}`}
+                      className="rounded-xl"
+                      maxLength={64}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Shown in your dashboard — saved on this device after mint.
+                    </p>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setShowAdvanced((v) => !v)}
@@ -528,32 +557,6 @@ export default function AgenticIdWorkspace() {
 
         <CollapsibleGuideRail items={GUIDE} />
       </div>
-    </div>
-  );
-}
-
-function DetailRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl bg-muted/45 px-3.5 py-3">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-1 break-all text-sm font-medium",
-          mono && "font-mono text-xs"
-        )}
-      >
-        {value}
-      </p>
     </div>
   );
 }

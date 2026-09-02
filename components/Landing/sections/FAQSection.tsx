@@ -40,10 +40,10 @@ export function FAQSection() {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
+            <p className="text-[11px] font-semibold    text-[var(--brand)]">
               FAQ
             </p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-5xl">
+            <h2 className="mt-3 text-3xl font-semibold   sm:text-5xl">
               Common questions
             </h2>
             <Button asChild className="mt-8 rounded-full">

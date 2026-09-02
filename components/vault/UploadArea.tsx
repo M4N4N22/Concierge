@@ -11,6 +11,9 @@ import { CopyHash } from "./CopyHash";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getTxExplorerUrl, truncateHash } from "@/lib/explorer";
+import { VAULT_TERMS } from "@/lib/copy/vaultTerms";
+import { useAutoIndex } from "@/components/vault/AutoIndexProvider";
+import { evidenceCategory } from "@/lib/evidence";
 
 interface UploadedFile {
   file: File;
@@ -32,6 +35,7 @@ export default function UploadArea({
 }) {
   const { isConnected } = useAccount();
   const chainId = useChainId();
+  const { enqueueIndex } = useAutoIndex();
   const [loading, setLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [uploadProgress, setUploadProgress] =
@@ -41,8 +45,16 @@ export default function UploadArea({
     onVaultUpdate?.();
   }, [onVaultUpdate]);
 
+  const afterRegister = useCallback(
+    (args: { rootHash: string; fileName: string; category: string }) => {
+      handleVaultUpdate();
+      enqueueIndex(args);
+    },
+    [enqueueIndex, handleVaultUpdate]
+  );
+
   const handleUpload = async (
-    files: { file: File; rootHash?: string; txHash?: string }[]
+    files: { file: File; rootHash?: string; txHash?: string; category?: string }[]
   ) => {
     const filesWithContent = await Promise.all(
       files.map(async (file) => ({
@@ -56,6 +68,15 @@ export default function UploadArea({
       }))
     );
     setUploadedFiles((prev) => [...prev, ...filesWithContent]);
+    for (const f of files) {
+      if (f.rootHash) {
+        enqueueIndex({
+          rootHash: f.rootHash,
+          fileName: f.file.name,
+          category: f.category ?? "unassigned",
+        });
+      }
+    }
   };
 
   const progressPercent = uploadProgress
@@ -82,18 +103,22 @@ export default function UploadArea({
               ...prev,
               { file, rootHash: result.rootHash, txHash: result.txHash },
             ]);
-            handleVaultUpdate();
+            afterRegister({
+              rootHash: result.rootHash,
+              fileName: file.name,
+              category: evidenceCategory(result.pack.type),
+            });
           }}
         />
 
         <div className="bento flex flex-col p-5">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold tracking-tight">
+              <h2 className="text-sm font-semibold  ">
                 File upload
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Text/CSV/JSON auto-normalize to evidence packs.
+                {VAULT_TERMS.fileUploadDetail}
               </p>
             </div>
             <DummyUploadButton

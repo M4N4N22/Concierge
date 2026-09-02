@@ -789,8 +789,8 @@
       ]
     },
     "C:\\dev\\buildathons\\0G-2026-buildathon\\Concierge\\Concierge\\contracts\\Marketplace\\AgentMarketplace.sol": {
-      "lastModificationDate": 1787922429259,
-      "contentHash": "aeae0a1d6fc8161e550b7bc9818d1bd2",
+      "lastModificationDate": 1788346208938,
+      "contentHash": "a74303c29e37d7f358b2259d886f6f84",
       "sourceName": "contracts/Marketplace/AgentMarketplace.sol",
       "solcConfig": {
         "version": "0.8.28",
@@ -825,7 +825,8 @@
         "^0.8.28"
       ],
       "artifacts": [
-        "AgentMarketplace"
+        "AgentMarketplace",
+        "IAgentNft"
       ]
     },
     "C:\\dev\\buildathons\\0G-2026-buildathon\\Concierge\\Concierge\\node_modules\\@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol": {

@@ -12,9 +12,9 @@ const PILLARS = [
   {
     id: "compute",
     layer: "0G Compute",
-    use: "Insights · Talk · Desk",
+    use: "Insights · Chat · Desk",
     punch: "AI you fund yourself.",
-    body: "Insights, Talk answers, and trade suggestions — prepaid in OG.",
+    body: "Insights, Chat answers, and trade suggestions — prepaid in OG.",
     href: "/dashboard/vault/insights",
   },
   {
@@ -40,10 +40,10 @@ export function StackSection() {
     <section id="stack" className="scroll-mt-24 px-6 py-20 sm:px-8 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
+          <p className="text-[11px] font-semibold    text-[var(--brand)]">
             0G stack
           </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-semibold   sm:text-5xl">
             Four layers. One Concierge.
           </h2>
         </div>
@@ -60,11 +60,11 @@ export function StackSection() {
                   <span className="font-mono text-xs tabular-nums text-muted-foreground">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand)]">
+                  <span className="text-[11px] font-semibold    text-[var(--brand)]">
                     {p.layer}
                   </span>
                 </div>
-                <h3 className="mt-8 text-2xl font-semibold tracking-tight group-hover:text-[var(--brand)] sm:text-3xl">
+                <h3 className="mt-8 text-2xl font-semibold   group-hover:text-[var(--brand)] sm:text-3xl">
                   {p.punch}
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted-foreground">

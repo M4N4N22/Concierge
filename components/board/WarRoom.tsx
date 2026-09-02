@@ -30,10 +30,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const ASK_DEFAULT =
-  "Based on my vault evidence, where did I spend the most, and what patterns should I know about?";
+  "Based on my agent knowledge, where did I spend the most, and what patterns should I know about?";
 
 export const TRADE_DEFAULT =
-  "From my vault evidence, propose the safest OG/USDC action if any — size, side, and risks. Prefer hold if unclear.";
+  "From my vault files, propose the safest OG/USDC action if any — size, side, and risks. Prefer hold if unclear.";
 
 export const ASK_PROMPTS = [
   "Where did I spend the most?",
@@ -277,8 +277,8 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
       <div className="bento p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold tracking-tight">
-              Evidence for this run
+            <h2 className="text-sm font-semibold  ">
+              Files for this run
             </h2>
             <p className="text-xs text-muted-foreground">
               Agents only see packs you select from the vault
@@ -302,7 +302,7 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
           <p className="text-xs text-muted-foreground">Loading…</p>
         ) : packs.length === 0 ? (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-            <span>No evidence packs yet</span>
+            <span>No agent knowledge yet</span>
             <Button asChild size="sm" variant="outline">
               <Link href="/dashboard/vault/my-files">Open Vault</Link>
             </Button>
@@ -413,7 +413,8 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
 
           {files.length > 0 && packs.length === 0 && !loadingPacks && (
             <p className="text-[11px] text-muted-foreground">
-              Vault has files that are not evidence packs — re-ingest via
+              Some vault files are still raw uploads — sync wallet, paste, or run
+              Insights via
               wallet/CSV/paste.
             </p>
           )}
@@ -429,7 +430,7 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
               </span>
               <span
                 className={cn(
-                  "text-xs font-medium uppercase",
+                  "text-xs font-medium  ",
                   verdictTone(session.consensus.verdict)
                 )}
               >
@@ -466,7 +467,7 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
                   </div>
                   <span
                     className={cn(
-                      "text-[10px] uppercase",
+                      "text-[10px]  ",
                       verdictTone(turn.stance)
                     )}
                   >

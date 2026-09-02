@@ -18,6 +18,7 @@ import {
   type VaultEvidence,
 } from "@/lib/evidence";
 import { toast } from "sonner";
+import { VAULT_TERMS } from "@/lib/copy/vaultTerms";
 
 type Props = {
   onRegistered?: (result: {
@@ -57,15 +58,15 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
   return (
     <div className="bento p-5">
       <div className="mb-4">
-        <h2 className="text-sm font-semibold tracking-tight">Evidence intake</h2>
+        <h2 className="text-sm font-semibold  ">Quick add</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Wallet sync, CSV, or paste — normalized before Storage.
+          {VAULT_TERMS.quickAddDetail}
         </p>
       </div>
 
       {!isConnected && (
         <p className="mb-3 text-xs text-muted-foreground">
-          Connect wallet to register packs.
+          Connect wallet to save files.
         </p>
       )}
 
@@ -87,7 +88,7 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
 
         <TabsContent value="wallet" className="mt-4 space-y-2">
           <p className="text-[11px] text-muted-foreground">
-            Pull balances and recent transfers into one evidence pack.
+            Pull balances and recent transfers — stored and structured for Chat.
           </p>
           <Button
             size="sm"

@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import { useUserFiles, VaultFile } from "@/hooks/useUserFiles";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { fetchFileContent } from "@/utils/fetchFileContent";
+import { useAddToVault } from "@/hooks/useAddToVault";
+import { runInsightsJob } from "@/lib/vault/runInsightsJob";
 import { Sparkles } from "lucide-react";
 import DemoVaultWizard from "./VaultComputeDemo";
 
 export default function AIInsights() {
   const { files, loading, refetch } = useUserFiles();
   const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+  const { updateInsights } = useAddToVault();
   const [insights, setInsights] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [fetched, setFetched] = useState(false);
@@ -21,36 +25,29 @@ export default function AIInsights() {
       // Fetch file content using the plain async function
       const fileContent = await fetchFileContent(file.rootHash);
 
-      // Send content to backend for AI insights
-      const res = await fetch("/api/computeInsights", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const data = await runInsightsJob(
+        {
           rootHash: file.rootHash,
           fileName: `file-${file.rootHash.slice(0, 6)}.json`,
           content: fileContent,
-        }),
-      });
+          chainId,
+        },
+        updateInsights
+      );
 
-      const data = await res.json();
-      if (res.ok) {
-        setInsights((prev) => ({
-          ...prev,
-          [file.rootHash]: data.summary || "No summary returned", // show summary
-        }));
-        file.category = data.category; // update the category locally for display
-        refetch?.();
-      } else {
-        setInsights((prev) => ({
-          ...prev,
-          [file.rootHash]: `Error: ${data.error}`,
-        }));
-      }
-    } catch (err) {
-      console.error("Error computing insights:", err);
       setInsights((prev) => ({
         ...prev,
-        [file.rootHash]: "Unexpected error fetching file or computing insights",
+        [file.rootHash]: data.summary || "No summary returned",
+      }));
+      file.category = data.category;
+      refetch?.();
+    } catch (err) {
+      console.error("Error computing insights:", err);
+      const message =
+        err instanceof Error ? err.message : "Unexpected error computing insights";
+      setInsights((prev) => ({
+        ...prev,
+        [file.rootHash]: `Error: ${message}`,
       }));
     } finally {
       setProcessing(null);

@@ -2,6 +2,321 @@
   "version": "3.4",
   "log": [
     {
+      "@openzeppelin/contracts/token/ERC721/IERC721.sol:IERC721": {
+        "src": "@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol:11",
+        "inherit": [
+          "@openzeppelin/contracts/utils/introspection/IERC165.sol:IERC165"
+        ],
+        "libraries": [],
+        "methods": [
+          "balanceOf(address)",
+          "ownerOf(uint256)",
+          "safeTransferFrom(address,address,uint256,bytes)",
+          "safeTransferFrom(address,address,uint256)",
+          "transferFrom(address,address,uint256)",
+          "approve(address,uint256)",
+          "setApprovalForAll(address,bool)",
+          "getApproved(uint256)",
+          "isApprovedForAll(address,address)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.28"
+      },
+      "@openzeppelin/contracts/utils/ReentrancyGuard.sol:ReentrancyGuard": {
+        "src": "@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol:32",
+        "inherit": [],
+        "libraries": [
+          "@openzeppelin/contracts/utils/StorageSlot.sol:StorageSlot"
+        ],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "ReentrancyGuard",
+            "src": "@openzeppelin\\contracts\\utils\\ReentrancyGuard.sol:58"
+          }
+        ],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.28"
+      },
+      "@openzeppelin/contracts/utils/StorageSlot.sol:StorageSlot": {
+        "src": "@openzeppelin\\contracts\\utils\\StorageSlot.sol:34",
+        "version": {
+          "withMetadata": "3fce430b0ee90cf4ec5c1a0a3c10d62b98ea20637e53da8cfc5d22391a1b2242",
+          "withoutMetadata": "7d0b86f2a3a59632b81bdfef84dcf6a4bd953ba90926be93775a83e7690dda84",
+          "linkedWithoutMetadata": "7d0b86f2a3a59632b81bdfef84dcf6a4bd953ba90926be93775a83e7690dda84"
+        },
+        "inherit": [],
+        "libraries": [],
+        "methods": [],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.28"
+      },
+      "@openzeppelin/contracts/utils/introspection/IERC165.sol:IERC165": {
+        "src": "@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol:15",
+        "inherit": [],
+        "libraries": [],
+        "methods": [
+          "supportsInterface(bytes4)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.28"
+      },
+      "contracts/Marketplace/AgentMarketplace.sol:AgentMarketplace": {
+        "src": "contracts\\Marketplace\\AgentMarketplace.sol:18",
+        "version": {
+          "withMetadata": "f9cee9b193406b87af36b9d64e4623e436df4559b3e719a6fb1c0ec7c03a0d22",
+          "withoutMetadata": "802fbf1bb720f77e520ed6ef335024900928f47530de5759e64ca772b9faeefd",
+          "linkedWithoutMetadata": "802fbf1bb720f77e520ed6ef335024900928f47530de5759e64ca772b9faeefd"
+        },
+        "inherit": [
+          "@openzeppelin/contracts/utils/ReentrancyGuard.sol:ReentrancyGuard"
+        ],
+        "libraries": [],
+        "methods": [
+          "(address,address,uint256)",
+          "listForSale(uint256,uint256)",
+          "cancelSale(uint256)",
+          "buy(uint256)",
+          "listForRent(uint256,uint256,uint64)",
+          "cancelRent(uint256)",
+          "rent(uint256)",
+          "hasAccess(uint256,address)",
+          "getActiveSaleIds()",
+          "getActiveRentIds()"
+        ],
+        "linkReferences": [],
+        "errors": [
+          {
+            "kind": "constructor",
+            "contract": "AgentMarketplace",
+            "src": "contracts\\Marketplace\\AgentMarketplace.sol:78"
+          },
+          {
+            "kind": "state-variable-immutable",
+            "name": "agentNft",
+            "src": "contracts\\Marketplace\\AgentMarketplace.sol:19"
+          },
+          {
+            "kind": "state-variable-immutable",
+            "name": "treasury",
+            "src": "contracts\\Marketplace\\AgentMarketplace.sol:20"
+          },
+          {
+            "kind": "state-variable-immutable",
+            "name": "feeBps",
+            "src": "contracts\\Marketplace\\AgentMarketplace.sol:21"
+          }
+        ],
+        "layout": {
+          "storage": [
+            {
+              "label": "sales",
+              "offset": 0,
+              "slot": "0",
+              "type": "t_mapping(t_uint256,t_struct(SaleListing)402_storage)",
+              "contract": "AgentMarketplace",
+              "src": "contracts\\Marketplace\\AgentMarketplace.sol:44"
+            },
+            {
+              "label": "rents",
+              "offset": 0,
+              "slot": "1",
+              "type": "t_mapping(t_uint256,t_struct(RentListing)411_storage)",
+              "contract": "AgentMarketplace",
+              "src": "contracts\\Marketplace\\AgentMarketplace.sol:45"
+            },
+            {
+              "label": "rentals",
+              "offset": 0,
+              "slot": "2",
+              "type": "t_mapping(t_uint256,t_struct(Rental)416_storage)",
+              "contract": "AgentMarketplace",
+              "src": "contracts\\Marketplace\\AgentMarketplace.sol:46"
+            },
+            {
+              "label": "_saleTokenIds",
+              "offset": 0,
+              "slot": "3",
+              "type": "t_array(t_uint256)dyn_storage",
+              "contract": "AgentMarketplace",
+              "src": "contracts\\Marketplace\\AgentMarketplace.sol:48"
+            },
+            {
+              "label": "_rentTokenIds",
+              "offset": 0,
+              "slot": "4",
+              "type": "t_array(t_uint256)dyn_storage",
+              "contract": "AgentMarketplace",
+              "src": "contracts\\Marketplace\\AgentMarketplace.sol:49"
+            }
+          ],
+          "types": {
+            "t_address": {
+              "label": "address",
+              "numberOfBytes": "20"
+            },
+            "t_array(t_uint256)dyn_storage": {
+              "label": "uint256[]",
+              "numberOfBytes": "32"
+            },
+            "t_bool": {
+              "label": "bool",
+              "numberOfBytes": "1"
+            },
+            "t_mapping(t_uint256,t_struct(RentListing)411_storage)": {
+              "label": "mapping(uint256 => struct AgentMarketplace.RentListing)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(Rental)416_storage)": {
+              "label": "mapping(uint256 => struct AgentMarketplace.Rental)",
+              "numberOfBytes": "32"
+            },
+            "t_mapping(t_uint256,t_struct(SaleListing)402_storage)": {
+              "label": "mapping(uint256 => struct AgentMarketplace.SaleListing)",
+              "numberOfBytes": "32"
+            },
+            "t_struct(RentListing)411_storage": {
+              "label": "struct AgentMarketplace.RentListing",
+              "members": [
+                {
+                  "label": "owner",
+                  "type": "t_address",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "priceWei",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "durationSec",
+                  "type": "t_uint64",
+                  "offset": 0,
+                  "slot": "2"
+                },
+                {
+                  "label": "active",
+                  "type": "t_bool",
+                  "offset": 8,
+                  "slot": "2"
+                }
+              ],
+              "numberOfBytes": "96"
+            },
+            "t_struct(Rental)416_storage": {
+              "label": "struct AgentMarketplace.Rental",
+              "members": [
+                {
+                  "label": "renter",
+                  "type": "t_address",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "expiresAt",
+                  "type": "t_uint64",
+                  "offset": 20,
+                  "slot": "0"
+                }
+              ],
+              "numberOfBytes": "32"
+            },
+            "t_struct(SaleListing)402_storage": {
+              "label": "struct AgentMarketplace.SaleListing",
+              "members": [
+                {
+                  "label": "seller",
+                  "type": "t_address",
+                  "offset": 0,
+                  "slot": "0"
+                },
+                {
+                  "label": "priceWei",
+                  "type": "t_uint256",
+                  "offset": 0,
+                  "slot": "1"
+                },
+                {
+                  "label": "active",
+                  "type": "t_bool",
+                  "offset": 0,
+                  "slot": "2"
+                }
+              ],
+              "numberOfBytes": "96"
+            },
+            "t_uint256": {
+              "label": "uint256",
+              "numberOfBytes": "32"
+            },
+            "t_uint64": {
+              "label": "uint64",
+              "numberOfBytes": "8"
+            }
+          },
+          "layoutVersion": "1.2",
+          "flat": true,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.28"
+      },
+      "contracts/Marketplace/AgentMarketplace.sol:IAgentNft": {
+        "src": "contracts\\Marketplace\\AgentMarketplace.sol:7",
+        "inherit": [
+          "@openzeppelin/contracts/token/ERC721/IERC721.sol:IERC721",
+          "@openzeppelin/contracts/utils/introspection/IERC165.sol:IERC165"
+        ],
+        "libraries": [],
+        "methods": [
+          "agentByOwner(address)"
+        ],
+        "linkReferences": [],
+        "errors": [],
+        "layout": {
+          "storage": [],
+          "types": {},
+          "layoutVersion": "1.2",
+          "flat": false,
+          "namespaces": {}
+        },
+        "solcVersion": "0.8.28"
+      }
+    },
+    {
       "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:OwnableUpgradeable": {
         "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:21",
         "inherit": [

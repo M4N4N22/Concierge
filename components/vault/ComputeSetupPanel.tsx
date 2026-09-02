@@ -176,7 +176,7 @@ export default function ComputeSetupPanel() {
         <div className="px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold tracking-tight">
+              <p className="text-sm font-semibold  ">
                 Broker wallet
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -187,7 +187,7 @@ export default function ComputeSetupPanel() {
             {broker ? (
               <span
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                  "rounded-full px-2.5 py-1 text-[10px] font-semibold    ",
                   broker.isTestnet
                     ? "bg-muted text-muted-foreground"
                     : "bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-[var(--brand)]"
@@ -209,7 +209,7 @@ export default function ComputeSetupPanel() {
             <>
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="rounded-2xl bg-muted/40 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <p className="text-[10px]     text-muted-foreground">
                     Available
                   </p>
                   <p className="mt-1 text-lg font-semibold tabular-nums">
@@ -223,7 +223,7 @@ export default function ComputeSetupPanel() {
                   </p>
                 </div>
                 <div className="rounded-2xl bg-muted/40 px-3 py-3">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <p className="text-[10px]     text-muted-foreground">
                     Required
                   </p>
                   <p className="mt-1 text-lg font-semibold tabular-nums">
@@ -244,7 +244,7 @@ export default function ComputeSetupPanel() {
                       : "bg-[color-mix(in_srgb,var(--success)_12%,transparent)]"
                   )}
                 >
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <p className="text-[10px]     text-muted-foreground">
                     {shortfall > 0 ? "Short by" : "Status"}
                   </p>
                   <p
@@ -323,7 +323,7 @@ export default function ComputeSetupPanel() {
 
       <section className="bento overflow-hidden">
         <div className="px-5 py-4">
-          <p className="text-sm font-semibold tracking-tight">0G Compute setup</p>
+          <p className="text-sm font-semibold  ">0G Compute setup</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Create a ledger ({MIN_LEDGER_CREATE_OG} OG), fund it, enable a model
             — then run AI on vault or desk
@@ -370,7 +370,7 @@ export default function ComputeSetupPanel() {
       <section className="bento">
         <div className="flex items-center justify-between px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold tracking-tight">
+            <h2 className="text-sm font-semibold  ">
               Compute ledger
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -453,7 +453,7 @@ export default function ComputeSetupPanel() {
                     key={item.label}
                     className="rounded-2xl bg-muted/40 p-3 text-center"
                   >
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[10px]     text-muted-foreground">
                       {item.label}
                     </p>
                     <p className={cn("mt-1 text-lg font-semibold", item.color)}>
@@ -506,7 +506,7 @@ export default function ComputeSetupPanel() {
       {ledgerExists && (
         <section className="bento">
           <div className="px-5 py-4">
-            <h2 className="text-sm font-semibold tracking-tight">
+            <h2 className="text-sm font-semibold  ">
               AI models on 0G Compute
             </h2>
             <p className="text-xs text-muted-foreground">

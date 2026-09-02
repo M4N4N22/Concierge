@@ -21,7 +21,7 @@ export async function registerEvidencePack(
   }
 ): Promise<{ rootHash: string; txHash?: string; pack: VaultEvidence } | null> {
   const file = evidenceToFile(pack);
-  const toastId = toast.loading(`Registering evidence: ${pack.title}…`);
+  const toastId = toast.loading(`Saving: ${pack.title}…`);
 
   try {
     const result = await uploadAndRegisterOnVault(
@@ -42,7 +42,7 @@ export async function registerEvidencePack(
     return { rootHash: result.rootHash, txHash: result.txHash, pack };
   } catch (err: unknown) {
     if (isUserRejectedError(err)) {
-      toast.error("Transaction cancelled — evidence not registered", { id: toastId });
+      toast.error("Transaction cancelled — file not saved", { id: toastId });
     } else {
       const message = err instanceof Error ? err.message : "Failed to register evidence";
       toast.error(message, { id: toastId });

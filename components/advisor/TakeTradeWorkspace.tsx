@@ -4,18 +4,29 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
-  ChevronLeft,
-  ChevronRight,
+  CandlestickChart,
+  ChevronDown,
+  Eye,
   Loader2,
   Newspaper,
-  PanelRightClose,
-  PanelRightOpen,
+  RefreshCw,
+  Shield,
+  Sparkles,
+  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TradeDesk } from "@/components/trade/TradeDesk";
+import {
+  CollapsibleGuideRail,
+  type GuideItem,
+} from "@/components/dashboard/CollapsibleGuideRail";
+import { WorkspaceFaq, type FaqItem } from "@/components/dashboard/WorkspaceFaq";
 import { cn } from "@/lib/utils";
 import { useAgenticId } from "@/hooks/useAgenticId";
 import { useAccount } from "wagmi";
+import { useTradeBalances } from "@/hooks/useTradeBalances";
+import { formatUnits } from "viem";
 
 type NewsItem = {
   id: string;
@@ -25,60 +36,104 @@ type NewsItem = {
   published?: string;
 };
 
-const NEWS_OPEN_KEY = "concierge.trade.newsOpen";
-
 const LOCAL_NEWS_FALLBACK: NewsItem[] = [
   {
     id: "fb-1",
-    title: "Markets digest: watch liquidity and macro prints before sizing risk",
+    title: "Watch liquidity and macro prints before sizing spot risk",
     source: "Concierge context",
     url: "https://www.coindesk.com/",
   },
   {
     id: "fb-2",
-    title: "Stablecoin flows and funding rates remain key short-term signals",
+    title: "Stablecoin flows and funding rates remain short-term signals",
     source: "Concierge context",
     url: "https://cointelegraph.com/",
   },
   {
     id: "fb-3",
-    title:
-      "Risk note: never size a swap from headlines alone — use wallet balances + mandate",
+    title: "Never size a swap from headlines alone — use balances + mandate",
     source: "Concierge context",
     url: "https://docs.0g.ai/",
+  },
+];
+
+const GUIDE: GuideItem[] = [
+  {
+    id: "flow",
+    icon: CandlestickChart,
+    title: "Desk flow",
+    body: "Agents suggest Buy, Sell, or Hold from wallet balances. You apply the size, fetch an OG/USDC quote, and confirm in your wallet — nothing auto-swaps.",
+  },
+  {
+    id: "agents",
+    icon: Sparkles,
+    title: "Agent orchestration",
+    body: "Analyst, Risk, and Trader run on 0G Compute. Weighted consensus feeds a gatekeeper (auto-eligible, needs confirmation, or blocked) before you act.",
+  },
+  {
+    id: "watcher",
+    icon: Eye,
+    title: "Portfolio watcher",
+    body: "Enable once with a 24h signature. Polls balances every few minutes; on material shifts it previews a heuristic and can re-run agents within cooldown.",
+  },
+  {
+    id: "policy",
+    icon: Shield,
+    title: "Policy & limits",
+    body: "Max notional caps USDC exposure per ticket. Slippage bps guard quotes. Autonomous mode only affects the gate — swaps still need wallet approval.",
+  },
+  {
+    id: "memory",
+    icon: Wallet,
+    title: "Vault memory",
+    body: "Each orchestration saves a trade memory blob to 0G Storage and your vault. Owned Agentic IDs link to the latest decision for audit.",
+  },
+  {
+    id: "news",
+    icon: Newspaper,
+    title: "News feed",
+    body: "Headlines are context only. They never trigger swaps. Size from balances, agent consensus, and your mandate — not headlines.",
+  },
+];
+
+const FAQ: FaqItem[] = [
+  {
+    q: "Does the desk trade automatically?",
+    a: "No. Agents suggest and the watcher can re-run orchestration, but every swap requires you to review the quote and confirm in your wallet.",
+  },
+  {
+    q: "What pairs can I swap?",
+    a: "Live routing is OG/USDC on Uniswap for the connected 0G chain. WETH shows in balances for context but has no live desk route yet.",
+  },
+  {
+    q: "Why do agents fail or show compute errors?",
+    a: "You need a funded 0G Compute ledger and an active model provider. Open Compute setup from the error card or fund via Vault → Insights first.",
+  },
+  {
+    q: "What is the gatekeeper?",
+    a: "After agent consensus, the gate returns auto-eligible, needs confirmation, or blocked based on firewall rules, mandate limits, and agreement threshold.",
+  },
+  {
+    q: "How does the portfolio watcher work?",
+    a: "Sign once for 24 hours. It polls balances and flags shifts (≥$1 USDC or ≥5% OG). Auto mode re-runs agents at most every 15 minutes when auth is valid.",
+  },
+  {
+    q: "Where are trade decisions stored?",
+    a: "Orchestration writes JSON memory to 0G Storage and registers it on your vault. Executed swaps also save as trade records.",
   },
 ];
 
 export function TakeTradeWorkspace() {
   const { isConnected } = useAccount();
   const { agent, hasAgent } = useAgenticId();
+  const { rows, loading: balLoading, usdcBalance, usdcDecimals } =
+    useTradeBalances();
+
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsLive, setNewsLive] = useState(false);
   const [newsNote, setNewsNote] = useState<string | null>(null);
   const [newsOpen, setNewsOpen] = useState(true);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(NEWS_OPEN_KEY);
-      if (raw === "0") setNewsOpen(false);
-      if (raw === "1") setNewsOpen(true);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const toggleNews = useCallback(() => {
-    setNewsOpen((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(NEWS_OPEN_KEY, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }, []);
 
   const loadNews = useCallback(async () => {
     setNewsLoading(true);
@@ -95,9 +150,7 @@ export function TakeTradeWorkspace() {
       } else {
         setNews(items);
         setNewsLive(!data.fallback);
-        if (data.note) setNewsNote(data.note);
-        else if (data.fallback) setNewsNote("Showing context cards");
-        else setNewsNote(null);
+        setNewsNote(data.note ?? (data.fallback ? "Showing context cards" : null));
       }
     } catch {
       setNews(LOCAL_NEWS_FALLBACK);
@@ -112,216 +165,209 @@ export function TakeTradeWorkspace() {
     void loadNews();
   }, [loadNews]);
 
+  const ogDisplay = isConnected
+    ? rows.find((r) => r.id === "og")?.balance ?? "0"
+    : "—";
+  const usdcDisplay = isConnected
+    ? rows.find((r) => r.id === "usdc")?.balance ?? "0"
+    : "—";
+  const spendableUsdc = isConnected
+    ? Number(formatUnits(usdcBalance, usdcDecimals))
+    : 0;
+
+  const primaryCta = !hasAgent
+    ? { href: "/dashboard/agent/mint", label: "Mint Agentic ID" }
+    : { href: "/dashboard/trading/strategies", label: "Open Strategies" };
+
   return (
-    <div
-      className={cn(
-        "grid min-h-[calc(100vh-5.5rem)] gap-4 pb-4",
-        "xl:grid-cols-[minmax(0,1fr)_auto]"
-      )}
-    >
-      <div className="flex min-w-0 flex-col gap-4">
-        <header className="space-y-2">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">
-                Trading & Finance
-              </p>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Desk
-              </h1>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {isConnected && hasAgent && agent ? (
-                <Link
-                  href="/dashboard/agent/mint"
-                  className="rounded-full bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--brand)]"
-                >
-                  Agentic #{agent.tokenId.toString()}
-                </Link>
-              ) : isConnected ? (
-                <Button asChild size="sm" variant="outline" className="rounded-full">
-                  <Link href="/dashboard/agent/mint">Mint Agentic ID</Link>
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="xl:hidden"
-                onClick={toggleNews}
-              >
-                <Newspaper className="h-4 w-4" />
-                News
-              </Button>
-              <Button asChild variant="outline" className="rounded-full">
-                <Link href="/dashboard/trading/strategies">
-                  Strategies
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Agents suggest Buy, Sell, or Hold from your wallet balances. You
-            apply the size, quote OG/USDC, and confirm — nothing auto-executes.
+    <div className="flex flex-col gap-4 pb-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 space-y-1">
+          <p className="text-[11px] font-semibold    text-[var(--brand)]">
+            Trading & Finance
           </p>
-        </header>
-
-        <div className="bento p-5 sm:p-6">
-          <TradeDesk />
+          <h1 className="text-2xl font-semibold   sm:text-3xl">
+            Desk
+          </h1>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            Multi-agent consensus on 0G Compute, gated quotes on OG/USDC, and a
+            portfolio watcher — you always confirm swaps in your wallet.
+          </p>
         </div>
-
-        <div className={cn("xl:hidden", !newsOpen && "hidden")}>
-          <NewsPanel
-            news={news}
-            newsLoading={newsLoading}
-            newsLive={newsLive}
-            newsNote={newsNote}
-            onRefresh={() => void loadNews()}
-            onCollapse={toggleNews}
-            fillHeight={false}
-          />
-        </div>
-      </div>
-
-      <aside
-        className={cn(
-          "hidden xl:flex xl:sticky xl:top-4 xl:h-[calc(100vh-5.5rem)] xl:flex-col",
-          newsOpen ? "xl:w-[22rem]" : "xl:w-11"
-        )}
-      >
-        {newsOpen ? (
-          <NewsPanel
-            news={news}
-            newsLoading={newsLoading}
-            newsLive={newsLive}
-            newsNote={newsNote}
-            onRefresh={() => void loadNews()}
-            onCollapse={toggleNews}
-            fillHeight
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={toggleNews}
-            className="bento flex h-full w-11 flex-col items-center gap-3 py-4 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Open news feed"
-            title="Open news feed"
-          >
-            <PanelRightOpen className="h-4 w-4" />
-            <Newspaper className="h-4 w-4 text-[var(--brand)]" />
-            <span
-              className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em]"
-              style={{ writingMode: "vertical-rl" }}
+        <div className="flex flex-wrap items-center gap-2">
+          {isConnected && hasAgent && agent ? (
+            <Link
+              href="/dashboard/agent/mint"
+              className="rounded-full bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--brand)]"
             >
-              News feed
-            </span>
-            <ChevronLeft className="mt-auto h-4 w-4" />
-          </button>
-        )}
-      </aside>
-    </div>
-  );
-}
-
-function NewsPanel({
-  news,
-  newsLoading,
-  newsLive,
-  newsNote,
-  onRefresh,
-  onCollapse,
-  fillHeight,
-}: {
-  news: NewsItem[];
-  newsLoading: boolean;
-  newsLive: boolean;
-  newsNote: string | null;
-  onRefresh: () => void;
-  onCollapse: () => void;
-  fillHeight: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "bento flex flex-col overflow-hidden",
-        fillHeight && "h-full min-h-0"
-      )}
-    >
-      <div className="flex shrink-0 items-center gap-2 border-b border-border/50 px-4 py-3">
-        <Newspaper className="h-3.5 w-3.5 text-[var(--brand)]" />
-        <p className="text-sm font-semibold">News feed</p>
-        {newsLive && !newsLoading ? (
-          <span className="rounded-full bg-[color-mix(in_srgb,var(--success)_16%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--success)]">
-            Live
-          </span>
-        ) : null}
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={newsLoading}
-            className="rounded-lg px-2 py-1 text-[10px] text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
-          >
-            {newsLoading ? "…" : "Refresh"}
-          </button>
-          <button
-            type="button"
-            onClick={onCollapse}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-            aria-label="Collapse news feed"
-            title="Collapse"
-          >
-            {fillHeight ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </button>
+              Agentic #{agent.tokenId.toString()}
+            </Link>
+          ) : null}
+          <Button asChild className="rounded-full px-5">
+            <Link href={primaryCta.href}>
+              {primaryCta.label}
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
-      </div>
+      </header>
 
-      <p className="shrink-0 px-4 pt-3 text-[11px] leading-relaxed text-muted-foreground">
-        Context only — never size a swap from headlines.
-      </p>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_18.5rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="bento p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  OG / W0G
+                </span>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="mt-5 text-3xl font-semibold tabular-nums">
+                {balLoading && isConnected ? "…" : ogDisplay}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Spendable on sell side
+              </p>
+            </div>
 
-      {newsNote ? (
-        <p className="mx-4 mt-2 shrink-0 rounded-xl bg-muted/50 px-2.5 py-1.5 text-[10px] text-muted-foreground">
-          {newsNote}
-        </p>
-      ) : null}
+            <div className="bento-brand p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-white/80">USDC</span>
+                <Wallet className="h-4 w-4 text-white/80" />
+              </div>
+              <p className="mt-5 text-3xl font-semibold tabular-nums text-white">
+                {balLoading && isConnected ? "…" : usdcDisplay}
+              </p>
+              <p className="mt-1 text-[11px] text-white/75">
+                {spendableUsdc > 0 ? "Available to buy OG" : "Fund to buy OG"}
+              </p>
+            </div>
 
-      <div
-        className={cn(
-          "brand-scroll mt-3 min-h-0 flex-1 px-3 pb-3",
-          fillHeight ? "overflow-y-auto" : "max-h-[28rem] overflow-y-auto"
-        )}
-      >
-        {newsLoading && news.length === 0 ? (
-          <div className="flex items-center gap-2 py-10 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Loading…
+            <div className="bento p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Live route
+                </span>
+                <CandlestickChart className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="mt-5 text-2xl font-semibold  ">
+                OG/USDC
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Uniswap on connected chain
+              </p>
+            </div>
+
+            <div className="bento-ink relative overflow-hidden p-5 sm:col-span-2 xl:col-span-1">
+              <div className="relative flex items-center justify-between">
+                <span className="text-xs font-medium text-white/70">
+                  Agentic ID
+                </span>
+                <Sparkles className="h-4 w-4 text-white/70" />
+              </div>
+              <p className="relative mt-5 text-3xl font-semibold tabular-nums text-white">
+                {!isConnected
+                  ? "—"
+                  : hasAgent && agent
+                    ? `#${agent.tokenId.toString()}`
+                    : "—"}
+              </p>
+              <p className="relative mt-1 text-[11px] text-white/65">
+                {hasAgent
+                  ? "Linked to trade memory"
+                  : "Mint to bind decisions"}
+              </p>
+            </div>
           </div>
-        ) : (
-          <ul className="space-y-2">
-            {news.map((n) => (
-              <li key={n.id}>
-                <a
-                  href={n.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-2xl bg-muted/45 px-3 py-2.5 transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_10%,transparent)]"
-                >
-                  <p className="text-xs font-medium leading-snug">{n.title}</p>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    {n.source}
-                    {n.published ? ` · ${n.published}` : ""}
+
+          <TradeDesk hideBalanceStats />
+
+          <section className="bento overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-border/50 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setNewsOpen((o) => !o)}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:opacity-80"
+              >
+                <Newspaper className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Market context</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Headlines for awareness — never for sizing
                   </p>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                    newsOpen && "rotate-180"
+                  )}
+                />
+              </button>
+              {newsLive && !newsLoading ? (
+                <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--success)_16%,transparent)] px-2 py-0.5 text-[9px] font-semibold     text-[var(--success)]">
+                  Live
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void loadNews()}
+                disabled={newsLoading}
+                className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
+                aria-label="Refresh news"
+              >
+                <RefreshCw
+                  className={cn("h-3.5 w-3.5", newsLoading && "animate-spin")}
+                />
+              </button>
+            </div>
+            {newsOpen ? (
+              <div className="px-5 py-4">
+                {newsNote ? (
+                  <p className="mb-3 rounded-xl bg-muted/45 px-3 py-2 text-[11px] text-muted-foreground">
+                    {newsNote}
+                  </p>
+                ) : null}
+                {newsLoading && news.length === 0 ? (
+                  <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Loading headlines…
+                  </div>
+                ) : (
+                  <ul className="grid gap-2 sm:grid-cols-2">
+                    {news.slice(0, 6).map((n) => (
+                      <li key={n.id}>
+                        <a
+                          href={n.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-2xl bg-muted/40 px-3.5 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_10%,transparent)]"
+                        >
+                          <p className="text-xs font-medium leading-snug">
+                            {n.title}
+                          </p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">
+                            {n.source}
+                          </p>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+          </section>
+
+          <WorkspaceFaq
+            items={FAQ}
+            subtitle="Trading desk, agents, watcher, and execution."
+          />
+        </div>
+
+        <CollapsibleGuideRail
+          heading="How the desk works"
+          subheading="Orchestration, limits, and what stays manual."
+          items={GUIDE}
+        />
       </div>
     </div>
   );

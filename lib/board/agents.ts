@@ -28,7 +28,7 @@ export const BOARD_AGENTS: Record<
 };
 
 export function formatEvidenceBrief(evidence: VaultEvidence[]): string {
-  if (!evidence.length) return "No evidence packs provided.";
+  if (!evidence.length) return "No agent knowledge provided.";
   return evidence
     .map((e, i) => {
       const facts = e.facts
@@ -72,7 +72,7 @@ Mandate: ${agent.mandate}
 User question / decision:
 ${input.question}
 
-Vault evidence packs (structured facts only — trust these over speculation):
+Agent knowledge (structured facts — trust these over speculation):
 ${input.evidenceBrief}
 
 Prior board turns:
@@ -125,7 +125,7 @@ Simulate a debate between Analyst, Risk, and Security agents, then Chair consens
 Question:
 ${input.question}
 
-Vault evidence packs:
+Agent knowledge:
 ${input.evidenceBrief}
 
 Respond ONLY with valid JSON:

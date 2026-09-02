@@ -18,6 +18,7 @@ type UploadedFile = {
   file: File;
   rootHash?: string;
   txHash?: string;
+  category?: string;
 };
 
 export type UploadProgressState = {
@@ -157,6 +158,7 @@ export default function UploadButton({
           file: uploadFile,
           rootHash: result.rootHash,
           txHash: result.txHash,
+          category,
         });
       }
     }
@@ -255,7 +257,7 @@ export default function UploadButton({
         </p>
         <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
           {isConnected
-            ? "Receipts, CSVs, notes — text types become evidence packs on 0G"
+            ? "Stored on 0G — text/CSV may structure automatically; run Insights on anything else"
             : "Your wallet signs storage & vault transactions"}
         </p>
 
