@@ -143,6 +143,7 @@ export default function UploadButton({
         (rootHash) => rootHash,
         {
           category,
+          chainId,
           onProgress: (phase) =>
             updateProgress({
               current: i + 1,

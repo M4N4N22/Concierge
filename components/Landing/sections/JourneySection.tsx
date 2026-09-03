@@ -4,82 +4,73 @@ const BEATS = [
   {
     n: "01",
     title: "Save files in your vault",
-    detail: "Storage",
-    body: "Sync a wallet, upload a spreadsheet, paste notes. Everything lands on 0G Storage and shows up in your Vault registry.",
+    body: "Upload notes, spreadsheets, wallet history. Everything lands on 0G Storage.",
     href: "/dashboard/vault",
   },
   {
     n: "02",
-    title: "Turn storage into agent knowledge",
-    detail: "Compute",
-    body: "Fund compute once. Run Insights to categorize and summarize — Concierge can’t use raw uploads until they’re knowledge.",
+    title: "Turn files into knowledge",
+    body: "Feed uploads through Compute so Concierge can summarize and categorize.",
     href: "/dashboard/knowledge/feed",
   },
   {
     n: "03",
     title: "Chat with your Concierge",
-    detail: "Compute + vault",
-    body: "Ask about spending and documents. Answers stay grounded in agent knowledge — not filenames alone.",
+    body: "Ask about your data. Answers stay grounded in what your vault already knows.",
     href: "/dashboard/advisor/chat",
   },
   {
     n: "04",
     title: "Mint one Agentic ID",
-    detail: "Chain",
-    body: "One Concierge identity per wallet — your portable personality. Chat casually or ask vault questions in chat; finance, travel, and subscriptions are focus chips there — not separate agents.",
+    body: "Own a portable Concierge identity bound to your vault — one per wallet.",
     href: "/dashboard/agent/mint",
   },
   {
     n: "05",
-    title: "List, rent, or transfer",
-    detail: "Ecosystem",
-    body: "Sell on the marketplace, rent timed Concierge access while you keep ownership (not a private file dump), or send P2P. The vault binding travels with the ID.",
+    title: "List, rent, or lend access",
+    body: "Circulate on the marketplace. Soon: lend use without sharing private files.",
     href: "/dashboard/ecosystem",
   },
-];
+] as const;
 
 export function JourneySection() {
   return (
-    <section id="journey" className="scroll-mt-24 px-6 py-20 sm:px-8 sm:py-28">
+    <section id="journey" className="scroll-mt-24 px-6 py-16 sm:px-8 sm:py-24">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl">
-          <p className="text-[11px] font-semibold    text-[var(--brand)]">
-            Flow
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold   sm:text-5xl">
-            The path you actually walk
-          </h2>
-          <p className="mt-4 text-muted-foreground leading-relaxed">
-            Vault → knowledge → chat → ownable Agentic ID → ecosystem. Trading
-            desk is optional — same Concierge, secondary mode.
-          </p>
-        </div>
+        <div className="landing-card overflow-hidden p-2 sm:p-3">
+          <div className="rounded-[1.4rem] bg-gradient-to-br from-[#12081f] via-[#1a1030] to-[#3a2458] px-6 py-10 text-white sm:px-10 sm:py-14">
+            <p className="text-xs font-semibold text-white/60">Flow</p>
+            <h2 className="font-display mt-3 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">
+              The path you actually walk
+            </h2>
+            <p className="mt-3 max-w-lg text-sm leading-relaxed text-white/65">
+              Vault → knowledge → chat → own your ID → circulate it.
+            </p>
 
-        <ol className="mt-12 divide-y divide-border/70 border-y border-border/70">
-          {BEATS.map((beat) => (
-            <li key={beat.n}>
-              <Link
-                href={beat.href}
-                className="group grid gap-3 py-7 transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_5%,transparent)] sm:grid-cols-[4rem_minmax(0,1fr)_8rem] sm:items-baseline sm:gap-6 sm:px-2"
-              >
-                <span className="font-mono text-sm tabular-nums text-muted-foreground">
-                  {beat.n}
-                </span>
-                <div>
-                  <h3 className="text-xl font-semibold   group-hover:text-[var(--brand)] sm:text-2xl">
-                    {beat.title}
-                  </h3>
-                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                    {beat.body}
-                  </p>
-                </div>
-                <span className="text-xs font-medium text-muted-foreground sm:text-right">
-                  {beat.detail}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ol>
+            <ol className="mt-10 space-y-0 divide-y divide-white/10">
+              {BEATS.map((beat) => (
+                <li key={beat.n}>
+                  <Link
+                    href={beat.href}
+                    className="group grid gap-2 py-5 transition-colors sm:grid-cols-[3.5rem_minmax(0,1fr)] sm:items-baseline sm:gap-6"
+                  >
+                    <span className="font-mono text-sm text-white/45">
+                      {beat.n}
+                    </span>
+                    <div>
+                      <h3 className="text-lg font-semibold group-hover:text-[color-mix(in_srgb,var(--brand)_80%,white)] sm:text-xl">
+                        {beat.title}
+                      </h3>
+                      <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/60">
+                        {beat.body}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -63,7 +63,7 @@ function ExternalLink({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
+        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors",
         "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-accent)] hover:text-white",
         className
       )}
@@ -78,7 +78,7 @@ export function SidebarFeedback({ expanded }: { expanded: boolean }) {
   if (expanded) {
     return (
       <div className="shrink-0 px-2 py-3">
-        <p className="mb-2 px-2.5 text-[10px] font-medium     text-[var(--sidebar-muted)]">
+        <p className="mb-2 px-2.5 text-[10px] font-medium text-[var(--sidebar-muted)]">
           Help & feedback
         </p>
         <nav className="flex flex-col ">

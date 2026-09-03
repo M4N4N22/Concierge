@@ -28,6 +28,7 @@ import { boardAuthMessage } from "@/lib/boardAuthMessage";
 import { uploadAndRegisterOnVault } from "@/utils/upload";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { zeroGMainnet } from "@/lib/wagmi/config";
 
 export const ASK_DEFAULT =
   "Based on my agent knowledge, where did I spend the most, and what patterns should I know about?";
@@ -211,7 +212,7 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
       );
       const result = await uploadAndRegisterOnVault(file, addFile, (h) => h, {
         category: "evidence:board",
-        useTestnet: true,
+        useTestnet: chainId !== zeroGMainnet.id,
         successMessage: "Transcript saved",
       });
       if (!result) return;

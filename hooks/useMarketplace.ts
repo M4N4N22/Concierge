@@ -29,6 +29,7 @@ import {
 import { fetchVaultFilesForUser } from "@/lib/vault/fetchVaultFilesForUser";
 import { fetchPersonalityFromUri } from "@/lib/agentPersonality";
 import type { VaultFile } from "@/hooks/useUserFiles";
+import { zeroGFeeOverrides } from "@/lib/zeroGGas";
 
 type VaultFileSummary = Pick<VaultFile, "category" | "insightsCID">;
 
@@ -88,12 +89,14 @@ export function useMarketplace() {
       if (!address) throw new Error("Wallet not connected");
       const nonce =
         opts?.nonce ?? (await getPendingNonce(publicClient, address));
+      const fees = await zeroGFeeOverrides(publicClient, cid);
 
       try {
         const hash = await writeContractAsync({
           ...request,
           chainId: cid,
           nonce,
+          ...fees,
         });
         await waitForReceipt(publicClient, hash);
         return hash;
@@ -104,6 +107,7 @@ export function useMarketplace() {
           ...request,
           chainId: cid,
           nonce: refreshed,
+          ...fees,
         });
         await waitForReceipt(publicClient, hash);
         return hash;
@@ -389,17 +393,14 @@ export function useMarketplace() {
       const cid = await ensureMarketplaceChain();
       const market = marketAt(cid);
       const publicClient = clientFor(cid);
-      const tx = await writeContractAsync({
+      return writeOnce(cid, publicClient, {
         address: market,
         abi: AGENT_MARKETPLACE_ABI,
         functionName: "cancelSale",
         args: [tokenId],
-        chainId: cid,
       });
-      await publicClient.waitForTransactionReceipt({ hash: tx });
-      return tx;
     },
-    [clientFor, ensureMarketplaceChain, marketAt, writeContractAsync]
+    [clientFor, ensureMarketplaceChain, marketAt, writeOnce]
   );
 
   const buy = useCallback(
@@ -423,16 +424,13 @@ export function useMarketplace() {
 
       setLoading(true);
       try {
-        const tx = await writeContractAsync({
+        return await writeOnce(cid, publicClient, {
           address: market,
           abi: AGENT_MARKETPLACE_ABI,
           functionName: "buy",
           args: [tokenId],
           value: priceWei,
-          chainId: cid,
         });
-        await publicClient.waitForTransactionReceipt({ hash: tx });
-        return tx;
       } finally {
         setLoading(false);
       }
@@ -443,7 +441,7 @@ export function useMarketplace() {
       clientFor,
       ensureMarketplaceChain,
       marketAt,
-      writeContractAsync,
+      writeOnce,
     ]
   );
 
@@ -454,20 +452,17 @@ export function useMarketplace() {
       const publicClient = clientFor(cid);
       setLoading(true);
       try {
-        const tx = await writeContractAsync({
+        return await writeOnce(cid, publicClient, {
           address: market,
           abi: AGENT_MARKETPLACE_ABI,
           functionName: "listForRent",
           args: [tokenId, parseEther(priceOg), BigInt(durationSec)],
-          chainId: cid,
         });
-        await publicClient.waitForTransactionReceipt({ hash: tx });
-        return tx;
       } finally {
         setLoading(false);
       }
     },
-    [clientFor, ensureMarketplaceChain, marketAt, writeContractAsync]
+    [clientFor, ensureMarketplaceChain, marketAt, writeOnce]
   );
 
   const cancelRent = useCallback(
@@ -475,17 +470,14 @@ export function useMarketplace() {
       const cid = await ensureMarketplaceChain();
       const market = marketAt(cid);
       const publicClient = clientFor(cid);
-      const tx = await writeContractAsync({
+      return writeOnce(cid, publicClient, {
         address: market,
         abi: AGENT_MARKETPLACE_ABI,
         functionName: "cancelRent",
         args: [tokenId],
-        chainId: cid,
       });
-      await publicClient.waitForTransactionReceipt({ hash: tx });
-      return tx;
     },
-    [clientFor, ensureMarketplaceChain, marketAt, writeContractAsync]
+    [clientFor, ensureMarketplaceChain, marketAt, writeOnce]
   );
 
   const rent = useCallback(
@@ -495,21 +487,18 @@ export function useMarketplace() {
       const publicClient = clientFor(cid);
       setLoading(true);
       try {
-        const tx = await writeContractAsync({
+        return await writeOnce(cid, publicClient, {
           address: market,
           abi: AGENT_MARKETPLACE_ABI,
           functionName: "rent",
           args: [tokenId],
           value: priceWei,
-          chainId: cid,
         });
-        await publicClient.waitForTransactionReceipt({ hash: tx });
-        return tx;
       } finally {
         setLoading(false);
       }
     },
-    [clientFor, ensureMarketplaceChain, marketAt, writeContractAsync]
+    [clientFor, ensureMarketplaceChain, marketAt, writeOnce]
   );
 
   const transferAgent = useCallback(
@@ -530,15 +519,12 @@ export function useMarketplace() {
       setLoading(true);
       try {
         const publicClient = clientFor(cid);
-        const tx = await writeContractAsync({
+        return await writeOnce(cid, publicClient, {
           address: agentAt(cid),
           abi: INFT_AGENT_ABI,
           functionName: "transferFrom",
           args: [address, to, tokenId],
-          chainId: cid,
         });
-        await publicClient.waitForTransactionReceipt({ hash: tx });
-        return tx;
       } finally {
         setLoading(false);
       }
@@ -550,7 +536,7 @@ export function useMarketplace() {
       clientFor,
       isConnected,
       switchChainAsync,
-      writeContractAsync,
+      writeOnce,
     ]
   );
 

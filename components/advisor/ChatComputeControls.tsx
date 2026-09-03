@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
 import type { ComputeQuota } from "@/hooks/useComputeQuota";
+import { cachedJson } from "@/lib/cachedJson";
+import { COMPUTE_CACHE_TTL, computeCatalogCacheKey } from "@/lib/computeCacheKeys";
 import { AUTO_MODEL_ID, type ComputeModelOption } from "@/lib/computeModels";
 import { cn } from "@/lib/utils";
 
@@ -40,16 +42,31 @@ export function ChatComputeControls({
 }: ChatComputeControlsProps) {
   const { readiness, operator } = useComputeLedgerContext();
   const [models, setModels] = useState<ComputeModelOption[]>([]);
+  const [defaultModel, setDefaultModel] = useState<string | null>(null);
   const [PayWidget, setPayWidget] = useState<
     React.ComponentType<{ provider: EIP1193Provider }> | null
   >(null);
 
   useEffect(() => {
-    fetch("/api/compute/models")
-      .then((r) => r.json())
-      .then((data) => setModels(data.models ?? []))
+    cachedJson<{ models?: ComputeModelOption[]; defaultModel?: string }>(
+      computeCatalogCacheKey(),
+      "/api/compute/models",
+      { ttlMs: COMPUTE_CACHE_TTL.modelsCatalog }
+    )
+      .then((data) => {
+        setModels(data.models ?? []);
+        setDefaultModel(data.defaultModel ?? null);
+      })
       .catch(() => setModels([]));
   }, []);
+
+  useEffect(() => {
+    if (!defaultModel || !models.length) return;
+    const ids = new Set(models.map((m) => m.id));
+    if (selectedModel === AUTO_MODEL_ID || !ids.has(selectedModel)) {
+      onModelChange(defaultModel);
+    }
+  }, [defaultModel, models, onModelChange, selectedModel]);
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_ENABLE_OG_PAY !== "true") return;
@@ -71,18 +88,22 @@ export function ChatComputeControls({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={selectedModel} onValueChange={onModelChange}>
+        <Select
+          value={
+            models.some((m) => m.id === selectedModel)
+              ? selectedModel
+              : undefined
+          }
+          onValueChange={onModelChange}
+        >
           <SelectTrigger
             size="sm"
             className="h-8 rounded-full border-border/60 bg-muted/30 px-3 text-[11px] font-medium"
           >
             <SelectValue placeholder="Model" />
           </SelectTrigger>
-          <SelectContent align="start">
-            {(models.length
-              ? models
-              : [{ id: AUTO_MODEL_ID, label: "Auto" }]
-            ).map((m) => (
+          <SelectContent align="start" className="max-h-72">
+            {models.map((m) => (
               <SelectItem key={m.id} value={m.id} className="text-xs">
                 <span className="font-medium">{m.label}</span>
                 {m.description ? (
@@ -118,7 +139,7 @@ export function ChatComputeControls({
                   />
                 </div>
                 <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
-                  {quota.remaining}/{quota.limit} left today
+                  {quota.remaining}/{quota.limit} chat left this week
                 </span>
               </>
             ) : (
@@ -134,8 +155,8 @@ export function ChatComputeControls({
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2">
           <p className="text-[11px] leading-snug text-muted-foreground">
             {isExhausted
-              ? "Daily free compute used up — top up to keep chatting."
-              : "Running low on free compute — top up before you hit the limit."}
+              ? "Weekly free chat limit used up — top up to keep chatting."
+              : "Running low on free chat quota — top up before you hit the limit."}
           </p>
           <div className="flex flex-wrap gap-2">
             {PayWidget && typeof window !== "undefined" && window.ethereum ? (

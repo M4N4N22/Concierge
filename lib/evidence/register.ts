@@ -18,6 +18,7 @@ export async function registerEvidencePack(
   options?: {
     onProgress?: (phase: "storage" | "vault") => void;
     useTestnet?: boolean;
+    chainId?: number;
   }
 ): Promise<{ rootHash: string; txHash?: string; pack: VaultEvidence } | null> {
   const file = evidenceToFile(pack);
@@ -31,7 +32,8 @@ export async function registerEvidencePack(
       {
         category: evidenceCategory(pack.type),
         encryptedKey: "",
-        useTestnet: options?.useTestnet ?? true,
+        useTestnet: options?.useTestnet,
+        chainId: options?.chainId,
         onProgress: options?.onProgress,
         toastId,
         successMessage: `${pack.title} added as ${evidenceCategory(pack.type)}`,

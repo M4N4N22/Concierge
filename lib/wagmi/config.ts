@@ -39,3 +39,17 @@ export const config = createConfig({
     [zeroGTestnet.id]: http("https://evmrpc-testnet.0g.ai"),
   },
 });
+
+export const SUPPORTED_CHAINS = [zeroGTestnet, zeroGMainnet] as const;
+
+export function networkShortLabel(chainId: number): string {
+  if (chainId === zeroGMainnet.id) return "Mainnet";
+  if (chainId === zeroGTestnet.id) return "Galileo";
+  return "Unknown";
+}
+
+export function networkDisplayLabel(chainId: number): string {
+  if (chainId === zeroGMainnet.id) return "0G Mainnet";
+  if (chainId === zeroGTestnet.id) return "Galileo Testnet";
+  return `Chain ${chainId}`;
+}

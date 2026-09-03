@@ -111,8 +111,8 @@ export function NeedsAttentionPanel({
           <li className="flex items-start gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50/60 px-3.5 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Vault, compute, and agents are in good shape. Explore Trading or
-              Ecosystem from the sidebar when you&apos;re ready.
+              Vault and agents are in good shape. Explore Chat or Ecosystem
+              from the sidebar when you&apos;re ready.
             </p>
           </li>
         ) : (

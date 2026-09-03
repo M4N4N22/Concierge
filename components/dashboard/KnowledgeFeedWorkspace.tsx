@@ -8,7 +8,7 @@ import InsightsWorkspace from "@/components/vault/InsightsWorkspace";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
 import { KNOWLEDGE_BASE_COPY } from "@/lib/knowledge/knowledgeStats";
 import { CollapsibleGuideRail, type GuideItem } from "@/components/dashboard/CollapsibleGuideRail";
-import { BrainCircuit, FileStack, MessageSquare, Sparkles } from "lucide-react";
+import { BrainCircuit, Cpu, FileStack, MessageSquare, Sparkles } from "lucide-react";
 
 const FEED_GUIDE: GuideItem[] = [
   {
@@ -16,6 +16,12 @@ const FEED_GUIDE: GuideItem[] = [
     icon: BrainCircuit,
     title: "Feed files",
     body: "Select stored vault uploads. 0G Compute reads each file, assigns a category, and writes a summary to storage and your on-chain registry.",
+  },
+  {
+    id: "quota",
+    icon: Cpu,
+    title: "Weekly feed quota",
+    body: "Each analyzed file uses one feed action. Separate from chat — 10 feeds and 10 chats per wallet per week on the free tier.",
   },
   {
     id: "quick-add",

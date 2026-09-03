@@ -12,16 +12,23 @@ export type ChatBlocker =
   | "load_failed"
   | null;
 
+export type ChatReadinessStep = {
+  id: string;
+  label: string;
+  done: boolean;
+  href?: string;
+  action?: string;
+};
+
 export type ChatReadinessInput = {
   intent: ChatIntent;
   isConnected: boolean;
   loadingEvidence: boolean;
+  computeChecking: boolean;
   totalFiles: number;
   knowledgeFiles: number;
   askableCount: number;
-  /** Operator pool (Router) or legacy direct ledger ready */
   canCompute: boolean;
-  /** When true, users skip ledger setup — Concierge covers inference */
   operatorSubsidized: boolean;
   hasLedger: boolean;
   hasBalance: boolean;
@@ -33,63 +40,91 @@ export type ChatReadiness = {
   blocker: ChatBlocker;
   title: string;
   detail: string;
-  steps: { id: string; label: string; done: boolean; href?: string; action?: string }[];
+  steps: ChatReadinessStep[];
+  /** Hide the step checklist — used during background loading */
+  hideSteps?: boolean;
 };
 
 export function countAgentKnowledge(files: VaultFile[]): number {
   return files.filter((f) => isAgentKnowledge(f)).length;
 }
 
-export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
-  const computeReady = input.canCompute;
-
-  const steps = [
+function buildSteps(input: ChatReadinessInput): ChatReadinessStep[] {
+  const steps: ChatReadinessStep[] = [
     {
       id: "wallet",
       label: "Connect wallet",
       done: input.isConnected,
     },
-    {
-      id: "files",
-      label: "Add stored files to your vault",
-      done: input.totalFiles > 0,
-      href: "/dashboard/vault/upload",
-      action: "Open Vault",
-    },
-    {
-      id: "knowledge",
-      label: "Turn files into agent knowledge",
-      done: input.knowledgeFiles > 0,
-      href: "/dashboard/knowledge/feed",
-      action: "Feed files",
-    },
-    {
-      id: "ledger",
-      label: "Create compute ledger",
-      done: input.hasLedger || input.operatorSubsidized,
+  ];
+
+  if (input.intent === "vault") {
+    steps.push(
+      {
+        id: "files",
+        label: "Add files to your vault",
+        done: input.totalFiles > 0,
+        href: "/dashboard/vault/upload",
+        action: "Upload",
+      },
+      {
+        id: "knowledge",
+        label: "Feed files into knowledge base",
+        done: input.knowledgeFiles > 0,
+        href: "/dashboard/knowledge/feed",
+        action: "Feed files",
+      }
+    );
+  }
+
+  if (!input.operatorSubsidized) {
+    steps.push(
+      {
+        id: "ledger",
+        label: "Create compute ledger",
+        done: input.hasLedger,
+        href: "/dashboard/knowledge/compute",
+        action: "Set up compute",
+      },
+      {
+        id: "balance",
+        label: "Deposit OG into ledger",
+        done: input.hasBalance,
+        href: "/dashboard/knowledge/compute",
+        action: "Fund ledger",
+      },
+      {
+        id: "provider",
+        label: "Fund an AI model provider",
+        done: input.hasFundedProvider,
+        href: "/dashboard/knowledge/compute",
+        action: "Fund model",
+      }
+    );
+  } else {
+    steps.push({
+      id: "compute",
+      label: "Concierge compute ready",
+      done: input.canCompute,
       href: "/dashboard/knowledge/compute",
-      action: "Set up compute",
-    },
-    {
-      id: "balance",
-      label: "Deposit OG into ledger",
-      done: input.hasBalance || input.operatorSubsidized,
-      href: "/dashboard/knowledge/compute",
-      action: "Fund ledger",
-    },
-    {
-      id: "provider",
-      label: "Fund an AI model provider",
-      done: input.hasFundedProvider || input.operatorSubsidized,
-      href: "/dashboard/knowledge/compute",
-      action: "Fund model",
-    },
-    {
+      action: "View compute",
+    });
+  }
+
+  if (input.intent === "vault") {
+    steps.push({
       id: "askable",
       label: "Load knowledge for Chat",
       done: input.askableCount > 0,
-    },
-  ];
+    });
+  }
+
+  return steps;
+}
+
+export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
+  const steps = buildSteps(input);
+  const computeReady = input.canCompute;
 
   if (!input.isConnected) {
     return {
@@ -99,19 +134,31 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       detail:
         input.intent === "casual"
           ? "Connect a 0G wallet to chat with Concierge."
-          : "Chat runs on your vault. Connect a 0G wallet to ask what your files know.",
+          : "Connect a 0G wallet to ask questions about your vault.",
       steps,
     };
   }
 
   if (input.intent === "casual") {
+    if (input.computeChecking) {
+      return {
+        canSend: false,
+        blocker: "loading",
+        title: "Checking compute…",
+        detail: "Verifying inference is available — this takes a moment.",
+        steps: [],
+        hideSteps: true,
+      };
+    }
+
     if (!computeReady) {
       return {
         canSend: false,
         blocker: "compute",
         title: "Compute unavailable",
-        detail:
-          "Concierge inference is temporarily unavailable. The operator pool needs funding — try again later.",
+        detail: input.operatorSubsidized
+          ? "Concierge inference is temporarily unavailable — try again shortly."
+          : "Finish compute setup on the Knowledge base Compute page.",
         steps,
       };
     }
@@ -131,10 +178,11 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
     return {
       canSend: false,
       blocker: "loading",
-      title: "Loading agent knowledge…",
+      title: "Loading vault knowledge…",
       detail:
-        "Checking which vault files Chat can read — structured evidence and Insights summaries.",
-      steps,
+        "Reading your knowledge base in the background. Switch to Casual to chat now, or wait a few seconds.",
+      steps: [],
+      hideSteps: true,
     };
   }
 
@@ -144,7 +192,7 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       blocker: "no_files",
       title: "No vault files yet",
       detail:
-        "Uploads land on 0G first. Add files in Vault, then feed them in Knowledge base so Chat can answer.",
+        "Upload files in Vault, then feed them in Knowledge base so Chat can answer from your data.",
       steps,
     };
   }
@@ -153,20 +201,31 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
     return {
       canSend: false,
       blocker: "no_knowledge",
-      title: "Stored files — not agent knowledge yet",
-      detail: `You have ${input.totalFiles} stored file${input.totalFiles === 1 ? "" : "s"}, but Chat can't use raw uploads. Feed files in Knowledge base or use Quick add.`,
+      title: "Files stored — not in knowledge base yet",
+      detail: `You have ${input.totalFiles} stored file${input.totalFiles === 1 ? "" : "s"}. Feed them in Knowledge base or use Quick add before asking vault questions.`,
       steps,
+    };
+  }
+
+  if (input.computeChecking) {
+    return {
+      canSend: false,
+      blocker: "loading",
+      title: "Checking compute…",
+      detail: "Verifying inference is available.",
+      steps: [],
+      hideSteps: true,
     };
   }
 
   if (!computeReady) {
     const computeDetail = input.operatorSubsidized
-      ? "Concierge inference is temporarily unavailable. Try again later."
+      ? "Concierge inference is temporarily unavailable — try again shortly."
       : !input.hasLedger
-        ? "Create your compute ledger on the Knowledge base Compute page — Chat uses 0G Compute."
+        ? "Create your compute ledger on the Knowledge base Compute page."
         : !input.hasBalance
-          ? "Deposit OG into your ledger so inference can run when you send a message."
-          : "Fund at least one AI model provider on the Compute page before Chat can respond.";
+          ? "Deposit OG into your ledger so inference can run."
+          : "Fund at least one AI model provider on the Compute page.";
 
     return {
       canSend: false,
@@ -181,9 +240,9 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
     return {
       canSend: false,
       blocker: "load_failed",
-      title: "Couldn't load agent knowledge",
+      title: "Couldn't load knowledge",
       detail:
-        "Your vault has knowledge files, but Chat couldn't read them from storage. Try Refresh or re-feed on Knowledge base.",
+        "Knowledge files exist but couldn't be read from storage. Try Refresh or re-feed on Knowledge base.",
       steps,
     };
   }

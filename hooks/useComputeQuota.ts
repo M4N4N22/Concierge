@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAccount } from "wagmi";
+import { cachedJson } from "@/lib/cachedJson";
+import { COMPUTE_CACHE_TTL, quotaCacheKey } from "@/lib/computeCacheKeys";
 
 export type ComputeQuota = {
   used: number;
@@ -10,23 +12,41 @@ export type ComputeQuota = {
   resetsAt: number | null;
 };
 
-export function useComputeQuota(enabled = true) {
+export type ComputeQuotas = {
+  chat: ComputeQuota;
+  feed: ComputeQuota;
+};
+
+export type ComputeQuotaKind = "chat" | "feed";
+
+export function useComputeQuota(
+  enabled = true,
+  kind: ComputeQuotaKind = "chat"
+) {
   const { address, isConnected } = useAccount();
-  const [quota, setQuota] = useState<ComputeQuota | null>(null);
+  const [quotas, setQuotas] = useState<ComputeQuotas | null>(null);
+  const [subsidized, setSubsidized] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!enabled || !isConnected || !address) {
-      setQuota(null);
+      setQuotas(null);
+      setSubsidized(false);
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/compute/quota?wallet=${address}`);
-      const data = await res.json();
-      setQuota(data.quota ?? null);
+      const data = await cachedJson<{
+        quotas?: ComputeQuotas | null;
+        subsidized?: boolean;
+      }>(quotaCacheKey(address), `/api/compute/quota?wallet=${address}`, {
+        ttlMs: COMPUTE_CACHE_TTL.quota,
+      });
+      setQuotas(data.quotas ?? null);
+      setSubsidized(Boolean(data.subsidized));
     } catch {
-      setQuota(null);
+      setQuotas(null);
+      setSubsidized(false);
     } finally {
       setLoading(false);
     }
@@ -36,6 +56,8 @@ export function useComputeQuota(enabled = true) {
     void refresh();
   }, [refresh]);
 
+  const quota = quotas?.[kind] ?? null;
+
   const pctRemaining =
     quota && quota.limit > 0 ? quota.remaining / quota.limit : null;
   const isLow =
@@ -44,6 +66,8 @@ export function useComputeQuota(enabled = true) {
 
   return {
     quota,
+    quotas,
+    subsidized,
     loading,
     refresh,
     pctRemaining,

@@ -214,7 +214,7 @@ function VaultOverviewBody() {
               </div>
             </Link>
             <Link
-              href="/dashboard/advisor/chat"
+              href="/dashboard/advisor/chat?intent=vault"
               className="flex items-start gap-3 rounded-2xl border border-border/50 bg-muted/30 p-4 transition-colors hover:bg-muted/50"
             >
               <MessageSquare className="mt-0.5 h-5 w-5 text-[var(--brand)]" />

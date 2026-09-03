@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useComputeQuota } from "@/hooks/useComputeQuota";
 import { cn } from "@/lib/utils";
 import { truncateHash } from "@/lib/explorer";
 import {
@@ -21,6 +22,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Upload,
+  Cpu,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +38,12 @@ export default function InsightsWorkspace() {
   const { files, loading: filesLoading, refetch } = useUserFiles();
   const { readiness } = useComputeLedgerContext();
   const { updateInsights } = useAddToVault();
+  const {
+    quota: feedQuota,
+    loading: feedQuotaLoading,
+    refresh: refreshFeedQuota,
+    isExhausted: feedQuotaExhausted,
+  } = useComputeQuota(readiness.operatorSubsidized, "feed");
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [insights, setInsights] = useState<Record<string, FileInsight>>({});
@@ -56,9 +64,24 @@ export default function InsightsWorkspace() {
     });
   };
 
-  const selectAll = () => {
-    const unprocessed = files.filter((f) => !insights[f.rootHash]?.summary);
-    setSelected(new Set(unprocessed.map((f) => f.rootHash)));
+  const isSelectable = (file: VaultFile) => {
+    const insight = insights[file.rootHash];
+    const hasResult = insight?.summary && !insight.error;
+    const onChainCategory = file.category !== "unassigned" ? file.category : null;
+    return !hasResult && !onChainCategory;
+  };
+
+  const selectableFiles = files.filter(isSelectable);
+  const allSelected =
+    selectableFiles.length > 0 &&
+    selectableFiles.every((f) => selected.has(f.rootHash));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelected(new Set());
+      return;
+    }
+    setSelected(new Set(selectableFiles.map((f) => f.rootHash)));
   };
 
   const computeOne = async (file: VaultFile): Promise<FileInsight> => {
@@ -85,6 +108,20 @@ export default function InsightsWorkspace() {
       toast.error("Select at least one file");
       return;
     }
+    if (
+      readiness.operatorSubsidized &&
+      feedQuota &&
+      selected.size > feedQuota.remaining
+    ) {
+      toast.error(
+        `Only ${feedQuota.remaining} feed action${feedQuota.remaining === 1 ? "" : "s"} left this week — select fewer files or top up on Compute.`
+      );
+      return;
+    }
+    if (readiness.operatorSubsidized && feedQuotaExhausted) {
+      toast.error("Weekly feed limit reached — top up on the Compute page.");
+      return;
+    }
 
     const toProcess = files.filter((f) => selected.has(f.rootHash));
     setProcessing(true);
@@ -104,6 +141,9 @@ export default function InsightsWorkspace() {
           [file.rootHash]: { category: "error", summary: "", error: message },
         }));
         toast.error(message);
+        if (message.toLowerCase().includes("weekly free feed limit")) {
+          break;
+        }
       }
       setProgress({ done: i + 1, total: toProcess.length });
     }
@@ -112,6 +152,7 @@ export default function InsightsWorkspace() {
     setProcessing(false);
     setSelected(new Set());
     await refetch({ silent: true });
+    void refreshFeedQuota();
   };
 
   const grouped = files.reduce<Record<string, VaultFile[]>>((acc, file) => {
@@ -126,6 +167,13 @@ export default function InsightsWorkspace() {
 
   const categories = Object.keys(grouped).sort();
   const hasInsights = Object.values(insights).some((i) => i.summary && !i.error);
+
+  const feedPctRemaining =
+    feedQuota && feedQuota.limit > 0
+      ? feedQuota.remaining / feedQuota.limit
+      : null;
+  const feedQuotaLow =
+    feedPctRemaining != null && feedPctRemaining > 0 && feedPctRemaining <= 0.15;
 
   if (!isConnected) {
     return (
@@ -160,23 +208,63 @@ export default function InsightsWorkspace() {
             <h2 className="text-sm font-semibold">Feed vault files</h2>
             <p className="text-xs text-muted-foreground">
               Select stored uploads — 0G Compute categorizes and summarizes each one for your knowledge base
+              {readiness.operatorSubsidized && selectableFiles.length > 0 ? (
+                <> · {selectableFiles.length} selectable</>
+              ) : null}
             </p>
+            {readiness.operatorSubsidized && (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-muted/40 px-3 py-1">
+                <Cpu className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                {feedQuotaLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                ) : feedQuota ? (
+                  <>
+                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          feedQuotaExhausted
+                            ? "bg-destructive"
+                            : feedQuotaLow
+                              ? "bg-amber-500"
+                              : "bg-[var(--brand)]"
+                        )}
+                        style={{
+                          width: `${Math.max(0, Math.min(100, (feedPctRemaining ?? 0) * 100))}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-medium tabular-nums text-muted-foreground">
+                      {feedQuota.remaining}/{feedQuota.limit} feeds left this week
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">
+                    Feed quota
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           {files.length > 0 && readiness.canCompute && (
             <div className="flex shrink-0 gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={selectAll}
-                disabled={processing}
+                onClick={toggleSelectAll}
+                disabled={processing || selectableFiles.length === 0}
               >
-                Select all
+                {allSelected ? "Clear selection" : "Select all"}
               </Button>
               <Button
                 size="sm"
                 className="gap-2"
                 onClick={runInsights}
-                disabled={processing || selected.size === 0}
+                disabled={
+                  processing ||
+                  selected.size === 0 ||
+                  (readiness.operatorSubsidized && feedQuotaExhausted)
+                }
               >
                 {processing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -185,7 +273,11 @@ export default function InsightsWorkspace() {
                 )}
                 {processing
                   ? `Analyzing ${progress.done}/${progress.total}…`
-                  : `Analyze ${selected.size || ""} file${selected.size !== 1 ? "s" : ""}`}
+                  : selected.size > 0 &&
+                      readiness.operatorSubsidized &&
+                      feedQuota
+                    ? `Analyze ${selected.size} file${selected.size !== 1 ? "s" : ""} (${selected.size} of ${feedQuota.remaining} left)`
+                    : `Analyze ${selected.size || ""} file${selected.size !== 1 ? "s" : ""}`}
               </Button>
             </div>
           )}

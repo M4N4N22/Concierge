@@ -61,6 +61,7 @@ export async function fetchPersonalityFromUri(
 export async function publishPersonality(args: {
   name: string;
   bio: string;
+  chainId?: number;
 }): Promise<{ uri: string; rootHash: string } | null> {
   const pack: AgentPersonality = {
     schemaVersion: PERSONALITY_SCHEMA,
@@ -74,7 +75,10 @@ export async function publishPersonality(args: {
   const file = new File([blob], `concierge-personality-${Date.now()}.json`, {
     type: "application/json",
   });
-  const uploaded = await uploadFileSafe(file, { silent: true });
+  const uploaded = await uploadFileSafe(file, {
+    silent: true,
+    chainId: args.chainId,
+  });
   if (!uploaded?.rootHash) return null;
   return {
     rootHash: uploaded.rootHash,

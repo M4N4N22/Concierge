@@ -31,6 +31,7 @@ export function useTradeMemory() {
         (rootHash) => rootHash,
         {
           category: evidenceCategory("trade"),
+          chainId,
           useTestnet: (chainId ?? 16602) === 16602,
           toastId,
           successMessage: "Trade decision saved to vault",

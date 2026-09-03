@@ -19,6 +19,7 @@ import {
 } from "@/lib/evidence";
 import { toast } from "sonner";
 import { VAULT_TERMS } from "@/lib/copy/vaultTerms";
+import { zeroGMainnet } from "@/lib/wagmi/config";
 
 type Props = {
   onRegistered?: (result: {
@@ -34,6 +35,7 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
   const chainId = useChainId();
   const { addFile } = useAddToVault();
   const { fetchWalletEvidence, loading: walletLoading } = useWalletEvidence();
+  const useTestnet = chainId !== zeroGMainnet.id;
 
   const [busy, setBusy] = useState(false);
   const [briefing, setBriefing] = useState("");
@@ -47,7 +49,7 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
     setPreview(pack);
     try {
       const result = await registerEvidencePack(pack, addFile, {
-        useTestnet: true,
+        useTestnet,
       });
       if (result) onRegistered?.(result);
     } finally {
@@ -99,7 +101,7 @@ export default function EvidenceIntake({ onRegistered, disabled }: Props) {
                 const pack = await fetchWalletEvidence();
                 setPreview(pack);
                 const result = await registerEvidencePack(pack, addFile, {
-                  useTestnet: true,
+                  useTestnet,
                 });
                 if (result) onRegistered?.(result);
               } catch (err: unknown) {

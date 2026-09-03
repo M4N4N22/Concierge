@@ -1,3 +1,5 @@
+import "./landing.css";
+import { LandingHeader } from "./LandingHeader";
 import { HeroSection } from "./sections/HeroSection";
 import { StackSection } from "./sections/StackSection";
 import { JourneySection } from "./sections/JourneySection";
@@ -8,7 +10,8 @@ import { LandingFooter } from "./sections/LandingFooter";
 
 const Landing = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="landing-site min-h-screen">
+      <LandingHeader />
       <HeroSection />
       <StackSection />
       <JourneySection />

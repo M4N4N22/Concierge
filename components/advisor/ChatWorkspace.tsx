@@ -38,7 +38,10 @@ import { boardAuthMessage } from "@/lib/boardAuthMessage";
 import { readCachedPersonality } from "@/lib/agentPersonality";
 import { AUTO_MODEL_ID } from "@/lib/computeModels";
 import { useComputeQuota } from "@/hooks/useComputeQuota";
-import { vaultCategoryLabel } from "@/lib/copy/vaultTerms";
+import {
+  buildVaultFallbackQuestions,
+  buildVaultTipContext,
+} from "@/lib/chat/vaultSuggestions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
@@ -66,6 +69,18 @@ function withQuestionIds(
     seenPrompts.add(id);
     return { ...q, id };
   });
+}
+
+function toVaultQuestions(
+  suggestions: ReturnType<typeof buildVaultFallbackQuestions>
+): VaultQuestion[] {
+  return suggestions.map((s) => ({
+    id: s.id,
+    icon: s.icon,
+    title: s.title,
+    description: s.description,
+    prompt: s.prompt,
+  }));
 }
 
 const CASUAL_SUGGESTIONS: VaultQuestion[] = withQuestionIds([
@@ -155,83 +170,9 @@ function greetingName(
   return null;
 }
 
-function formatUploadedAt(ts: number) {
-  const d = new Date(ts * 1000);
-  const now = Date.now();
-  const diff = now - d.getTime();
-  if (diff < 86400000) return "today";
-  if (diff < 86400000 * 2) return "yesterday";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-function fallbackQuestions(files: VaultFile[]): VaultQuestion[] {
-  const recent = [...files]
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 3);
-  if (!recent.length) {
-    return withQuestionIds([
-      {
-        icon: Lightbulb,
-        title: "Vault overview",
-        description: "Start with what you have stored",
-        prompt: "Summarize what my vault knows so far.",
-      },
-    ]);
-  }
-
-  const categoryCounts = new Map<string, number>();
-  for (const f of recent) {
-    categoryCounts.set(f.category, (categoryCounts.get(f.category) ?? 0) + 1);
-  }
-
-  return withQuestionIds(
-    recent.map((f) => {
-      const label = vaultCategoryLabel(f.category);
-      const when = formatUploadedAt(f.timestamp);
-      const duplicateCategory = (categoryCounts.get(f.category) ?? 0) > 1;
-      const fileHint = f.rootHash.slice(2, 10);
-
-      return {
-        icon: Sparkles,
-        title: duplicateCategory ? `${label} · ${when}` : label,
-        description: duplicateCategory
-          ? `File ${fileHint}…`
-          : `Uploaded ${when}`,
-        prompt: duplicateCategory
-          ? `What can you tell me from my ${label.toLowerCase()} upload from ${when}? (ref ${fileHint})`
-          : `What can you tell me from my ${label.toLowerCase()} upload?`,
-      };
-    })
-  );
-}
-
-async function buildVaultContext(
-  files: VaultFile[],
-  fetchFileContent: (hash: string) => Promise<string>
-) {
-  const recent = [...files].sort((a, b) => b.timestamp - a.timestamp).slice(0, 8);
-  return Promise.all(
-    recent.map(async (f) => {
-      let summary = "";
-      if (f.insightsCID && f.insightsCID !== "0x" + "0".repeat(64)) {
-        try {
-          summary = (await fetchFileContent(f.insightsCID)).slice(0, 500);
-        } catch {
-          summary = f.category;
-        }
-      }
-      return {
-        category: f.category,
-        summary: summary || "stored — run Insights for a summary",
-        uploadedAt: formatUploadedAt(f.timestamp),
-        rootHash: f.rootHash,
-      };
-    })
-  );
-}
-
 function parseIntent(raw: string | null): ChatIntent {
-  return raw === "casual" ? "casual" : "vault";
+  if (raw === "vault") return "vault";
+  return "casual";
 }
 
 export function ChatWorkspace() {
@@ -242,7 +183,8 @@ export function ChatWorkspace() {
   const { files, refetch } = useUserFiles();
   const { fetchFileContent } = usefetchFileContent();
   const { agent } = useAgenticId();
-  const { readiness, loading: ledgerLoading } = useComputeLedgerContext();
+  const { readiness, loading: operatorLoading, ledgerLoading } =
+    useComputeLedgerContext();
   const {
     quota,
     loading: quotaLoading,
@@ -313,11 +255,16 @@ export function ChatWorkspace() {
 
   const knowledgeFileCount = useMemo(() => countAgentKnowledge(files), [files]);
 
+  const computeChecking =
+    (operatorLoading || ledgerLoading) &&
+    !readiness.canCompute &&
+    !readiness.operatorSubsidized;
+
   const readinessInput = useMemo(
     () => ({
       isConnected,
-      loadingEvidence:
-        intent === "vault" && (loadingEvidence || ledgerLoading),
+      loadingEvidence: intent === "vault" && loadingEvidence,
+      computeChecking,
       totalFiles: files.length,
       knowledgeFiles: knowledgeFileCount,
       askableCount: evidence.length,
@@ -328,12 +275,12 @@ export function ChatWorkspace() {
       hasFundedProvider: readiness.hasFundedProvider,
     }),
     [
+      computeChecking,
       evidence.length,
       files.length,
       intent,
       isConnected,
       knowledgeFileCount,
-      ledgerLoading,
       loadingEvidence,
       readiness.canCompute,
       readiness.operatorSubsidized,
@@ -380,18 +327,19 @@ export function ChatWorkspace() {
   const loadVaultTips = useCallback(
     async (force = false) => {
       if (intent !== "vault") return;
-      if (!isConnected || !readiness.canCompute) {
-        setSuggestedQuestions(fallbackQuestions(files));
-        return;
-      }
+      if (!isConnected || !address || !readiness.canCompute) return;
+
       setTipsLoading(true);
+      setSuggestedQuestions([]);
+      setTipSummary(null);
+
       try {
         const synced = await refetch({ silent: true });
-        const vaultContext = await buildVaultContext(synced, fetchFileContent);
+        const vaultContext = await buildVaultTipContext(synced, fetchFileContent);
         const res = await fetch("/api/chatTips", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ vaultContext }),
+          body: JSON.stringify({ vaultContext, wallet: address }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Tips failed");
@@ -408,19 +356,23 @@ export function ChatWorkspace() {
         );
         setTipSummary(json.summary ?? null);
         setSuggestedQuestions(
-          questions.length ? questions : fallbackQuestions(synced)
+          questions.length
+            ? questions
+            : toVaultQuestions(buildVaultFallbackQuestions(synced))
         );
         tipsFetchedRef.current = true;
       } catch (err: unknown) {
         if (force) {
           toast.error(err instanceof Error ? err.message : "Tips failed");
         }
-        setSuggestedQuestions(fallbackQuestions(files));
+        setSuggestedQuestions(
+          toVaultQuestions(buildVaultFallbackQuestions(files))
+        );
       } finally {
         setTipsLoading(false);
       }
     },
-    [fetchFileContent, files, intent, isConnected, readiness.canCompute, refetch]
+    [address, fetchFileContent, files, intent, isConnected, readiness.canCompute, refetch]
   );
 
   useEffect(() => {
@@ -436,8 +388,15 @@ export function ChatWorkspace() {
   }, [intent]);
 
   useEffect(() => {
+    if (intent !== "vault" || !isConnected) {
+      if (!isConnected) {
+        setEvidence([]);
+        setKnowledgeMeta({ structured: 0, indexed: 0 });
+      }
+      return;
+    }
     void loadEvidence();
-  }, [loadEvidence]);
+  }, [intent, isConnected, loadEvidence]);
 
   useEffect(() => {
     if (
@@ -607,12 +566,14 @@ export function ChatWorkspace() {
           : "Finish setup — or switch to Casual…"
         : chatReadiness.blocker === "no_knowledge"
           ? intent === "vault"
-            ? "Run Insights on your files…"
+            ? "Feed files in Knowledge base…"
             : "Finish setup — or switch to Casual…"
           : chatReadiness.blocker === "compute"
             ? "Finish compute setup…"
             : chatReadiness.blocker === "loading"
-              ? "Loading vault knowledge…"
+              ? intent === "vault"
+                ? "Loading vault knowledge…"
+                : "Checking compute…"
               : intent === "vault"
                 ? "Fix vault loading — or switch to Casual…"
                 : "Fix setup…"
@@ -630,9 +591,6 @@ export function ChatWorkspace() {
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-3 px-1 pb-2">
-        <span className="rounded-full border border-border/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold">
-          Concierge
-        </span>
         <div className="flex flex-wrap items-center gap-2">
           {chatReadiness.canSend && intent === "vault" ? (
             <span className="rounded-full bg-muted/70 px-3 py-1 text-[11px] font-medium tabular-nums text-muted-foreground">
@@ -640,7 +598,7 @@ export function ChatWorkspace() {
             </span>
           ) : chatReadiness.canSend && intent === "casual" ? (
             <span className="rounded-full bg-muted/70 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-              {readiness.operatorSubsidized ? "Concierge compute" : "Casual"}
+              {readiness.operatorSubsidized ? "0G Compute" : "Casual"}
             </span>
           ) : null}
           {agent ? (
@@ -652,7 +610,7 @@ export function ChatWorkspace() {
             </Link>
           ) : isConnected ? (
             <Button asChild size="sm" variant="outline" className="h-8 rounded-full text-xs">
-              <Link href="/dashboard/agent/mint">Mint ID</Link>
+              <Link href="/dashboard/agent/mint">Mint Agentic ID</Link>
             </Button>
           ) : null}
           <Button asChild size="sm" variant="ghost" className="h-8 rounded-full text-xs">
@@ -673,7 +631,7 @@ export function ChatWorkspace() {
           </h1>
           <p className="mt-2 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
             {intent === "casual"
-              ? "Chat with Concierge — personality first, vault optional."
+              ? "Chat with Concierge."
               : "Ask what your vault knows."}
           </p>
 
@@ -681,12 +639,32 @@ export function ChatWorkspace() {
             <div className="mt-6 w-full max-w-2xl space-y-3">
               <ChatReadinessPanel
                 readiness={chatReadiness}
-                onRefresh={() => void loadEvidence()}
-                refreshing={loadingEvidence || ledgerLoading}
+                onRefresh={
+                  chatReadiness.blocker === "loading" ||
+                  chatReadiness.blocker === "load_failed"
+                    ? () => void loadEvidence()
+                    : undefined
+                }
+                refreshing={loadingEvidence}
               />
-              {intent === "vault" &&
-              !chatReadiness.canSend &&
+              {chatReadiness.blocker === "loading" &&
+              intent === "vault" &&
               casualReadiness.canSend ? (
+                <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                  <p className="text-center text-xs text-muted-foreground">
+                    Don&apos;t want to wait?
+                  </p>
+                  <Button
+                    type="button"
+                    className="rounded-full"
+                    onClick={() => setIntent("casual")}
+                  >
+                    Chat in Casual mode
+                  </Button>
+                </div>
+              ) : intent === "vault" &&
+                !chatReadiness.canSend &&
+                casualReadiness.canSend ? (
                 <div className="flex justify-center">
                   <Button
                     type="button"
@@ -737,7 +715,7 @@ export function ChatWorkspace() {
                 {intent === "vault" && tipsLoading ? (
                   <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    Reading recent uploads…
+                    Personalizing suggestions…
                   </span>
                 ) : intent === "vault" && tipSummary ? (
                   <p className="max-w-sm truncate text-[11px] text-muted-foreground">
@@ -746,9 +724,8 @@ export function ChatWorkspace() {
                 ) : null}
               </div>
               <div className="mt-3 grid w-full max-w-3xl gap-3 sm:grid-cols-3">
-                {(intent === "vault" &&
-                tipsLoading &&
-                suggestedQuestions.length === 0
+                {(intent === "vault" && tipsLoading) ||
+                (intent === "vault" && suggestedQuestions.length === 0)
                   ? [1, 2, 3].map((i) => (
                       <div
                         key={i}
@@ -762,13 +739,13 @@ export function ChatWorkspace() {
                         disabled={sending}
                         onSelect={() => void send(q.prompt)}
                       />
-                    )))}
+                    ))}
               </div>
               {intent === "vault" && knowledgeMeta.indexed > 0 ? (
                 <p className="mt-4 text-center text-[11px] text-muted-foreground">
                   {evidence.length} knowledge file{evidence.length === 1 ? "" : "s"}
                   {knowledgeMeta.indexed > 0
-                    ? ` · ${knowledgeMeta.indexed} from Insights`
+                    ? ` · ${knowledgeMeta.indexed} from knowledge base`
                     : ""}
                 </p>
               ) : null}
@@ -823,7 +800,7 @@ export function ChatWorkspace() {
                   readiness={chatReadiness}
                   compact
                   onRefresh={() => void loadEvidence()}
-                  refreshing={loadingEvidence || ledgerLoading}
+                  refreshing={loadingEvidence}
                 />
               ) : null}
               <ChatInputCard
@@ -1104,6 +1081,7 @@ function ChatInputCard({
                 type="button"
                 disabled={tipsLoading || !canSend}
                 onClick={onTips}
+                title="Personalized questions, once per week"
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
                   canSend

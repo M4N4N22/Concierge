@@ -4,6 +4,13 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { useChainId } from "wagmi";
 import { toast } from "sonner";
 import { MIN_LEDGER_CREATE_OG, MIN_PROVIDER_FUND_OG } from "@/lib/computeConstants";
+import { cachedJson, invalidateComputeClientCache } from "@/lib/cachedJson";
+import {
+  COMPUTE_CACHE_TTL,
+  computeStatusCacheKey,
+  ledgerCheckCacheKey,
+  modelsCacheKey,
+} from "@/lib/computeCacheKeys";
 
 export type ComputeModel = {
   provider: string;
@@ -19,7 +26,8 @@ export type OperatorComputeStatus = {
   operatorReady: boolean;
   routerConfigured: boolean;
   directConfigured: boolean;
-  freeTierDailyLimit: number;
+  freeTierChatWeeklyLimit: number;
+  freeTierFeedWeeklyLimit: number;
   routerModel?: string;
   privateComputerUrl: string;
   copy?: string;
@@ -33,7 +41,8 @@ export type ComputeReadiness = {
   operatorSubsidized: boolean;
   operatorReady: boolean;
   backend: "router" | "direct" | "none";
-  freeTierDailyLimit: number;
+  freeTierChatWeeklyLimit: number;
+  freeTierFeedWeeklyLimit: number;
 };
 
 export type LedgerState = {
@@ -54,10 +63,10 @@ export type BrokerWalletInfo = {
 };
 
 const MODEL_TAGS: Record<string, string[]> = {
-  "phala/deepseek-chat-v3-0324": ["Cheapest", "Fast"],
-  "phala/gpt-oss-120b": ["High accuracy", "Text"],
-  "phala/qwen2.5-vl-72b-instruct": ["Multimodal"],
-  "openai/gpt-oss-120b": ["Reliable", "Large files"],
+  "glm-5.3-flash": ["Cheapest", "Fast"],
+  "deepseek-v4-flash": ["Fast", "Long context"],
+  "qwen3.8-flash": ["Fast", "Multimodal"],
+  "glm-5.2": ["High accuracy"],
 };
 
 function tagModel(m: ComputeModel): ComputeModel {
@@ -83,72 +92,118 @@ export function useComputeLedger() {
     new Set()
   );
   const [loading, setLoading] = useState(true);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [operator, setOperator] = useState<OperatorComputeStatus | null>(null);
 
   const refreshOperator = useCallback(async () => {
     try {
-      const res = await fetch("/api/compute/status");
-      const data = (await res.json()) as OperatorComputeStatus;
+      const data = await cachedJson<OperatorComputeStatus>(
+        computeStatusCacheKey(),
+        "/api/compute/status",
+        { ttlMs: COMPUTE_CACHE_TTL.status }
+      );
       setOperator(data);
+      return data;
     } catch {
       setOperator(null);
+      return null;
     }
   }, []);
 
-  const refreshLedger = useCallback(async () => {
-    try {
-      const res = await fetch("/api/ledger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "check", chainId }),
-      });
-      const data = await res.json();
-      setBroker(
-        data.broker ? (data.broker as BrokerWalletInfo) : null
-      );
-      if (data.exists && data.ledger) {
-        const total = BigInt(data.ledger[1] ?? 0);
-        const locked = BigInt(data.ledger[2] ?? 0);
-        setLedger({ total, locked, available: total - locked });
-        setLedgerExists(true);
-      } else {
+  const refreshLedger = useCallback(
+    async (bypass = false) => {
+      try {
+        const data = await cachedJson<{
+          exists?: boolean;
+          ledger?: unknown[];
+          broker?: BrokerWalletInfo;
+        }>(ledgerCheckCacheKey(chainId), "/api/ledger", {
+          ttlMs: COMPUTE_CACHE_TTL.ledgerCheck,
+          method: "POST",
+          body: { action: "check", chainId },
+          bypass,
+        });
+        setBroker(data.broker ? (data.broker as BrokerWalletInfo) : null);
+        if (data.exists && data.ledger) {
+          const total = BigInt(data.ledger[1] ?? 0);
+          const locked = BigInt(data.ledger[2] ?? 0);
+          setLedger({ total, locked, available: total - locked });
+          setLedgerExists(true);
+        } else {
+          setLedger(null);
+          setLedgerExists(false);
+        }
+      } catch {
+        setBroker(null);
         setLedger(null);
         setLedgerExists(false);
       }
-    } catch {
-      setBroker(null);
-      setLedger(null);
-      setLedgerExists(false);
-    }
-  }, [chainId]);
+    },
+    [chainId]
+  );
 
-  const refreshModels = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/models?chainId=${chainId}`);
-      const data = await res.json();
-      setModels(
-        data.models
-          ? (data.models as ComputeModel[]).map(tagModel)
-          : []
-      );
-    } catch {
-      setModels([]);
-    }
-  }, [chainId]);
+  const refreshModels = useCallback(
+    async (bypass = false) => {
+      try {
+        const data = await cachedJson<{ models?: ComputeModel[] }>(
+          modelsCacheKey(chainId),
+          `/api/models?chainId=${chainId}`,
+          { ttlMs: COMPUTE_CACHE_TTL.modelsBroker, bypass }
+        );
+        setModels(data.models ? data.models.map(tagModel) : []);
+      } catch {
+        setModels([]);
+      }
+    },
+    [chainId]
+  );
+
+  const refreshLedgerData = useCallback(
+    async (bypass = false) => {
+      setLedgerLoading(true);
+      try {
+        await Promise.all([refreshModels(bypass), refreshLedger(bypass)]);
+      } finally {
+        setLedgerLoading(false);
+      }
+    },
+    [refreshLedger, refreshModels]
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([refreshModels(), refreshLedger(), refreshOperator()]);
+      invalidateComputeClientCache("compute:");
+      const op = await refreshOperator();
+      const skipByo = Boolean(op?.subsidized && op?.operatorReady);
+      if (!skipByo) {
+        await refreshLedgerData(true);
+      }
     } finally {
       setLoading(false);
     }
-  }, [refreshLedger, refreshModels, refreshOperator]);
+  }, [refreshLedgerData, refreshOperator]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      try {
+        const op = await refreshOperator();
+        if (cancelled) return;
+        const skipByo = Boolean(op?.subsidized && op?.operatorReady);
+        if (!skipByo) {
+          await refreshLedgerData();
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId, refreshLedgerData, refreshOperator]);
 
   const createLedger = async (amount = MIN_LEDGER_CREATE_OG) => {
     setActionLoading("create");
@@ -161,7 +216,8 @@ export function useComputeLedger() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create ledger");
       toast.success("0G Compute ledger created");
-      await refreshLedger();
+      invalidateComputeClientCache("compute:ledger:");
+      await refreshLedger(true);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Ledger creation failed");
     } finally {
@@ -180,7 +236,8 @@ export function useComputeLedger() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Deposit failed");
       toast.success(`Deposited ${amount} OG to ledger`);
-      await refreshLedger();
+      invalidateComputeClientCache("compute:ledger:");
+      await refreshLedger(true);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Deposit failed");
     } finally {
@@ -211,7 +268,8 @@ export function useComputeLedger() {
       if (!res.ok) throw new Error(data.error || "Funding failed");
       setFundedProviders((prev) => new Set(prev).add(provider));
       toast.success("Provider account funded — ready for inference");
-      await refreshLedger();
+      invalidateComputeClientCache("compute:ledger:");
+      await refreshLedger(true);
     } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Provider funding failed"
@@ -242,7 +300,8 @@ export function useComputeLedger() {
       operatorSubsidized,
       operatorReady,
       backend: operator?.backend ?? "none",
-      freeTierDailyLimit: operator?.freeTierDailyLimit ?? 10,
+      freeTierChatWeeklyLimit: operator?.freeTierChatWeeklyLimit ?? 10,
+      freeTierFeedWeeklyLimit: operator?.freeTierFeedWeeklyLimit ?? 10,
     };
   }, [
     ledgerExists,
@@ -258,6 +317,7 @@ export function useComputeLedger() {
     broker,
     fundedProviders,
     loading,
+    ledgerLoading,
     actionLoading,
     availableOG,
     totalOG,

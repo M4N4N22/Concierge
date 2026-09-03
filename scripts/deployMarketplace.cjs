@@ -1,8 +1,8 @@
 const hre = require("hardhat");
+const path = require("path");
 const dotenv = require("dotenv");
 
-const envFile = hre.network.name === "0gMainnet" ? "../.env.mainnet" : "../.env";
-dotenv.config({ path: envFile });
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 async function main() {
   const { ethers } = hre;

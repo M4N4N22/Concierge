@@ -6,6 +6,8 @@ import {
   parseComputeChainId,
 } from "@/lib/computeBroker";
 import { ethers } from "ethers";
+import { invalidateTtlCache, setTtlCache, withTtlCache } from "@/lib/ttlCache";
+import { COMPUTE_CACHE_TTL, ledgerCheckCacheKey } from "@/lib/computeCacheKeys";
 
 const color = {
   gray: (t: string) => `\x1b[90m${t}\x1b[0m`,
@@ -58,6 +60,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing action" }, { status: 400 });
     }
 
+    if (action === "check") {
+      const payload = await withTtlCache(
+        ledgerCheckCacheKey(requestChainId),
+        COMPUTE_CACHE_TTL.ledgerCheck,
+        async () => {
+          const { broker, signer, provider, cfg } =
+            await createComputeBroker(requestChainId);
+          const nativeWei = await provider.getBalance(signer.address);
+          const nativeBalanceOg = Number(ethers.formatEther(nativeWei));
+          const brokerInfo = {
+            address: signer.address,
+            chainId: cfg.chainId,
+            network: cfg.networkName,
+            isTestnet: cfg.isTestnet,
+            nativeBalanceOg,
+            requiredCreateOg: MIN_LEDGER_CREATE_OG,
+            shortfallOg: Math.max(0, MIN_LEDGER_CREATE_OG - nativeBalanceOg),
+            canCreateLedger: nativeBalanceOg >= MIN_LEDGER_CREATE_OG,
+          };
+          try {
+            const ledger = await broker.ledger.getLedger();
+            logLedgerSummary(ledger);
+            return {
+              exists: true,
+              ledger: bigIntToString(ledger),
+              broker: brokerInfo,
+            };
+          } catch (err: unknown) {
+            const e = err as { shortMessage?: string; message?: string };
+            const msg = `${e?.shortMessage || ""} ${e?.message || ""}`;
+            if (
+              msg.includes("LedgerNotExists") ||
+              /account does not exist|add-account/i.test(msg)
+            ) {
+              return { exists: false, broker: brokerInfo };
+            }
+            throw err;
+          }
+        }
+      );
+      return NextResponse.json(payload);
+    }
+
     console.log(
       color.cyan(
         `[INIT] Connecting broker (chainId=${requestChainId ?? "default"})...`
@@ -85,31 +130,6 @@ export async function POST(req: NextRequest) {
     };
 
     switch (action) {
-      case "check": {
-        console.log(color.cyan(`[ACTION] Checking ledger existence...`));
-        try {
-          const ledger = await broker.ledger.getLedger();
-          logLedgerSummary(ledger);
-          console.log(color.green(`[SUCCESS] Ledger fetched successfully`));
-          return NextResponse.json({
-            exists: true,
-            ledger: bigIntToString(ledger),
-            broker: brokerInfo,
-          });
-        } catch (err: any) {
-          const msg = `${err?.shortMessage || ""} ${err?.message || ""}`;
-          if (
-            msg.includes("LedgerNotExists") ||
-            /account does not exist|add-account/i.test(msg)
-          ) {
-            console.warn(color.yellow(`[WARN] Ledger does not exist`));
-            return NextResponse.json({ exists: false, broker: brokerInfo });
-          }
-          console.error(color.red(`[ERROR] Failed to fetch ledger:`), err);
-          throw err;
-        }
-      }
-
       case "create": {
         console.log(color.cyan(`[ACTION] Creating new ledger...`));
         const createAmount = amount ?? MIN_LEDGER_CREATE_OG;
@@ -124,12 +144,19 @@ export async function POST(req: NextRequest) {
         await broker.ledger.addLedger(createAmount);
         const newLedger = await broker.ledger.getLedger();
         logLedgerSummary(newLedger);
-        console.log(color.green(`[SUCCESS] Ledger created successfully`));
-        return NextResponse.json({
+        const createdPayload = {
           created: true,
+          exists: true,
           ledger: bigIntToString(newLedger),
           broker: brokerInfo,
-        });
+        };
+        invalidateTtlCache("compute:ledger:");
+        setTtlCache(
+          ledgerCheckCacheKey(cfg.chainId),
+          { exists: true, ledger: createdPayload.ledger, broker: brokerInfo },
+          COMPUTE_CACHE_TTL.ledgerCheck
+        );
+        return NextResponse.json(createdPayload);
       }
 
       case "deposit": {
@@ -142,12 +169,19 @@ export async function POST(req: NextRequest) {
         await broker.ledger.depositFund(amount);
         const updatedLedger = await broker.ledger.getLedger();
         logLedgerSummary(updatedLedger);
-        console.log(color.green(`[SUCCESS] Deposit successful`));
-        return NextResponse.json({
+        const depositedPayload = {
           deposited: true,
+          exists: true,
           ledger: bigIntToString(updatedLedger),
           broker: brokerInfo,
-        });
+        };
+        invalidateTtlCache("compute:ledger:");
+        setTtlCache(
+          ledgerCheckCacheKey(cfg.chainId),
+          { exists: true, ledger: depositedPayload.ledger, broker: brokerInfo },
+          COMPUTE_CACHE_TTL.ledgerCheck
+        );
+        return NextResponse.json(depositedPayload);
       }
 
       case "fundSubAccount": {
@@ -191,17 +225,21 @@ export async function POST(req: NextRequest) {
           await broker.ledger.transferFund(subAccount, amountBigInt);
           const ledgerAfter = await broker.ledger.getLedger();
           logLedgerSummary(ledgerAfter);
-          console.log(
-            color.green(`[SUCCESS] Sub-account funded successfully`)
-          );
-
-          return NextResponse.json({
+          const fundedPayload = {
             funded: true,
             subAccount,
             amount,
+            exists: true,
             ledger: bigIntToString(ledgerAfter),
             broker: brokerInfo,
-          });
+          };
+          invalidateTtlCache("compute:ledger:");
+          setTtlCache(
+            ledgerCheckCacheKey(cfg.chainId),
+            { exists: true, ledger: fundedPayload.ledger, broker: brokerInfo },
+            COMPUTE_CACHE_TTL.ledgerCheck
+          );
+          return NextResponse.json(fundedPayload);
         } catch (err) {
           console.error(color.red(`[ERROR] Sub-account funding failed:`), err);
           return NextResponse.json(

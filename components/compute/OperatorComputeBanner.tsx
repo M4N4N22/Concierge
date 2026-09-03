@@ -27,11 +27,13 @@ export function OperatorComputeBanner({ className }: { className?: string }) {
             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
               {operator?.copy ??
                 "Early access — inference runs on our 0G Private Computer pool. No ledger setup needed."}
-              {readiness.freeTierDailyLimit > 0 ? (
+              {readiness.freeTierChatWeeklyLimit > 0 ||
+              readiness.freeTierFeedWeeklyLimit > 0 ? (
                 <>
                   {" "}
-                  Free tier: {readiness.freeTierDailyLimit} compute actions per
-                  wallet per day.
+                  Free tier: {readiness.freeTierChatWeeklyLimit} chats and{" "}
+                  {readiness.freeTierFeedWeeklyLimit} file feeds per wallet per
+                  week.
                 </>
               ) : null}
             </p>

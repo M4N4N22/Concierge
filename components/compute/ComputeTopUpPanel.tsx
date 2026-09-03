@@ -6,14 +6,9 @@ import { useAccount } from "wagmi";
 import { CreditCard, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
+import type { ComputeQuotas } from "@/hooks/useComputeQuota";
+import { cachedJson } from "@/lib/cachedJson";
 import { cn } from "@/lib/utils";
-
-type QuotaState = {
-  used: number;
-  limit: number;
-  remaining: number;
-  resetsAt: number | null;
-};
 
 type EIP1193Provider = {
   request: (args: {
@@ -23,13 +18,13 @@ type EIP1193Provider = {
 };
 
 /**
- * Phase 2 — optional top-up when daily free tier is exhausted.
+ * Optional top-up when weekly free tier is exhausted.
  * Embeds 0G Pay when @0gfoundation/0g-pay-sdk is installed; otherwise links out.
  */
 export function ComputeTopUpPanel({ className }: { className?: string }) {
   const { address, isConnected } = useAccount();
   const { readiness, operator } = useComputeLedgerContext();
-  const [quota, setQuota] = useState<QuotaState | null>(null);
+  const [quotas, setQuotas] = useState<ComputeQuotas | null>(null);
   const [loading, setLoading] = useState(false);
   const [PayWidget, setPayWidget] = useState<
     React.ComponentType<{ provider: EIP1193Provider }> | null
@@ -37,14 +32,17 @@ export function ComputeTopUpPanel({ className }: { className?: string }) {
 
   useEffect(() => {
     if (!isConnected || !address) {
-      setQuota(null);
+      setQuotas(null);
       return;
     }
     setLoading(true);
-    fetch(`/api/compute/quota?wallet=${address}`)
-      .then((r) => r.json())
-      .then((data) => setQuota(data.quota ?? null))
-      .catch(() => setQuota(null))
+    cachedJson<{ quotas?: ComputeQuotas | null }>(
+      `compute:quota:${address.toLowerCase()}`,
+      `/api/compute/quota?wallet=${address}`,
+      { ttlMs: 15_000 }
+    )
+      .then((data) => setQuotas(data.quotas ?? null))
+      .catch(() => setQuotas(null))
       .finally(() => setLoading(false));
   }, [address, isConnected]);
 
@@ -59,7 +57,9 @@ export function ComputeTopUpPanel({ className }: { className?: string }) {
 
   if (!readiness.operatorSubsidized) return null;
 
-  const exhausted = quota != null && quota.remaining <= 0;
+  const chatExhausted = quotas != null && quotas.chat.remaining <= 0;
+  const feedExhausted = quotas != null && quotas.feed.remaining <= 0;
+  const exhausted = chatExhausted && feedExhausted;
   const pcUrl = operator?.privateComputerUrl ?? "https://pc.0g.ai";
 
   return (
@@ -74,12 +74,13 @@ export function ComputeTopUpPanel({ className }: { className?: string }) {
             {loading ? (
               <span className="inline-flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Checking daily allowance…
+                Checking weekly allowance…
               </span>
-            ) : quota ? (
+            ) : quotas ? (
               <>
-                {quota.remaining} of {quota.limit} free actions left today
-                {exhausted ? " — limit reached." : "."}
+                Chat: {quotas.chat.remaining}/{quotas.chat.limit} · Feed:{" "}
+                {quotas.feed.remaining}/{quotas.feed.limit} left this week
+                {exhausted ? " — limits reached." : "."}
               </>
             ) : (
               <>Top up on 0G Private Computer to extend usage beyond the free tier.</>

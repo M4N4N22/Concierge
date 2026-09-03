@@ -1,15 +1,19 @@
 import { getOperatorComputeConfig } from "@/lib/computeOperator";
-import { resolveRouterModel } from "@/lib/computeModels";
+import { resolveLiveRouterModel } from "@/lib/computeRouterModels";
 
 type RouterCompletion = {
   choices?: Array<{ message?: { content?: string } }>;
   error?: { message?: string };
 };
 
-/** Run inference via 0G Private Computer Router (OpenAI-compatible). */
-export async function runRouterInference(
+function isModelNotFoundError(message: string): boolean {
+  return /model not found/i.test(message);
+}
+
+async function runRouterOnce(
   prompt: string,
-  options?: { json?: boolean; model?: string | null }
+  model: string,
+  options?: { json?: boolean }
 ): Promise<string> {
   const apiKey = process.env.OG_ROUTER_API_KEY?.trim();
   if (!apiKey) {
@@ -20,7 +24,7 @@ export async function runRouterInference(
 
   const cfg = getOperatorComputeConfig();
   const body: Record<string, unknown> = {
-    model: resolveRouterModel(options?.model),
+    model,
     messages: [{ role: "user", content: prompt }],
   };
   if (options?.json) {
@@ -58,4 +62,21 @@ export async function runRouterInference(
     throw new Error("Empty response from 0G Router");
   }
   return content;
+}
+
+/** Run inference via 0G Private Computer Router (OpenAI-compatible). */
+export async function runRouterInference(
+  prompt: string,
+  options?: { json?: boolean; model?: string | null }
+): Promise<string> {
+  const model = await resolveLiveRouterModel(options?.model);
+  try {
+    return await runRouterOnce(prompt, model, options);
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    if (!isModelNotFoundError(error.message)) throw error;
+    const fallback = await resolveLiveRouterModel(null);
+    if (fallback === model) throw error;
+    return runRouterOnce(prompt, fallback, options);
+  }
 }

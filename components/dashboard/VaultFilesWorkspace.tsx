@@ -24,7 +24,7 @@ const FILES_GUIDE: GuideItem[] = [
     body: "Status badges show whether Chat can use a file — Quick add, Auto-read, or manual Insights.",
   },
   {
-    id: "knowledge",
+    id: "feed",
     icon: Sparkles,
     title: "Feed knowledge base",
     body: "Stored-only files need feeding on the Knowledge base before Chat can answer from them.",
