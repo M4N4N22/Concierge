@@ -77,7 +77,7 @@ export function ChatReadinessPanel({
           ) : null}
         </div>
 
-        {!compact ? (
+        {!compact && !readiness.hideSteps && readiness.steps.length > 0 ? (
           <ol className="mt-4 space-y-2">
             {readiness.steps.map((step) => (
               <li key={step.id} className="flex items-center justify-between gap-3">

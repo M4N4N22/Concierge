@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAddress } from "viem";
-import { peekWalletDailyQuota } from "@/lib/computeUsage";
+import { peekWalletWeeklyQuotas } from "@/lib/computeUsage";
 import { getOperatorComputeConfig } from "@/lib/computeOperator";
 
 export async function GET(req: NextRequest) {
@@ -11,16 +11,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       subsidized: cfg.subsidized,
       operatorReady: cfg.operatorReady,
-      freeTierDailyLimit: cfg.freeTierDailyLimit,
-      quota: null,
+      freeTierChatWeeklyLimit: cfg.freeTierChatWeeklyLimit,
+      freeTierFeedWeeklyLimit: cfg.freeTierFeedWeeklyLimit,
+      quotas: null,
     });
   }
 
-  const quota = peekWalletDailyQuota(wallet);
+  const quotas = peekWalletWeeklyQuotas(wallet);
   return NextResponse.json({
     subsidized: cfg.subsidized,
     operatorReady: cfg.operatorReady,
-    freeTierDailyLimit: cfg.freeTierDailyLimit,
-    quota,
+    freeTierChatWeeklyLimit: cfg.freeTierChatWeeklyLimit,
+    freeTierFeedWeeklyLimit: cfg.freeTierFeedWeeklyLimit,
+    quotas,
   });
 }

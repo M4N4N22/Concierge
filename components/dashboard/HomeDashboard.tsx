@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import {
-  ArrowUpRight,
   BrainCircuit,
   Cpu,
   Fingerprint,
@@ -14,14 +13,13 @@ import {
   Sparkles,
   TrendingUp,
   Upload,
-  Wallet,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUserFiles } from "@/hooks/useUserFiles";
 import { useAgenticId } from "@/hooks/useAgenticId";
-import { useComputeLedger, formatOG } from "@/hooks/useComputeLedger";
-import { useTradeBalances } from "@/hooks/useTradeBalances";
+import { useComputeLedger } from "@/hooks/useComputeLedger";
+import { useComputeQuota } from "@/hooks/useComputeQuota";
 import {
   buildCategoryBreakdown,
   buildDashboardActions,
@@ -34,7 +32,6 @@ import {
 import {
   CategoryBars,
   JourneyStepper,
-  LedgerGauge,
   UploadHistogram,
 } from "@/components/dashboard/DashboardCharts";
 import { DashboardHero, greetingForHour } from "@/components/dashboard/DashboardHero";
@@ -43,7 +40,6 @@ import { StatCard, QuickLink, EmptyChart } from "@/components/dashboard/StatCard
 import { loadWatcherConfig } from "@/lib/trade/watcher";
 import { loadWatcherSession } from "@/lib/trade/watcherAuth";
 import { VAULT_TERMS } from "@/lib/copy/vaultTerms";
-import { cn } from "@/lib/utils";
 
 function truncateAddress(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -56,12 +52,12 @@ export function HomeDashboard() {
   const {
     ledgerExists,
     totalOG,
-    availableOG,
     readiness,
     loading: ledgerLoading,
-    refresh: refreshLedger,
   } = useComputeLedger();
-  const { rows: balanceRows, loading: balLoading } = useTradeBalances();
+  const { quotas, subsidized: quotaSubsidized } = useComputeQuota(
+    readiness.operatorSubsidized
+  );
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -72,11 +68,8 @@ export function HomeDashboard() {
   const showConnected = hydrated && isConnected;
 
   useEffect(() => {
-    if (isConnected) {
-      void refetch({ silent: true });
-      void refreshLedger();
-    }
-  }, [isConnected, chainId, refetch, refreshLedger]);
+    if (isConnected) void refetch({ silent: true });
+  }, [isConnected, chainId, refetch]);
 
   const network = useMemo(() => networkFromChainId(chainId), [chainId]);
   const stats = useMemo(() => buildHomeStats(files), [files]);
@@ -124,6 +117,7 @@ export function HomeDashboard() {
       totalOG,
       canCompute: readiness.canCompute,
       hasFundedProvider: readiness.hasFundedProvider,
+      operatorSubsidized: readiness.operatorSubsidized,
     });
     const watcher = loadWatcherConfig();
     if (
@@ -156,9 +150,11 @@ export function HomeDashboard() {
     totalOG,
     readiness.canCompute,
     readiness.hasFundedProvider,
+    readiness.operatorSubsidized,
   ]);
 
-  const primaryAction = actions[0];
+  const primaryAction =
+    actions.find((a) => a.priority !== "optional") ?? actions[0];
   const loading = filesLoading || agentLoading || ledgerLoading;
   const criticalAlerts = actions.filter((a) => a.priority === "critical").length;
   const journeyDone = journey.filter((s) => s.done).length;
@@ -169,8 +165,9 @@ export function HomeDashboard() {
       ? `${truncateAddress(address)}${hasAgent && agent ? ` · Agent #${agent.tokenId.toString()}` : ""} · ${network.name}`
       : "Connect a wallet on 0G to load live stats";
 
-  const ogRow = balanceRows.find((r) => r.id === "og");
-  const usdcRow = balanceRows.find((r) => r.id === "usdc");
+  const chatQuota = quotas?.chat;
+  const feedQuota = quotas?.feed;
+  const operatorCovered = readiness.operatorSubsidized || quotaSubsidized;
 
   return (
     <div className="flex flex-col gap-5 pb-8">
@@ -219,26 +216,31 @@ export function HomeDashboard() {
           sub={
             stats.vaultFiles > 0
               ? `${stats.analyzedPct}% of vault · ${stats.unlabeledFiles} need labeling`
-              : "Run Insights after upload"
+              : "Feed files after upload"
           }
-          highlight
+          
         />
         <StatCard
           icon={Cpu}
-          label="Compute ledger"
+          label="Compute"
           value={
             !showConnected
               ? "—"
-              : ledgerExists
-                ? `${formatOG(totalOG)} OG`
-                : "Not created"
+              : operatorCovered
+                ? chatQuota
+                  ? `${chatQuota.remaining}/${chatQuota.limit}`
+                  : "Covered"
+                : readiness.canCompute
+                  ? "Ready"
+                  : "Optional"
           }
           sub={
-            ledgerExists
-              ? `${formatOG(availableOG)} OG available for AI calls`
-              : "Create once · deposit OG for agents"
+            operatorCovered
+              ? "Chats left this week · Concierge pool"
+              : readiness.canCompute
+                ? "Your ledger is funded"
+                : "BYO ledger is optional"
           }
-          ink
         />
       </div>
 
@@ -287,46 +289,6 @@ export function HomeDashboard() {
         />
       </div>
 
-      {/* Wallet snapshot strip */}
-      {showConnected && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <MiniBalance
-            label="OG / W0G"
-            value={balLoading ? "…" : ogRow?.balance ?? "0"}
-            loading={balLoading}
-          />
-          <MiniBalance
-            label="USDC"
-            value={balLoading ? "…" : usdcRow?.balance ?? "0"}
-            loading={balLoading}
-          />
-          <MiniBalance
-            label="Compute ready"
-            value={
-              readiness.canCompute
-                ? "Yes"
-                : ledgerExists
-                  ? "Partial"
-                  : "No"
-            }
-            loading={ledgerLoading}
-            hint={
-              readiness.canCompute
-                ? readiness.operatorSubsidized
-                  ? "Concierge compute · daily free tier"
-                  : "Ledger funded · provider ready"
-                : readiness.operatorSubsidized && !readiness.operatorReady
-                  ? "Operator pool not configured"
-                  : !ledgerExists
-                    ? "Create ledger first"
-                    : totalOG <= 0
-                      ? "Deposit OG"
-                      : "Fund a model provider"
-            }
-          />
-        </div>
-      )}
-
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         {/* Charts + journey */}
         <div className="flex flex-col gap-4">
@@ -365,26 +327,29 @@ export function HomeDashboard() {
             <div className="dashboard-card p-5">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-semibold">Compute balance</h2>
+                  <h2 className="text-sm font-semibold">Weekly quota</h2>
                   <p className="text-xs text-muted-foreground">
-                    Prepaid OG for AI inference
+                    {operatorCovered
+                      ? "Free chats and file feeds this week"
+                      : "BYO ledger is optional — Concierge covers testers"}
                   </p>
                 </div>
-                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <Cpu className="h-4 w-4 text-muted-foreground" />
               </div>
-              {showConnected && ledgerExists ? (
-                <div className="flex flex-col items-center gap-2">
-                  <LedgerGauge
-                    totalOG={totalOG}
-                    availableOG={availableOG}
-                    exists={ledgerExists}
+              {showConnected && operatorCovered && chatQuota && feedQuota ? (
+                <div className="flex flex-col gap-3 pt-2">
+                  <QuotaBar
+                    label="Chat"
+                    remaining={chatQuota.remaining}
+                    limit={chatQuota.limit}
                   />
-                  <p className="text-center text-xs text-muted-foreground">
-                    {formatOG(totalOG)} OG total · {formatOG(availableOG)}{" "}
-                    available
-                  </p>
-                  <Button asChild variant="outline" size="sm" className="rounded-full">
-                    <Link href="/dashboard/knowledge/compute">Manage compute</Link>
+                  <QuotaBar
+                    label="Feeds"
+                    remaining={feedQuota.remaining}
+                    limit={feedQuota.limit}
+                  />
+                  <Button asChild variant="outline" size="sm" className="mt-1 w-fit rounded-full">
+                    <Link href="/dashboard/knowledge/compute">View compute</Link>
                   </Button>
                 </div>
               ) : (
@@ -392,14 +357,14 @@ export function HomeDashboard() {
                   <BrainCircuit className="h-8 w-8 text-muted-foreground/50" />
                   <p className="text-xs text-muted-foreground">
                     {showConnected
-                      ? "Create a ledger to run Insights and Chat."
-                      : "Connect wallet to check ledger status."}
+                      ? "Compute is covered for testers. Set up your own ledger only if you want to pay separately."
+                      : "Connect wallet to see weekly quota."}
                   </p>
-                  {showConnected && (
-                    <Button asChild size="sm" className="rounded-full">
-                      <Link href="/dashboard/knowledge/compute">Set up Compute</Link>
+                  {showConnected ? (
+                    <Button asChild variant="outline" size="sm" className="rounded-full">
+                      <Link href="/dashboard/knowledge/compute">Optional BYO setup</Link>
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
@@ -435,34 +400,29 @@ export function HomeDashboard() {
   );
 }
 
-function MiniBalance({
+function QuotaBar({
   label,
-  value,
-  hint,
-  loading,
+  remaining,
+  limit,
 }: {
   label: string;
-  value: string;
-  hint?: string;
-  loading?: boolean;
+  remaining: number;
+  limit: number;
 }) {
+  const pct = limit > 0 ? Math.max(0, Math.min(100, (remaining / limit) * 100)) : 0;
   return (
-    <div className="dashboard-card flex items-center justify-between gap-3 px-4 py-3">
-      <div className="min-w-0">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        <p
-          className={cn(
-            "text-lg font-semibold tabular-nums",
-            loading && "animate-pulse text-muted-foreground"
-          )}
-        >
-          {value}
-        </p>
-        {hint ? (
-          <p className="truncate text-[10px] text-muted-foreground">{hint}</p>
-        ) : null}
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium tabular-nums">
+          {remaining}/{limit} left
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-[var(--brand)] transition-all"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

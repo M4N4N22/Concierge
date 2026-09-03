@@ -5,6 +5,8 @@
  * Direct SDK path remains available for advanced / BYO compute (Insights desk).
  */
 
+import { getDefaultRouterModel } from "@/lib/computeModels";
+
 export type ComputeBackend = "router" | "direct" | "none";
 
 export type OperatorComputeConfig = {
@@ -14,7 +16,8 @@ export type OperatorComputeConfig = {
   /** Users can chat/run Insights without their own ledger */
   subsidized: boolean;
   operatorReady: boolean;
-  freeTierDailyLimit: number;
+  freeTierChatWeeklyLimit: number;
+  freeTierFeedWeeklyLimit: number;
   routerModel: string;
   routerBaseUrl: string;
   privateComputerUrl: string;
@@ -37,8 +40,13 @@ export function getComputeBackend(): ComputeBackend {
   return "none";
 }
 
-export function getDailyComputeLimit(): number {
-  const n = Number(process.env.COMPUTE_FREE_DAILY_LIMIT ?? 10);
+export function getChatWeeklyLimit(): number {
+  const n = Number(process.env.COMPUTE_FREE_CHAT_WEEKLY_LIMIT ?? 10);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 10;
+}
+
+export function getFeedWeeklyLimit(): number {
+  const n = Number(process.env.COMPUTE_FREE_FEED_WEEKLY_LIMIT ?? 10);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 10;
 }
 
@@ -53,9 +61,9 @@ export function getOperatorComputeConfig(): OperatorComputeConfig {
     directConfigured,
     subsidized: routerConfigured,
     operatorReady: backend !== "none",
-    freeTierDailyLimit: getDailyComputeLimit(),
-    routerModel:
-      process.env.OG_ROUTER_MODEL?.trim() || "phala/deepseek-chat-v3-0324",
+    freeTierChatWeeklyLimit: getChatWeeklyLimit(),
+    freeTierFeedWeeklyLimit: getFeedWeeklyLimit(),
+    routerModel: getDefaultRouterModel(),
     routerBaseUrl:
       process.env.OG_ROUTER_BASE_URL?.trim() ||
       "https://router-api.0g.ai/v1",

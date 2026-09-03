@@ -33,12 +33,16 @@ export default function ModelDashboard() {
     // Add custom tags manually for better UX
     const taggedModels: Model[] = (data.models ?? []).map((m: Model) => {
       switch (m.model) {
+        case "glm-5.3-flash":
         case "phala/deepseek-chat-v3-0324":
           return { ...m, tags: ["Cheapest", "Fast Response"] };
+        case "deepseek-v4-flash":
         case "phala/gpt-oss-120b":
           return { ...m, tags: ["High Accuracy", "Best for Text"] };
+        case "qwen3.8-flash":
         case "phala/qwen2.5-vl-72b-instruct":
           return { ...m, tags: ["Efficient", "Multimodal"] };
+        case "glm-5.2":
         case "openai/gpt-oss-120b":
           return { ...m, tags: ["Reliable", "Best for Large Files"] };
         default:

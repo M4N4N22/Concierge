@@ -1,5 +1,5 @@
 import { matchFileToDomain, type AgentDomain } from "@/lib/domains";
-import { vaultCategoryLabel } from "@/lib/copy/vaultTerms";
+import { isAgentKnowledge, vaultCategoryLabel } from "@/lib/copy/vaultTerms";
 import type { VaultFile } from "@/hooks/useUserFiles";
 
 export type ProfileBinding = "vault" | "board" | "trade" | "unknown";
@@ -82,7 +82,7 @@ export function buildVaultSubtitle(args: {
   if (bio) return bio;
 
   if (!args.fileCount) {
-    return "Personal AI agent on 0G — add vault files so Chat and Learning have something to work with.";
+    return "Personal Concierge on 0G — upload files and feed them in Knowledge base so Chat can answer.";
   }
 
   const labels = topCategoryLabels(args.files);
@@ -111,7 +111,7 @@ export function resolveAgentPresentation(args: {
   const fileCount = args.vaultFileCount ?? files.length;
   const binding = parseProfileBinding(args.aiSignature ?? "");
   const indexedFileCount = files.length
-    ? files.filter((f) => f.insightsCID?.trim()).length
+    ? files.filter((f) => isAgentKnowledge(f)).length
     : 0;
 
   return {

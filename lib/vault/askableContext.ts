@@ -140,22 +140,23 @@ export async function loadAskableEvidence(args: {
   limit?: number;
 }): Promise<AskableLoadResult> {
   const limit = args.limit ?? 16;
+  const candidates = args.files
+    .filter((f) => !CHAT_SKIP_CATEGORIES.has(f.category))
+    .filter((f) => isAgentKnowledge(f))
+    .slice(0, limit);
+
+  const resolved = await Promise.all(
+    candidates.map((file) => resolveVaultFileEvidence(file, args.fetchContent))
+  );
+
   const evidence: VaultEvidence[] = [];
   let structuredCount = 0;
   let indexedCount = 0;
 
-  const candidates = args.files
-    .filter((f) => !CHAT_SKIP_CATEGORIES.has(f.category))
-    .filter((f) => isAgentKnowledge(f));
-
-  for (const file of candidates) {
-    if (evidence.length >= limit) break;
-
-    const resolved = await resolveVaultFileEvidence(file, args.fetchContent);
-    if (!resolved) continue;
-
-    evidence.push(resolved.evidence);
-    if (resolved.kind === "structured") structuredCount++;
+  for (const item of resolved) {
+    if (!item) continue;
+    evidence.push(item.evidence);
+    if (item.kind === "structured") structuredCount++;
     else indexedCount++;
   }
 

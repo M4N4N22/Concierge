@@ -22,6 +22,7 @@ import type {
   TradeProposal,
   TradeQuote,
 } from "@/lib/trade";
+import { zeroGFeeOverrides } from "@/lib/zeroGGas";
 
 export function useTradeExecution() {
   const { address, chainId, isConnected } = useAccount();
@@ -98,6 +99,7 @@ export function useTradeExecution() {
 
         let wrapTxHash: `0x${string}` | undefined;
         let approveTxHash: `0x${string}` | undefined;
+        const fees = await zeroGFeeOverrides(publicClient, quote.chainId);
 
         // Sell native OG: wrap into W0G if needed
         if (side === "sell" && publicClient) {
@@ -121,6 +123,7 @@ export function useTradeExecution() {
               functionName: "deposit",
               value: need,
               chainId: quote.chainId,
+              ...fees,
             });
             await publicClient.waitForTransactionReceipt({ hash: wrapTxHash });
           }
@@ -140,6 +143,7 @@ export function useTradeExecution() {
               functionName: "approve",
               args: [config.swapRouter02, amountIn],
               chainId: quote.chainId,
+              ...fees,
             });
             await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
           }
@@ -158,6 +162,7 @@ export function useTradeExecution() {
             },
           ],
           chainId: quote.chainId,
+          ...fees,
         });
 
         if (publicClient) {

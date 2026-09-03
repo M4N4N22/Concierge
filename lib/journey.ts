@@ -6,6 +6,7 @@ import {
   Fingerprint,
   CandlestickChart,
   Store,
+  KeyRound,
 } from "lucide-react";
 
 export type JourneyStepId =
@@ -14,6 +15,7 @@ export type JourneyStepId =
   | "chat"
   | "agentic-id"
   | "ecosystem"
+  | "lend-access"
   | "trading";
 
 export interface JourneySubStep {
@@ -38,7 +40,7 @@ export interface JourneyStep {
 
 /**
  * Concierge spine: vault → knowledge → chat → own ID → ecosystem.
- * Trading is secondary — same Concierge, trading mode — not the core loop.
+ * Lend access (Wave 4+) and Trading sit after the core loop.
  */
 export const JOURNEY_STEPS: JourneyStep[] = [
   {
@@ -112,7 +114,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     shortTitle: "Chat",
     tagline: "Ask what your vault knows",
     description:
-      "One Concierge workspace — questions grounded in your uploads and Insights. Tips suggest what to ask based on recent vault data.",
+      "One Concierge workspace — questions grounded in your vault and knowledge base. Tips suggest what to ask based on recent uploads.",
     href: "/dashboard/advisor/chat",
     icon: MessageSquare,
     status: "live",
@@ -124,7 +126,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     shortTitle: "Agentic ID",
     tagline: "Your portable personality",
     description:
-      "Mint one Agentic ID per wallet — digital fingerprint and ownership of your Concierge. Name, bio, vault seal. Knowledge stays in the live vault; chat uses it without reminting.",
+      "Mint one Agentic ID per wallet — name, bio, and optional vault fingerprint. Knowledge stays in the live vault; Chat uses it without reminting.",
     href: "/dashboard/agent/mint",
     icon: Fingerprint,
     status: "live",
@@ -162,11 +164,23 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     ],
   },
   {
-    id: "trading",
+    id: "lend-access",
     step: 6,
+    title: "Lend access",
+    shortTitle: "Lend access",
+    tagline: "Coming · use without files",
+    description:
+      "Let someone use your Concierge for a while without sharing private uploads. Choose what they can ask about, set a time limit, keep ownership. Full flow in a later wave.",
+    href: "/dashboard/lend-access",
+    icon: KeyRound,
+    status: "coming-soon",
+  },
+  {
+    id: "trading",
+    step: 7,
     title: "Trading desk",
     shortTitle: "Trading",
-    tagline: "Secondary · same Concierge",
+    tagline: "Extra · same Concierge",
     description:
       "Optional desk for OG/USDC suggestions from your Concierge. Core product is vault → knowledge → chat → Agentic ID.",
     href: "/dashboard/trading",
@@ -220,16 +234,16 @@ export function getStepByPath(pathname: string): JourneyStep | undefined {
   return undefined;
 }
 
-/** Next step in the core spine (skips secondary trading). */
+/** Next step in the core spine (skips secondary + coming-soon). */
 export function getNextStep(currentId: JourneyStepId): JourneyStep | undefined {
-  const core = JOURNEY_STEPS.filter((s) => s.status !== "secondary");
+  const core = JOURNEY_STEPS.filter((s) => s.status === "live");
   const idx = core.findIndex((s) => s.id === currentId);
   if (idx < 0 || idx >= core.length - 1) return undefined;
   return core[idx + 1];
 }
 
 export function getPrevStep(currentId: JourneyStepId): JourneyStep | undefined {
-  const core = JOURNEY_STEPS.filter((s) => s.status !== "secondary");
+  const core = JOURNEY_STEPS.filter((s) => s.status === "live");
   const idx = core.findIndex((s) => s.id === currentId);
   if (idx <= 0) return undefined;
   return core[idx - 1];

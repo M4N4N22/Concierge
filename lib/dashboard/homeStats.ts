@@ -200,6 +200,7 @@ export function buildDashboardActions(args: {
   totalOG: number;
   canCompute: boolean;
   hasFundedProvider: boolean;
+  operatorSubsidized?: boolean;
 }): DashboardAction[] {
   const actions: DashboardAction[] = [];
 
@@ -237,32 +238,14 @@ export function buildDashboardActions(args: {
     });
   }
 
-  if (!args.ledgerExists) {
+  if (args.operatorSubsidized && !args.canCompute) {
     actions.push({
-      id: "ledger-create",
+      id: "operator-down",
       priority: "recommended",
-      title: "Create 0G Compute ledger",
-      detail: `Prepaid account for AI calls. Requires at least 3 OG to create.`,
+      title: "Concierge compute is paused",
+      detail: "The shared pool isn’t ready — try Chat again shortly or check Compute.",
       href: "/dashboard/knowledge/compute",
-      cta: "Set up Compute",
-    });
-  } else if (args.totalOG <= 0) {
-    actions.push({
-      id: "ledger-fund",
-      priority: "recommended",
-      title: "Fund your Compute ledger",
-      detail: "Deposit OG so feeding files and chat can run inference.",
-      href: "/dashboard/knowledge/compute",
-      cta: "Add OG",
-    });
-  } else if (!args.hasFundedProvider) {
-    actions.push({
-      id: "provider-fund",
-      priority: "recommended",
-      title: "Fund an AI provider",
-      detail: `${formatOG(args.totalOG)} OG on ledger — pick a model provider to enable inference.`,
-      href: "/dashboard/knowledge/compute",
-      cta: "Fund provider",
+      cta: "View compute",
     });
   }
 
@@ -287,7 +270,7 @@ export function buildDashboardActions(args: {
       priority: "recommended",
       title: "Build agent knowledge before chat",
       detail:
-        "You have stored files, but Concierge can’t use raw uploads yet. Run Insights or Quick add.",
+        "You have stored files, but Concierge can’t use raw uploads yet. Feed files in Knowledge base or use Quick add.",
       href: "/dashboard/knowledge/feed",
       cta: "Open Knowledge base",
     });
@@ -301,7 +284,7 @@ export function buildDashboardActions(args: {
       priority: "recommended",
       title: "Start your first chat",
       detail: "Ask Concierge about vault knowledge — or chat casually.",
-      href: "/dashboard/advisor/chat",
+      href: "/dashboard/advisor/chat?intent=vault",
       cta: "Open chat",
     });
   }
@@ -356,6 +339,38 @@ export function buildDashboardActions(args: {
     }
   }
 
+  if (!args.operatorSubsidized && !args.canCompute) {
+    if (!args.ledgerExists) {
+      actions.push({
+        id: "ledger-create",
+        priority: "optional",
+        title: "Bring your own compute ledger",
+        detail:
+          "Optional — only needed if you want to pay your own 0G Compute instead of using Concierge’s pool.",
+        href: "/dashboard/knowledge/compute",
+        cta: "Optional setup",
+      });
+    } else if (args.totalOG <= 0) {
+      actions.push({
+        id: "ledger-fund",
+        priority: "optional",
+        title: "Fund your Compute ledger",
+        detail: "Optional BYO path — deposit OG if you want to run inference on your own ledger.",
+        href: "/dashboard/knowledge/compute",
+        cta: "Add OG",
+      });
+    } else if (!args.hasFundedProvider) {
+      actions.push({
+        id: "provider-fund",
+        priority: "optional",
+        title: "Fund an AI provider",
+        detail: `${formatOG(args.totalOG)} OG on ledger — optional if you prefer your own compute.`,
+        href: "/dashboard/knowledge/compute",
+        cta: "Fund provider",
+      });
+    }
+  }
+
   return actions;
 }
 
@@ -386,7 +401,7 @@ export function buildJourneyProgress(args: {
     {
       id: "knowledge",
       label: "Knowledge",
-      done: args.stats.agentKnowledge > 0 && args.ledgerExists,
+      done: args.stats.agentKnowledge > 0,
       href: "/dashboard/knowledge",
     },
     {

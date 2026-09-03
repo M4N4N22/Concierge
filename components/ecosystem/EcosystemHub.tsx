@@ -319,7 +319,7 @@ export default function EcosystemHub() {
               </div>
               {hasAgent ? (
                 <Button asChild size="sm" variant="outline" className="rounded-full">
-                  <Link href="/dashboard/agent/mint">Agent profile</Link>
+                  <Link href="/dashboard/agent/mint">Your Agentic ID</Link>
                 </Button>
               ) : null}
             </div>

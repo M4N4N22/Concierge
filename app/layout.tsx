@@ -5,7 +5,7 @@ import "./globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { cn } from "@/lib/utils";
-import { fontSans } from "@/lib/fonts";
+import { fontMono, fontSans } from "@/lib/fonts";
 import { WagmiProvider } from "@/components/providers/wagmi-provider";
 import { Toaster } from "sonner";
 
@@ -15,7 +15,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable
+          fontSans.variable,
+          fontMono.variable
         )}
       >
         <ThemeProvider

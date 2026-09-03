@@ -141,13 +141,16 @@ Open `http://localhost:3000/dashboard` and connect wallet on **0G Galileo Testne
 
 ---
 
-## Wave 2+ (planned)
+## Later waves
 
-- Vault chat over 0G Compute (Step 3)
-- ERC-7857 Agentic ID alignment
-- Mainnet migration path (config + fresh on-chain activity)
-- Agent marketplace / delegation (Step 5)
-- Demo video refresh for new journey UX
+Wave 3 (mainnet marketplace, operator compute, vault chat, specialist foundation) is documented in [OG_BRIDGE_WAVE3.md](./OG_BRIDGE_WAVE3.md).
+
+| Wave | Focus |
+|------|--------|
+| **4** | Production polish · activate specialists · trade assist |
+| **5** | Demo Day · deeper finance/strategies · ERC-7857 |
+
+See [README.md](./README.md) for vision and planned extensions.
 
 ---
 

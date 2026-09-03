@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { run0GInference } from "@/lib/0gCompute";
 import { authorizeBoardRequest } from "@/lib/boardAuth";
 import { buildCasualChatPrompt } from "@/lib/chat/casualPrompt";
-import { modelLabel, resolveRouterModel } from "@/lib/computeModels";
+import { modelLabel } from "@/lib/computeModels";
+import { resolveLiveRouterModel } from "@/lib/computeRouterModels";
 import { classifyComputeError } from "@/lib/computeErrors";
 import type { VaultEvidence } from "@/lib/evidence";
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       ? body.evidence.filter(isEvidence)
       : [];
     const modelRaw = typeof body.model === "string" ? body.model : undefined;
-    const resolvedModel = resolveRouterModel(modelRaw);
+    const resolvedModel = await resolveLiveRouterModel(modelRaw);
     const chainId =
       typeof body.chainId === "number"
         ? body.chainId
@@ -65,13 +66,13 @@ export async function POST(req: NextRequest) {
 
     const reply = await run0GInference(prompt, chainId, {
       json: false,
-      model: modelRaw,
+      model: resolvedModel,
     });
 
     return NextResponse.json({
       reply: reply.trim(),
       model: resolvedModel,
-      modelLabel: modelLabel(modelRaw ?? "auto"),
+      modelLabel: modelLabel(resolvedModel),
       computeMode: "router",
     });
   } catch (err) {

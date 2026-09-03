@@ -2,8 +2,9 @@ import { NextRequest } from "next/server";
 import { verifyMessage, type Address, isAddress } from "viem";
 import { boardAuthMessage } from "@/lib/boardAuthMessage";
 import {
-  checkAndConsumeWalletDailyQuota,
-  peekWalletDailyQuota,
+  checkAndConsumeWalletWeeklyQuota,
+  formatQuotaResetLabel,
+  peekWalletWeeklyQuota,
 } from "@/lib/computeUsage";
 import { getOperatorComputeConfig } from "@/lib/computeOperator";
 
@@ -179,13 +180,13 @@ export async function authorizeBoardRequest(
 
   const operator = getOperatorComputeConfig();
   if (operator.subsidized) {
-    const daily = checkAndConsumeWalletDailyQuota(walletKey);
-    if (!daily.ok) {
-      const hours = Math.ceil(daily.retryAfterMs / (60 * 60 * 1000));
+    const weekly = checkAndConsumeWalletWeeklyQuota(walletKey, "chat");
+    if (!weekly.ok) {
+      const reset = formatQuotaResetLabel(weekly.retryAfterMs);
       return {
         ok: false,
         status: 429,
-        error: `Daily free compute limit reached (${daily.limit} messages). Resets in ~${hours}h — top up on Private Computer for more.`,
+        error: `Weekly free chat limit reached (${weekly.limit} messages). Resets in ${reset} — top up on Private Computer for more.`,
       };
     }
   }
@@ -198,4 +199,4 @@ export async function authorizeBoardRequest(
   };
 }
 
-export { peekWalletDailyQuota, checkAndConsumeWalletDailyQuota };
+export { peekWalletWeeklyQuota, checkAndConsumeWalletWeeklyQuota };

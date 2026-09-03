@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAccount, useChainId } from "wagmi";
 import {
   ArrowUpRight,
+  BrainCircuit,
   CandlestickChart,
   CheckCircle2,
   ChevronDown,
@@ -18,6 +19,7 @@ import {
   Shield,
   Store,
   Upload,
+  UserRound,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +29,7 @@ import {
   CollapsibleGuideRail,
   type GuideItem,
 } from "@/components/dashboard/CollapsibleGuideRail";
+import { AgentSubnav } from "@/components/MyAgent/AgentSubnav";
 import { useINFTAgent } from "@/hooks/useINFTAgent";
 import { useAgenticId } from "@/hooks/useAgenticId";
 import { useUserFiles } from "@/hooks/useUserFiles";
@@ -38,55 +41,29 @@ import {
   publishPersonality,
 } from "@/lib/agentPersonality";
 import { defaultAgentDomain } from "@/lib/agentProfile";
+import { AGENTIC_ID_COPY } from "@/lib/copy/agenticId";
 import { getTxExplorerUrl, truncateHash } from "@/lib/explorer";
 import { AgentProfileCard } from "@/components/MyAgent/AgentProfileCard";
 
-const GUIDE: GuideItem[] = [
-  {
-    id: "what",
-    icon: Fingerprint,
-    title: "What is an Agentic ID?",
-    body: "On-chain ownership of your Concierge — vault-bound, rentable, transferable. Not a trained model and not a freeze of your files at mint.",
-  },
-  {
-    id: "mint",
-    icon: KeyRound,
-    title: "Mint",
-    body: "Creates your Agentic ID on 0G Chain, bound to the Concierge vault contract. One mint per wallet. Chat keeps learning from new uploads after mint.",
-  },
-  {
-    id: "metadata",
-    icon: Lock,
-    title: "Vault seal",
-    body: "Optional on-chain attestation of vault file roots — not the agent brain. Refresh before listing if you want the chain to match today’s vault. Chat never waits on this.",
-  },
-  {
-    id: "vault",
-    icon: Layers,
-    title: "Vault binding",
-    body: "The token stores your vault contract address. Chat, Learning, and Desk always read the live vault registry — uploads and Insights feed knowledge continuously.",
-  },
-  {
-    id: "use",
-    icon: MessageSquare,
-    title: "Chat & Desk",
-    body: "After minting, open Chat to ask about vault evidence, or the Trading Desk for agent Buy/Sell/Hold suggestions you still confirm yourself.",
-  },
-  {
-    id: "ecosystem",
-    icon: Store,
-    title: "Ecosystem",
-    body: "List, rent, or transfer access to this Concierge. Refresh the vault seal first if you want on-chain attestation to match current files.",
-  },
-  {
-    id: "standard",
-    icon: Shield,
-    title: "0G standard",
-    body: "Aligned with 0G’s Agentic ID model (ERC-7857 direction): own the agent, not just a pointer. Full oracle re-encryption ships with ecosystem upgrades.",
-    badge: "0G",
-    accent: true,
-  },
-];
+const GUIDE_ICONS = {
+  what: Fingerprint,
+  mint: KeyRound,
+  seal: Lock,
+  vault: Layers,
+  profile: UserRound,
+  ecosystem: Store,
+  standard: Shield,
+} as const;
+
+const GUIDE: GuideItem[] = AGENTIC_ID_COPY.guide.map((item) => ({
+  id: item.id,
+  icon: GUIDE_ICONS[item.id as keyof typeof GUIDE_ICONS] ?? Fingerprint,
+  title: item.title,
+  body: item.body,
+  ...(item.id === "standard"
+    ? { badge: "0G" as const, accent: true }
+    : {}),
+}));
 
 function networkLabel(chainId: number) {
   if (chainId === zeroGMainnet.id) return "0G Mainnet";
@@ -149,12 +126,6 @@ export default function AgenticIdWorkspace() {
     !!encryptedHash &&
     !minting;
 
-  const primaryCta = hasAgent
-    ? { href: "/dashboard/advisor/chat", label: "Continue to chat" }
-    : files.length === 0 && isConnected
-      ? { href: "/dashboard/vault/upload", label: "Add evidence first" }
-      : null;
-
   const handleMint = async () => {
     if (!vaultAddress || !encryptedHash || !address) {
       toast.error("Connect wallet on a 0G chain with vault configured");
@@ -169,12 +140,13 @@ export default function AgenticIdWorkspace() {
         const published = await publishPersonality({
           name: displayName.trim() || "Concierge Agent",
           bio: bio.trim(),
+          chainId,
         });
         if (published) {
           personalityUri = published.uri;
         } else {
           toast.message(
-            "Minting without on-chain personality — Storage upload failed; you can publish name/bio later"
+            "Minting without published profile — you can add name & bio after mint"
           );
         }
       }
@@ -196,11 +168,7 @@ export default function AgenticIdWorkspace() {
           bio.trim()
         );
       }
-      toast.success(
-        displayName.trim() || bio.trim()
-          ? "Agentic ID minted — personality on Storage for marketplace"
-          : "Agentic ID minted on 0G Chain"
-      );
+      toast.success("Agentic ID minted on 0G Chain");
     } catch (err) {
       console.error(err);
       const msg =
@@ -213,38 +181,31 @@ export default function AgenticIdWorkspace() {
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold    text-[var(--brand)]">
-            Agentic ID
-          </p>
-          <h1 className="text-2xl font-semibold   sm:text-3xl">
-            {hasAgent ? "Your agent identity" : "Mint your Agentic ID"}
-          </h1>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            {hasAgent
-              ? "One Concierge identity on-chain — ownership and rentable access. Your vault keeps learning; the NFT does not freeze knowledge at mint."
-              : "Mint once per wallet. Name it, bind it to your vault, then keep uploading — Chat reads the live vault, not a mint-time snapshot."}
-          </p>
-        </div>
-        {primaryCta ? (
-          <Button asChild className="rounded-full px-5">
-            <Link href={primaryCta.href}>
-              {primaryCta.label}
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        ) : null}
+      <AgentSubnav />
+
+      <header className="space-y-1">
+        <p className="text-[11px] font-semibold text-[var(--brand)]">
+          Agentic ID
+        </p>
+        <h1 className="text-2xl font-semibold sm:text-3xl">
+          {hasAgent
+            ? AGENTIC_ID_COPY.pageTitleManage
+            : AGENTIC_ID_COPY.pageTitleMint}
+        </h1>
+        <p className="max-w-xl text-sm text-muted-foreground">
+          {hasAgent
+            ? AGENTIC_ID_COPY.taglineManage
+            : AGENTIC_ID_COPY.taglineMint}
+        </p>
       </header>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_18.5rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4">
-          {/* Stats */}
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="bento p-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">
-                  Vault files
+                  {AGENTIC_ID_COPY.stats.vaultFiles}
                 </span>
                 <Layers className="h-4 w-4 text-muted-foreground" />
               </div>
@@ -252,13 +213,15 @@ export default function AgenticIdWorkspace() {
                 {!isConnected ? "—" : filesLoading ? "…" : files.length}
               </p>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Vault files included in the genesis seal
+                {AGENTIC_ID_COPY.stats.vaultFilesHint}
               </p>
             </div>
 
             <div className="bento-brand p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-white/80">Status</span>
+                <span className="text-xs font-medium text-white/80">
+                  {AGENTIC_ID_COPY.stats.status}
+                </span>
                 <Fingerprint className="h-4 w-4 text-white/80" />
               </div>
               <p className="mt-5 text-3xl font-semibold tabular-nums text-white">
@@ -268,14 +231,14 @@ export default function AgenticIdWorkspace() {
                     ? "…"
                     : hasAgent && agent
                       ? `#${agent.tokenId.toString()}`
-                      : "Mint"}
+                      : "—"}
               </p>
               <p className="mt-1 text-[11px] text-white/75">
                 {hasAgent
                   ? agent?.access === "rental"
-                    ? "Active rental"
-                    : "Owned on this wallet"
-                  : "One Agentic ID per wallet"}
+                    ? AGENTIC_ID_COPY.stats.statusRental
+                    : AGENTIC_ID_COPY.stats.statusOwned
+                  : AGENTIC_ID_COPY.stats.statusOnePerWallet}
               </p>
             </div>
 
@@ -288,10 +251,12 @@ export default function AgenticIdWorkspace() {
                 }}
               />
               <div className="relative flex items-center justify-between">
-                <span className="text-xs font-medium text-white/70">Network</span>
+                <span className="text-xs font-medium text-white/70">
+                  {AGENTIC_ID_COPY.stats.network}
+                </span>
                 <Wallet className="h-4 w-4 text-white/70" />
               </div>
-              <p className="relative mt-5 text-2xl font-semibold   text-white">
+              <p className="relative mt-5 text-2xl font-semibold text-white">
                 {!isConnected ? "—" : networkLabel(chainId)}
               </p>
               <p className="relative mt-1 text-[11px] text-white/65">
@@ -305,7 +270,7 @@ export default function AgenticIdWorkspace() {
           {!isConnected ? (
             <div className="bento px-6 py-12 text-center">
               <Fingerprint className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
-              <p className="text-sm font-medium">Connect wallet to mint</p>
+              <p className="text-sm font-medium">Connect wallet to continue</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Use the header connect button on 0G Mainnet or Galileo
               </p>
@@ -323,59 +288,50 @@ export default function AgenticIdWorkspace() {
 
               <section className="bento overflow-hidden">
                 <div className="px-5 py-4">
-                  <h2 className="text-sm font-semibold  ">
-                    Continue with Concierge
+                  <h2 className="text-sm font-semibold">
+                    {AGENTIC_ID_COPY.manage.nextStepsTitle}
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    Personality is ready — chat or list it on the ecosystem
+                    {AGENTIC_ID_COPY.manage.nextStepsSubtitle}
                   </p>
                 </div>
                 <div className="grid gap-2 border-t border-border/50 px-5 py-4 sm:grid-cols-2">
-                  <ContinueCard
+                  <NextStepCard
                     href="/dashboard/advisor/chat"
                     icon={MessageSquare}
-                    title="chat"
-                    detail="Casual chat or ask your data"
+                    title={AGENTIC_ID_COPY.nextSteps.chat.title}
+                    detail={AGENTIC_ID_COPY.nextSteps.chat.detail}
                   />
-                  <ContinueCard
+                  <NextStepCard
+                    href="/dashboard/knowledge"
+                    icon={BrainCircuit}
+                    title={AGENTIC_ID_COPY.nextSteps.knowledge.title}
+                    detail={AGENTIC_ID_COPY.nextSteps.knowledge.detail}
+                  />
+                  <NextStepCard
                     href="/dashboard/ecosystem"
                     icon={Store}
-                    title="Ecosystem"
-                    detail="List, rent, or transfer"
+                    title={AGENTIC_ID_COPY.nextSteps.ecosystem.title}
+                    detail={AGENTIC_ID_COPY.nextSteps.ecosystem.detail}
                   />
-                  <ContinueCard
+                  <NextStepCard
                     href="/dashboard/trading/desk"
                     icon={CandlestickChart}
-                    title="Trading desk"
-                    detail="Suggest · quote · confirm"
+                    title={AGENTIC_ID_COPY.nextSteps.desk.title}
+                    detail={AGENTIC_ID_COPY.nextSteps.desk.detail}
                   />
                 </div>
               </section>
             </>
           ) : (
             <section className="bento overflow-hidden">
-              <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold  ">
-                    Mint Agentic ID
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    Genesis seal from current vault · Chat keeps learning after mint · confirm in wallet
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  className="gap-2 shrink-0"
-                  disabled={!canMint}
-                  onClick={() => void handleMint()}
-                >
-                  {minting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Fingerprint className="h-4 w-4" />
-                  )}
-                  {minting ? "Minting…" : "Mint Agentic ID"}
-                </Button>
+              <div className="px-5 py-4">
+                <h2 className="text-sm font-semibold">
+                  {AGENTIC_ID_COPY.mint.title}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {AGENTIC_ID_COPY.mint.subtitle}
+                </p>
               </div>
 
               {agentLoading ? (
@@ -384,7 +340,7 @@ export default function AgenticIdWorkspace() {
                   <span className="text-sm">Checking Agentic ID…</span>
                 </div>
               ) : (
-                <div className="space-y-3 border-t border-border/50 px-5 py-4">
+                <div className="space-y-4 border-t border-border/50 px-5 py-4">
                   {!vaultAddress ? (
                     <div className="rounded-2xl bg-amber-500/10 px-4 py-3 text-sm">
                       <p className="font-medium">No vault on this chain</p>
@@ -397,16 +353,15 @@ export default function AgenticIdWorkspace() {
                   {files.length === 0 && vaultAddress ? (
                     <div className="rounded-2xl bg-muted/40 px-4 py-4">
                       <p className="text-sm font-medium">
-                        Vault is empty (optional)
+                        {AGENTIC_ID_COPY.mint.emptyVaultTitle}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        You can mint now with a wallet-only genesis seal, or add
-                        evidence first for a richer metadata hash.
+                        {AGENTIC_ID_COPY.mint.emptyVaultBody}
                       </p>
                       <Button asChild size="sm" variant="outline" className="mt-3">
                         <Link href="/dashboard/vault/upload" className="gap-1.5">
                           <Upload className="h-3.5 w-3.5" />
-                          Open Vault
+                          {AGENTIC_ID_COPY.mint.emptyVaultCta}
                         </Link>
                       </Button>
                     </div>
@@ -415,7 +370,7 @@ export default function AgenticIdWorkspace() {
                   <div className="space-y-2">
                     <ReadyLine
                       done={!!vaultAddress}
-                      label="Vault contract"
+                      label={AGENTIC_ID_COPY.readiness.vault}
                       detail={
                         vaultAddress
                           ? truncateHash(vaultAddress, 10, 8)
@@ -423,24 +378,22 @@ export default function AgenticIdWorkspace() {
                       }
                     />
                     <ReadyLine
-                      done={files.length > 0}
-                      label="Genesis vault seal"
+                      done={!!encryptedHash}
+                      label={AGENTIC_ID_COPY.readiness.fingerprint}
                       detail={
                         filesLoading
                           ? "Loading…"
                           : files.length > 0
-                            ? `${files.length} file${files.length === 1 ? "" : "s"} hashed`
-                            : "Empty vault · wallet-only seal"
+                            ? AGENTIC_ID_COPY.readiness.fingerprintFiles(
+                                files.length
+                              )
+                            : AGENTIC_ID_COPY.readiness.fingerprintEmpty
                       }
                     />
                     <ReadyLine
-                      done={!!encryptedHash}
-                      label="Encrypted metadata (seal)"
-                      detail={
-                        encryptedHash
-                          ? truncateHash(encryptedHash, 10, 8)
-                          : "—"
-                      }
+                      done
+                      label={AGENTIC_ID_COPY.readiness.personality}
+                      detail={AGENTIC_ID_COPY.readiness.personalityOptional}
                     />
                   </div>
 
@@ -450,44 +403,42 @@ export default function AgenticIdWorkspace() {
 
                   <div className="space-y-3 rounded-2xl bg-muted/40 p-4">
                     <div>
-                      <p className="text-sm font-medium">Name your Concierge</p>
+                      <p className="text-sm font-medium">
+                        {AGENTIC_ID_COPY.mint.nameSectionTitle}
+                      </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                  One agent per wallet is your portable personality. Use chat
-                  later for casual chat or vault questions — finance, travel, and
-                  subscriptions are focus chips there, not agent types.
+                        {AGENTIC_ID_COPY.mint.nameSectionBody}
                       </p>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-muted-foreground">
-                        Display name (optional)
+                        {AGENTIC_ID_COPY.mint.displayNameLabel}
                       </label>
                       <Input
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="e.g. Manan's Concierge"
+                        placeholder={AGENTIC_ID_COPY.mint.displayNamePlaceholder}
                         className="rounded-xl"
                         maxLength={64}
                       />
                       <p className="text-[11px] text-muted-foreground">
-                        Published to 0G Storage at mint so marketplace &amp; rent
-                        show your personality.
+                        {AGENTIC_ID_COPY.mint.displayNameHint}
                       </p>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-muted-foreground">
-                        Short description (optional)
+                        {AGENTIC_ID_COPY.mint.bioLabel}
                       </label>
                       <Input
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
-                        placeholder="What this agent helps with"
+                        placeholder={AGENTIC_ID_COPY.mint.bioPlaceholder}
                         className="rounded-xl"
                         maxLength={240}
                       />
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Saved on this device after mint · on-chain domain stays{" "}
-                      {defaultAgentDomain()}
+                      {AGENTIC_ID_COPY.mint.domainNote}
                     </p>
                   </div>
 
@@ -501,7 +452,7 @@ export default function AgenticIdWorkspace() {
                     ) : (
                       <ChevronDown className="h-3.5 w-3.5" />
                     )}
-                    Advanced mint fields
+                    {AGENTIC_ID_COPY.mint.advancedToggle}
                   </button>
 
                   {showAdvanced ? (
@@ -532,13 +483,33 @@ export default function AgenticIdWorkspace() {
                       />
                     </div>
                   ) : null}
+
+                  <Button
+                    size="lg"
+                    className="w-full gap-2 rounded-full sm:w-auto"
+                    disabled={!canMint}
+                    onClick={() => void handleMint()}
+                  >
+                    {minting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Fingerprint className="h-4 w-4" />
+                    )}
+                    {minting
+                      ? AGENTIC_ID_COPY.mint.minting
+                      : AGENTIC_ID_COPY.mint.mintButton}
+                  </Button>
                 </div>
               )}
             </section>
           )}
         </div>
 
-        <CollapsibleGuideRail items={GUIDE} />
+        <CollapsibleGuideRail
+          heading="Agentic ID help"
+          subheading="Mint, profile, and ecosystem."
+          items={GUIDE}
+        />
       </div>
     </div>
   );
@@ -562,13 +533,13 @@ function ReadyLine({
       )}
       <div className="min-w-0">
         <p className="text-sm font-medium">{label}</p>
-        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{detail}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
       </div>
     </div>
   );
 }
 
-function ContinueCard({
+function NextStepCard({
   href,
   icon: Icon,
   title,
@@ -587,12 +558,13 @@ function ContinueCard({
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--brand)]">
         <Icon className="h-4 w-4" />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold group-hover:text-[var(--brand)]">
           {title}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
       </div>
+      <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
     </Link>
   );
 }

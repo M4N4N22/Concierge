@@ -18,13 +18,13 @@ export const PRODUCT = {
   pillars: {
     storage: "0G Storage holds your files and evidence packs.",
     vault: "Your Vault contract is the on-chain catalog of what you own — chat always reads it live.",
-    compute: "0G Compute powers Insights, chat, and focus tips — fund the ledger first.",
+    compute: "0G Compute powers knowledge feeds, chat, and tips — Concierge covers early testers.",
     agenticId:
       "One Agentic ID per wallet — portable personality and ownership. Knowledge stays in the vault; the NFT does not freeze learning at mint.",
   },
 
   sealNote:
-    "On-chain vault seal is an optional attestation of file roots. Refresh before listing if you want the chain to match your current vault — uploads and Insights still feed chat either way.",
+    "On-chain vault fingerprint is an optional attestation of file roots. Update before listing if you want the chain to match your current vault — uploads and knowledge feeds apply to Chat either way.",
 
   layers: {
     stored: "Stored files — saved on 0G, like Drive.",
@@ -34,11 +34,11 @@ export const PRODUCT = {
 
   loop: [
     "Add files to your vault",
-    "Turn them into agent knowledge (Insights or Auto-read)",
+    "Turn them into agent knowledge (feed files or Auto-read)",
     "Fund compute",
     "Chat or ask your data in chat",
     "Mint one Agentic ID when you want on-chain personality ownership",
-    "Refresh vault seal when listing (optional honesty)",
+    "Refresh vault fingerprint when listing (optional honesty)",
     "List, rent, or transfer on the ecosystem",
   ] as const,
 

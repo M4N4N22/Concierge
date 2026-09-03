@@ -9,7 +9,10 @@ import {
   parseInsightsOutput,
 } from "@/lib/computeInsightsPrompt";
 import { getOperatorComputeConfig } from "@/lib/computeOperator";
-import { checkAndConsumeWalletDailyQuota } from "@/lib/computeUsage";
+import {
+  checkAndConsumeWalletWeeklyQuota,
+  formatQuotaResetLabel,
+} from "@/lib/computeUsage";
 
 function failCompute(raw: unknown, status = 503) {
   const classified = classifyComputeError(raw);
@@ -37,13 +40,14 @@ export async function POST(req: NextRequest) {
 
     const operator = getOperatorComputeConfig();
     if (operator.subsidized && wallet && isAddress(wallet)) {
-      const daily = checkAndConsumeWalletDailyQuota(wallet);
-      if (!daily.ok) {
+      const weekly = checkAndConsumeWalletWeeklyQuota(wallet, "feed");
+      if (!weekly.ok) {
+        const reset = formatQuotaResetLabel(weekly.retryAfterMs);
         return NextResponse.json(
           {
-            error: `Daily free compute limit reached (${daily.limit} runs). Top up at pc.0g.ai for more.`,
+            error: `Weekly free feed limit reached (${weekly.limit} files). Resets in ${reset} — top up at pc.0g.ai for more.`,
             code: "QUOTA_EXCEEDED",
-            title: "Daily limit reached",
+            title: "Weekly feed limit reached",
           },
           { status: 429 }
         );
@@ -65,8 +69,8 @@ export async function POST(req: NextRequest) {
       { type: "text/plain" }
     );
 
-    const { rootHash: categoryCID } = await uploadFileTo0G(categoryFile);
-    const { rootHash: insightsCID } = await uploadFileTo0G(summaryFile);
+    const { rootHash: categoryCID } = await uploadFileTo0G(categoryFile, chainId);
+    const { rootHash: insightsCID } = await uploadFileTo0G(summaryFile, chainId);
 
     return NextResponse.json({
       rootHash,

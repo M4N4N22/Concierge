@@ -30,6 +30,7 @@ import { uploadAndRegisterOnVault } from "@/utils/upload";
 import { truncateHash } from "@/lib/explorer";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { zeroGMainnet } from "@/lib/wagmi/config";
 
 export type ChatAttachment = {
   id: string;
@@ -200,7 +201,7 @@ export function useChatAttachments({
           uploadFile,
           addFile,
           (rootHash) => rootHash,
-          { category, useTestnet: true }
+          { category, useTestnet: chainId !== zeroGMainnet.id }
         );
 
         if (!result) {

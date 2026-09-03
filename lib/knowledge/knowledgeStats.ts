@@ -50,5 +50,5 @@ export const KNOWLEDGE_BASE_COPY = {
     "Select stored uploads and run 0G Compute to categorize and summarize — results land on-chain and in storage.",
   computeTitle: "0G Compute",
   computeDetail:
-    "Monitor operator pool status, daily quota, or set up your own ledger for advanced use.",
+    "Monitor operator pool status, weekly quota, or set up your own ledger for advanced use.",
 } as const;

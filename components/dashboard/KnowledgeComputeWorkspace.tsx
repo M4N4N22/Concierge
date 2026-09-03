@@ -19,8 +19,8 @@ const COMPUTE_GUIDE: GuideItem[] = [
   {
     id: "quota",
     icon: Cpu,
-    title: "Daily quota",
-    body: "Free tier actions per wallet per day. Top up on Private Computer when running low.",
+    title: "Weekly quota",
+    body: "Free chat and feed actions per wallet per week. Top up on Private Computer when running low.",
   },
   {
     id: "byo",

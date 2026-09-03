@@ -6,38 +6,35 @@ export type ComputeModelOption = {
   description?: string;
 };
 
+/** Fallback if the live Router catalog cannot be loaded. */
+export const FALLBACK_ROUTER_MODEL = "glm-5.3-flash";
+
 export function getDefaultRouterModel(): string {
-  return (
-    process.env.OG_ROUTER_MODEL?.trim() || "phala/deepseek-chat-v3-0324"
-  );
+  return process.env.OG_ROUTER_MODEL?.trim() || FALLBACK_ROUTER_MODEL;
 }
 
-/** Curated Router models — Auto uses OG_ROUTER_MODEL from env. */
+/** Static fallback if GET /v1/models is unreachable. */
 export const ROUTER_MODEL_CATALOG: ComputeModelOption[] = [
   {
-    id: AUTO_MODEL_ID,
-    label: "Auto",
-    description: "Default model for Concierge",
+    id: "glm-5.3-flash",
+    label: "GLM 5.3 Flash",
+    description: "Cheapest",
   },
   {
-    id: "phala/deepseek-chat-v3-0324",
-    label: "DeepSeek V3",
-    description: "Fast · economical",
+    id: "qwen3.8-flash",
+    label: "Qwen 3.8 Flash",
   },
   {
-    id: "phala/gpt-oss-120b",
-    label: "GPT OSS 120B",
-    description: "High accuracy",
+    id: "deepseek-v4-flash",
+    label: "DeepSeek V4 Flash",
   },
   {
-    id: "phala/qwen2.5-vl-72b-instruct",
-    label: "Qwen 2.5 VL",
-    description: "Multimodal",
+    id: "hy3",
+    label: "Hunyuan 3",
   },
   {
-    id: "openai/gpt-oss-120b",
-    label: "GPT OSS (OpenAI)",
-    description: "Reliable · large context",
+    id: "glm-5.2",
+    label: "GLM 5.2",
   },
 ];
 
@@ -48,7 +45,7 @@ export function resolveRouterModel(selected?: string | null): string {
 }
 
 export function modelLabel(modelId: string): string {
-  if (modelId === AUTO_MODEL_ID) return "Auto";
+  if (modelId === AUTO_MODEL_ID) return "Cheapest";
   const hit = ROUTER_MODEL_CATALOG.find((m) => m.id === modelId);
   if (hit) return hit.label;
   const short = modelId.split("/").pop() ?? modelId;

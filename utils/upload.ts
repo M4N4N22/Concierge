@@ -7,11 +7,23 @@ export type UploadFileResult = {
 
 export const uploadFileSafe = async (
   file: File,
-  options?: { silent?: boolean }
+  options?: { silent?: boolean; chainId?: number; useTestnet?: boolean }
 ): Promise<UploadFileResult | null> => {
   const silent = options?.silent ?? false;
   const formData = new FormData();
   formData.append("files", file);
+
+  const chainId =
+    typeof options?.chainId === "number"
+      ? options.chainId
+      : typeof options?.useTestnet === "boolean"
+        ? options.useTestnet
+          ? 16602
+          : 16661
+        : undefined;
+  if (typeof chainId === "number") {
+    formData.append("chainId", String(chainId));
+  }
 
   try {
     const res = await fetch("/api/uploadFile", { method: "POST", body: formData });
@@ -61,6 +73,8 @@ export async function uploadAndRegisterOnVault(
     onProgress?: (phase: "storage" | "vault") => void;
     category?: string;
     encryptedKey?: string;
+    /** Prefer chainId; useTestnet kept for callers that only know network flag. */
+    chainId?: number;
     useTestnet?: boolean;
     toastId?: string | number;
     successMessage?: string;
@@ -71,7 +85,11 @@ export async function uploadAndRegisterOnVault(
 
   try {
     options?.onProgress?.("storage");
-    const stored = await uploadFileSafe(file, { silent: true });
+    const stored = await uploadFileSafe(file, {
+      silent: true,
+      chainId: options?.chainId,
+      useTestnet: options?.useTestnet,
+    });
     if (!stored) {
       toast.error(`Storage failed for ${file.name}. Check server env keys.`, {
         id: toastId,
@@ -99,7 +117,7 @@ export async function uploadAndRegisterOnVault(
       category: options?.category ?? "unassigned",
       encryptedKey: options?.encryptedKey ?? "",
       insightsCID: resolvedInsightsCID,
-      useTestnet: options?.useTestnet ?? true,
+      useTestnet: options?.useTestnet,
     });
 
     toast.success(

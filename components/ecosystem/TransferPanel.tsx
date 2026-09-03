@@ -185,7 +185,7 @@ export function TransferInfoPanel({
             {presentation?.bindingLabel ?? "Profile"} on token
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Storage URI hidden — expand technical details on your Agent profile.
+            Storage URI hidden — expand on-chain details on your Agentic ID page.
           </p>
         </div>
       ) : null}

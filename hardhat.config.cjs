@@ -1,14 +1,17 @@
+const fs = require("fs");
 const dotenv = require("dotenv");
 
-const envFile =
-  process.env.HARDHAT_NETWORK === "0gMainnet" ? ".env.mainnet" : ".env";
-
-dotenv.config({ path: envFile });
+dotenv.config({ path: ".env" });
+if (
+  process.env.HARDHAT_NETWORK === "0gMainnet" &&
+  fs.existsSync(".env.mainnet")
+) {
+  dotenv.config({ path: ".env.mainnet", override: true });
+}
 
 require("@nomicfoundation/hardhat-ethers");
 require("@openzeppelin/hardhat-upgrades");
 require("@nomicfoundation/hardhat-verify");
-
 
 module.exports = {
   solidity: {
