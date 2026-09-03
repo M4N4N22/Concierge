@@ -29,9 +29,12 @@ Concierge stores documents on **0G Storage**, processes them with **0G Compute**
 | Agentic ID | `0x721c164D1c7e67e522d50194C342006E36Fde05f` |
 | AgentMarketplace | `0x5cbAdD85bb8f96d8c5b43c7Ae18819F29Cc121Ac` |
 
-- [Marketplace deploy](https://chainscan.0g.ai/tx/0x73cc238c678a7932e76b5d0e6e59204930bcd14a56ada482088762ea984c1d9e)  
-- [Storage proof](https://explorer.0g.ai/mainnet/storage/submissions/7322)  
+- [Marketplace deploy](https://explorer.0g.ai/mainnet/blockchain/txns/0x73cc238c678a7932e76b5d0e6e59204930bcd14a56ada482088762ea984c1d9e/overview)  
+- [Storage proof (file)](https://storagescan.0g.ai/submission/212383)  
+- Live loop txs (mint · store · compute on mainnet): [0xbb9f…4437](https://explorer.0g.ai/mainnet/blockchain/txns/0xbb9fa5e58431daa454d4b64b0b8ad68b051799f9c5b71153bf999a1267224437/overview) · [0xddd9…d83e](https://explorer.0g.ai/mainnet/blockchain/txns/0xddd9adb2556866df18dd562185ca86f461db905274d792f55809d1ea4bbcd83e/overview) · [0x2679…6871](https://explorer.0g.ai/mainnet/blockchain/txns/0x26797bfb03bcb54e6729648004f8e25fac5cc984b60e1c11aa898b5591906871/overview) · [0x8f07…f625](https://explorer.0g.ai/mainnet/blockchain/txns/0x8f0777e23d63db8b7f167b30efb87f4629be5e927dcf14b1166f140a1526f625/overview) · [0x95ab…d14c](https://explorer.0g.ai/mainnet/blockchain/txns/0x95ab2eb95d3d9225c4315dcecb02f92e8cec0770a7a5430480d75bcc3b67d14c/overview)  
 - Live: [concierge-sigma.vercel.app](http://concierge-sigma.vercel.app/)
+
+**Sharing proofs:** StorageScan submission + explorer.0g.ai tx overview links — [OG_BRIDGE_WAVE3.md § Live Concierge loop](./OG_BRIDGE_WAVE3.md#live-concierge-loop-mainnet-product-activity).
 
 Full Galileo + mainnet address tables, explorer txs, and file-level integration proof → [OG_BRIDGE_WAVE3.md](./OG_BRIDGE_WAVE3.md).
 

@@ -104,7 +104,7 @@ Components: `Sidebar`, `JourneyStepHeader`, journey overview hub at `/dashboard`
 | Chain ID | `16661` |
 | Vault | `0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8` |
 | Agentic ID | `0x721c164D1c7e67e522d50194C342006E36Fde05f` |
-| [Storage proof](https://explorer.0g.ai/mainnet/storage/submissions/7322) | Submission #7322 |
+| [Storage proof](https://storagescan.0g.ai/submission/212383) | Submission #212383 (see also Wave 3 docs) |
 
 Users can switch networks via RainbowKit ConnectButton. App defaults to testnet for buildathon development.
 

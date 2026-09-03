@@ -8,8 +8,9 @@
 ## Quick links
 
 - [Live app](http://concierge-sigma.vercel.app/)
+- [Mainnet storage proof](https://storagescan.0g.ai/submission/212383) · [Live loop txs (mint · store · compute)](./OG_BRIDGE_WAVE3.md#live-concierge-loop-mainnet-product-activity)
 - [0G Docs](https://docs.0g.ai) · [Agentic ID](https://docs.0g.ai/concepts/agentic-id)
-- [Demo video](https://youtu.be/PY_HBcew6oM) · [Product thread](https://x.com/mananbuilds/status/1985758895386800449)
+- [Demo video](https://youtu.be/OOzVcZM8r_4) · [X Post](https://x.com/mananbuilds/status/2095492067363586244)
 
 ---
 
@@ -115,6 +116,8 @@ Foundation for specialists (no second NFT yet): `lib/specialists/` — catalog, 
 | **Vault** | [`0x845Dc38f…257B81`](https://chainscan-galileo.0g.ai/address/0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81) | [`0x02AEA2c7…0893c8`](https://chainscan.0g.ai/address/0x02AEA2c7E88E2e96CD4A02Ff3BA54f90520893c8) |
 | **Agentic ID** | [`0x7fE958Ca…D89389`](https://chainscan-galileo.0g.ai/address/0x7fE958CaF70cdcEC187f30A216924878e2D89389) | [`0x721c164D…e05f`](https://chainscan.0g.ai/address/0x721c164D1c7e67e522d50194C342006E36Fde05f) |
 | **Marketplace** | [`0x2DfB5d44…b209c`](https://chainscan-galileo.0g.ai/address/0x2DfB5d4459a6ebda06ffBBec03F44a0d714b209c) | [`0x5cbAdD85…121Ac`](https://chainscan.0g.ai/address/0x5cbAdD85bb8f96d8c5b43c7Ae18819F29Cc121Ac) |
+
+**Mainnet storage sample:** [StorageScan #212383](https://storagescan.0g.ai/submission/212383). Live product txs (Agentic ID mint · vault/storage · compute on-chain steps): see [OG_BRIDGE_WAVE3.md § Live Concierge loop](./OG_BRIDGE_WAVE3.md#live-concierge-loop-mainnet-product-activity) — share as `https://explorer.0g.ai/mainnet/blockchain/txns/{txHash}/overview`.
 
 ---
 

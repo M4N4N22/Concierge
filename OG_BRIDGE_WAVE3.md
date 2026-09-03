@@ -51,17 +51,47 @@ RPC: `https://evmrpc-testnet.0g.ai` · Explorer: `https://chainscan-galileo.0g.a
 
 | What | Transaction | Link |
 |------|-------------|------|
-| **AgentMarketplace deployed** (Wave 3) | `0x73cc238c678a7932e76b5d0e6e59204930bcd14a56ada482088762ea984c1d9e` | [tx](https://chainscan.0g.ai/tx/0x73cc238c678a7932e76b5d0e6e59204930bcd14a56ada482088762ea984c1d9e) |
-| **Vault implementation deployed** | `0xf681b64b1f588159aa365399d5f88b4456def9b0e0312ef65f1ee6a7726ec3b9` | [tx](https://chainscan.0g.ai/tx/0xf681b64b1f588159aa365399d5f88b4456def9b0e0312ef65f1ee6a7726ec3b9) |
-| **Vault proxy upgraded** (`Upgraded`) | `0xa48aafc9e693b5ea7add66dcb95bd3dd2737610e5e04219a8c8c6ee537550028` | [tx](https://chainscan.0g.ai/tx/0xa48aafc9e693b5ea7add66dcb95bd3dd2737610e5e04219a8c8c6ee537550028) |
-| **INFTAgent implementation deployed** | `0xe5d0a664340f195ce3a5b300bfb70524897eb6cb98c7c3b258137d6b793426b2` | [tx](https://chainscan.0g.ai/tx/0xe5d0a664340f195ce3a5b300bfb70524897eb6cb98c7c3b258137d6b793426b2) |
-| **INFTAgent proxy upgraded** (`Upgraded`) | `0xf81bbaea7d4e143f407bfc68e34a3fbbeae7670c19ada9f4735b36e8e0a8ad75` | [tx](https://chainscan.0g.ai/tx/0xf81bbaea7d4e143f407bfc68e34a3fbbeae7670c19ada9f4735b36e8e0a8ad75) |
-| **0G Storage submission** (Flow contract) | `0x38514d5a60791416d70e05657ee2802997049aa4a2046ee93fd4e44fb8a50c18` | [tx](https://chainscan.0g.ai/tx/0x38514d5a60791416d70e05657ee2802997049aa4a2046ee93fd4e44fb8a50c18) |
-| **0G StorageScan / submission #7322** | root `0xbfb478f0…adf31d` | [Storage explorer](https://explorer.0g.ai/mainnet/storage/submissions/7322) |
-| Vault proxy creation (original) | `0x91e50f18f8f1a6ae82b5c60a296959d45e706625f88e926880064c21af75a546` | [tx](https://chainscan.0g.ai/tx/0x91e50f18f8f1a6ae82b5c60a296959d45e706625f88e926880064c21af75a546) |
-| Agentic ID proxy creation (original) | `0x8eb101c6b87e90fb08e4ca43de9f13b93303ad27e9e63b23c4a83089472a458d` | [tx](https://chainscan.0g.ai/tx/0x8eb101c6b87e90fb08e4ca43de9f13b93303ad27e9e63b23c4a83089472a458d) |
+| **AgentMarketplace deployed** (Wave 3) | `0x73cc238c678a7932e76b5d0e6e59204930bcd14a56ada482088762ea984c1d9e` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0x73cc238c678a7932e76b5d0e6e59204930bcd14a56ada482088762ea984c1d9e/overview) |
+| **Vault implementation deployed** | `0xf681b64b1f588159aa365399d5f88b4456def9b0e0312ef65f1ee6a7726ec3b9` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0xf681b64b1f588159aa365399d5f88b4456def9b0e0312ef65f1ee6a7726ec3b9/overview) |
+| **Vault proxy upgraded** (`Upgraded`) | `0xa48aafc9e693b5ea7add66dcb95bd3dd2737610e5e04219a8c8c6ee537550028` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0xa48aafc9e693b5ea7add66dcb95bd3dd2737610e5e04219a8c8c6ee537550028/overview) |
+| **INFTAgent implementation deployed** | `0xe5d0a664340f195ce3a5b300bfb70524897eb6cb98c7c3b258137d6b793426b2` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0xe5d0a664340f195ce3a5b300bfb70524897eb6cb98c7c3b258137d6b793426b2/overview) |
+| **INFTAgent proxy upgraded** (`Upgraded`) | `0xf81bbaea7d4e143f407bfc68e34a3fbbeae7670c19ada9f4735b36e8e0a8ad75` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0xf81bbaea7d4e143f407bfc68e34a3fbbeae7670c19ada9f4735b36e8e0a8ad75/overview) |
+| **0G Storage submission** (Flow contract) | `0x38514d5a60791416d70e05657ee2802997049aa4a2046ee93fd4e44fb8a50c18` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0x38514d5a60791416d70e05657ee2802997049aa4a2046ee93fd4e44fb8a50c18/overview) |
+| **0G Storage proof (file)** | Submission **#212383** | [StorageScan](https://storagescan.0g.ai/submission/212383) |
+| Earlier storage sample | Submission #7322 | [StorageScan](https://storagescan.0g.ai/submission/7322) |
+| Vault proxy creation (original) | `0x91e50f18f8f1a6ae82b5c60a296959d45e706625f88e926880064c21af75a546` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0x91e50f18f8f1a6ae82b5c60a296959d45e706625f88e926880064c21af75a546/overview) |
+| Agentic ID proxy creation (original) | `0x8eb101c6b87e90fb08e4ca43de9f13b93303ad27e9e63b23c4a83089472a458d` | [tx](https://explorer.0g.ai/mainnet/blockchain/txns/0x8eb101c6b87e90fb08e4ca43de9f13b93303ad27e9e63b23c4a83089472a458d/overview) |
 
-Network-wide storage activity: [storagescan.0g.ai](https://storagescan.0g.ai)
+Network-wide storage: [storagescan.0g.ai](https://storagescan.0g.ai) · Unified explorer: [explorer.0g.ai](https://explorer.0g.ai)
+
+### Live Concierge loop (mainnet product activity)
+
+End-to-end activity on **0G Mainnet** covering **Agentic ID mint**, **vault / storage registration**, and **compute-related on-chain steps** (store → run inference → write insights back to 0G). Share with this URL pattern:
+
+`https://explorer.0g.ai/mainnet/blockchain/txns/{txHash}/overview`
+
+| Role in loop | Tx | Explorer |
+|--------------|-----|----------|
+| Mainnet interaction | `0xbb9fa5e58431daa454d4b64b0b8ad68b051799f9c5b71153bf999a1267224437` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0xbb9fa5e58431daa454d4b64b0b8ad68b051799f9c5b71153bf999a1267224437/overview) |
+| Mainnet interaction | `0xddd9adb2556866df18dd562185ca86f461db905274d792f55809d1ea4bbcd83e` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0xddd9adb2556866df18dd562185ca86f461db905274d792f55809d1ea4bbcd83e/overview) |
+| Mainnet interaction | `0x26797bfb03bcb54e6729648004f8e25fac5cc984b60e1c11aa898b5591906871` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0x26797bfb03bcb54e6729648004f8e25fac5cc984b60e1c11aa898b5591906871/overview) |
+| Mainnet interaction | `0x8f0777e23d63db8b7f167b30efb87f4629be5e927dcf14b1166f140a1526f625` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0x8f0777e23d63db8b7f167b30efb87f4629be5e927dcf14b1166f140a1526f625/overview) |
+| Mainnet interaction | `0x95ab2eb95d3d9225c4315dcecb02f92e8cec0770a7a5430480d75bcc3b67d14c` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0x95ab2eb95d3d9225c4315dcecb02f92e8cec0770a7a5430480d75bcc3b67d14c/overview) |
+
+**Storage file proof (same loop):** [https://storagescan.0g.ai/submission/212383](https://storagescan.0g.ai/submission/212383)
+
+### How to share proofs (Storage · Agentic ID · Compute)
+
+Paste these into the AKINDO submission or demo notes.
+
+| Layer | What to share | Where you get it |
+|-------|---------------|------------------|
+| **0G Storage** | [StorageScan #212383](https://storagescan.0g.ai/submission/212383) | After upload: [storagescan.0g.ai](https://storagescan.0g.ai) → submission sequence. Pattern: `https://storagescan.0g.ai/submission/{sequence}`. Also keep the **root hash** from My Files / server logs. |
+| **Vault / Chain txs** | Explorer **overview** links | `https://explorer.0g.ai/mainnet/blockchain/txns/{txHash}/overview` — use for `addFile`, `updateInsights`, `mintAgent`, storage Flow submits, compute ledger/settlement. See [Live Concierge loop](#live-concierge-loop-mainnet-product-activity) above. |
+| **Agentic ID mint** | Mint tx overview (+ optional NFT view) | Confirmed tx from Agentic ID UI / wallet. Contract: [INFTAgent](https://chainscan.0g.ai/address/0x721c164D1c7e67e522d50194C342006E36Fde05f). Token ID from tx `Transfer` logs → NFT tab on that contract. |
+| **0G Compute** | On-chain twin of inference | Router inference itself is billed via [pc.0g.ai](https://pc.0g.ai) (catalog: [models](https://router-api.0g.ai/v1/models)). **On-chain proof you ran compute over vault files:** Storage submissions for category/summary blobs + Vault **`updateInsights`** (and any Direct SDK ledger/settlement txs) — included in the live loop txs above. |
+
+**Demo bundle:** [StorageScan #212383](https://storagescan.0g.ai/submission/212383) + the five [live loop txs](#live-concierge-loop-mainnet-product-activity) + [Router models](https://router-api.0g.ai/v1/models).
 
 ### Galileo testnet
 
@@ -190,9 +220,10 @@ Vault (0G Storage + Vault.sol)
 
 ## How to verify quickly
 
-1. Open [mainnet marketplace](https://chainscan.0g.ai/address/0x5cbAdD85bb8f96d8c5b43c7Ae18819F29Cc121Ac) — creation tx `0x73cc238c…`.
-2. Open [Galileo vault](https://chainscan-galileo.0g.ai/address/0x845Dc38fCe646C1F0FeB5b607B069D6A62537B81) — recent `addFile` / insight txs.
-3. Hit [Router models](https://router-api.0g.ai/v1/models) — same catalog Concierge uses in `lib/computeRouterModels.ts`.
-4. Run the app, connect on Galileo or Mainnet, upload → feed → chat.
+1. Open [StorageScan #212383](https://storagescan.0g.ai/submission/212383) — live mainnet file proof.
+2. Open the [live Concierge loop txs](#live-concierge-loop-mainnet-product-activity) — mint + store + compute-related mainnet activity.
+3. Open [mainnet marketplace](https://chainscan.0g.ai/address/0x5cbAdD85bb8f96d8c5b43c7Ae18819F29Cc121Ac) — creation tx `0x73cc238c…`.
+4. Hit [Router models](https://router-api.0g.ai/v1/models) — same catalog Concierge uses in `lib/computeRouterModels.ts`.
+5. Run the app on Mainnet: upload → feed → chat → mint (see [How to share proofs](#how-to-share-proofs-storage--agentic-id--compute)).
 
 See [README.md](./README.md) for setup and vision. Program one-pager: [OG_BRIDGE.md](./OG_BRIDGE.md). Wave 1: [WAVE1_UPDATES.md](./WAVE1_UPDATES.md).
