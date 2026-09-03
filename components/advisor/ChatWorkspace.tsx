@@ -20,6 +20,8 @@ import {
   ChatAttachmentControls,
   useChatAttachments,
 } from "@/components/advisor/ChatAttachments";
+import { ChatComputeControls } from "@/components/advisor/ChatComputeControls";
+import type { ComputeQuota } from "@/hooks/useComputeQuota";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
 import { useUserFiles, type VaultFile } from "@/hooks/useUserFiles";
 import { usefetchFileContent } from "@/hooks/useFileContent";
@@ -34,21 +36,39 @@ import {
 import type { BoardSession } from "@/lib/board";
 import { boardAuthMessage } from "@/lib/boardAuthMessage";
 import { readCachedPersonality } from "@/lib/agentPersonality";
+import { AUTO_MODEL_ID } from "@/lib/computeModels";
+import { useComputeQuota } from "@/hooks/useComputeQuota";
 import { vaultCategoryLabel } from "@/lib/copy/vaultTerms";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 
 const APP_ICON = "/circle-conc-new.png";
+const CHAT_MODEL_STORAGE_KEY = "concierge.chat.model";
 
 type VaultQuestion = {
+  id: string;
   icon: LucideIcon;
   title: string;
   description: string;
   prompt: string;
 };
 
-const CASUAL_SUGGESTIONS: VaultQuestion[] = [
+function withQuestionIds(
+  questions: Omit<VaultQuestion, "id">[]
+): VaultQuestion[] {
+  const seenPrompts = new Set<string>();
+  return questions.map((q, index) => {
+    let id = q.prompt.trim() || `question-${index}`;
+    if (seenPrompts.has(id)) {
+      id = `${id}-${index}`;
+    }
+    seenPrompts.add(id);
+    return { ...q, id };
+  });
+}
+
+const CASUAL_SUGGESTIONS: VaultQuestion[] = withQuestionIds([
   {
     icon: MessageCircle,
     title: "Intro",
@@ -67,7 +87,7 @@ const CASUAL_SUGGESTIONS: VaultQuestion[] = [
     description: "Prioritize the week",
     prompt: "What should I focus on this week?",
   },
-];
+]);
 
 type ChatMessage = {
   id: string;
@@ -149,21 +169,40 @@ function fallbackQuestions(files: VaultFile[]): VaultQuestion[] {
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 3);
   if (!recent.length) {
-    return [
+    return withQuestionIds([
       {
         icon: Lightbulb,
         title: "Vault overview",
         description: "Start with what you have stored",
         prompt: "Summarize what my vault knows so far.",
       },
-    ];
+    ]);
   }
-  return recent.map((f) => ({
-    icon: Sparkles,
-    title: vaultCategoryLabel(f.category),
-    description: `Uploaded ${formatUploadedAt(f.timestamp)}`,
-    prompt: `What can you tell me from my ${vaultCategoryLabel(f.category).toLowerCase()} upload?`,
-  }));
+
+  const categoryCounts = new Map<string, number>();
+  for (const f of recent) {
+    categoryCounts.set(f.category, (categoryCounts.get(f.category) ?? 0) + 1);
+  }
+
+  return withQuestionIds(
+    recent.map((f) => {
+      const label = vaultCategoryLabel(f.category);
+      const when = formatUploadedAt(f.timestamp);
+      const duplicateCategory = (categoryCounts.get(f.category) ?? 0) > 1;
+      const fileHint = f.rootHash.slice(2, 10);
+
+      return {
+        icon: Sparkles,
+        title: duplicateCategory ? `${label} · ${when}` : label,
+        description: duplicateCategory
+          ? `File ${fileHint}…`
+          : `Uploaded ${when}`,
+        prompt: duplicateCategory
+          ? `What can you tell me from my ${label.toLowerCase()} upload from ${when}? (ref ${fileHint})`
+          : `What can you tell me from my ${label.toLowerCase()} upload?`,
+      };
+    })
+  );
 }
 
 async function buildVaultContext(
@@ -204,6 +243,13 @@ export function ChatWorkspace() {
   const { fetchFileContent } = usefetchFileContent();
   const { agent } = useAgenticId();
   const { readiness, loading: ledgerLoading } = useComputeLedgerContext();
+  const {
+    quota,
+    loading: quotaLoading,
+    refresh: refreshQuota,
+  } = useComputeQuota(readiness.operatorSubsidized);
+
+  const [selectedModel, setSelectedModel] = useState(AUTO_MODEL_ID);
 
   const [intent, setIntent] = useState<ChatIntent>(() =>
     parseIntent(searchParams.get("intent"))
@@ -230,6 +276,24 @@ export function ChatWorkspace() {
     setIntent(parseIntent(searchParams.get("intent")));
   }, [searchParams]);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CHAT_MODEL_STORAGE_KEY);
+      if (saved) setSelectedModel(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const handleModelChange = useCallback((model: string) => {
+    setSelectedModel(model);
+    try {
+      localStorage.setItem(CHAT_MODEL_STORAGE_KEY, model);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const {
     attachments,
     uploading: attachmentsUploading,
@@ -242,7 +306,9 @@ export function ChatWorkspace() {
   } = useChatAttachments({
     files,
     fetchFileContent,
-    onVaultChange: () => refetch({ silent: true }),
+    onVaultChange: () => {
+      void refetch({ silent: true });
+    },
   });
 
   const knowledgeFileCount = useMemo(() => countAgentKnowledge(files), [files]);
@@ -256,6 +322,7 @@ export function ChatWorkspace() {
       knowledgeFiles: knowledgeFileCount,
       askableCount: evidence.length,
       canCompute: readiness.canCompute,
+      operatorSubsidized: readiness.operatorSubsidized,
       hasLedger: readiness.hasLedger,
       hasBalance: readiness.hasBalance,
       hasFundedProvider: readiness.hasFundedProvider,
@@ -269,6 +336,7 @@ export function ChatWorkspace() {
       ledgerLoading,
       loadingEvidence,
       readiness.canCompute,
+      readiness.operatorSubsidized,
       readiness.hasBalance,
       readiness.hasFundedProvider,
       readiness.hasLedger,
@@ -328,13 +396,15 @@ export function ChatWorkspace() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Tips failed");
 
-        const questions: VaultQuestion[] = (json.questions ?? []).map(
-          (q: { title: string; description: string; prompt: string }) => ({
-            icon: Lightbulb,
-            title: q.title,
-            description: q.description,
-            prompt: q.prompt,
-          })
+        const questions = withQuestionIds(
+          (json.questions ?? []).map(
+            (q: { title: string; description: string; prompt: string }) => ({
+              icon: Lightbulb,
+              title: q.title,
+              description: q.description,
+              prompt: q.prompt,
+            })
+          )
         );
         setTipSummary(json.summary ?? null);
         setSuggestedQuestions(
@@ -415,12 +485,6 @@ export function ChatWorkspace() {
       return merged;
     })();
 
-    const modeHint =
-      intent === "casual"
-        ? "\n\n[Mode: casual conversation with Concierge personality. Vault data optional unless files are attached.]"
-        : "\n\n[Mode: answer from the user's vault knowledge.]";
-    const fullQuestion = `${question}${modeHint}`;
-
     setInput("");
     setMessages((m) => [
       ...m,
@@ -436,38 +500,87 @@ export function ChatWorkspace() {
 
     try {
       const timestamp = Date.now();
-      const message = boardAuthMessage({
-        wallet: address,
-        timestamp,
-        question: fullQuestion,
-      });
-      const signature = await signMessageAsync({ message });
-      const res = await fetch("/api/boardSession", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: fullQuestion,
-          evidence: messageEvidence,
-          mode: "auto",
-          agentTokenId: agent?.tokenId.toString(),
-          chainId,
+
+      if (intent === "casual") {
+        const authMessage = boardAuthMessage({
           wallet: address,
           timestamp,
-          signature,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      const session = data.session as BoardSession;
-      setMessages((m) => [
-        ...m,
-        {
-          id: `a_${Date.now()}`,
-          role: "assistant",
-          content: formatAssistant(session),
-          meta: `${session.consensus.verdict} · ${Math.round(session.consensus.confidence * 100)}% · ${session.computeMode}${intent === "casual" ? " · casual" : ""}`,
-        },
-      ]);
+          question,
+        });
+        const signature = await signMessageAsync({ message: authMessage });
+        const personality =
+          agent?.tokenId != null
+            ? readCachedPersonality(chainId, agent.tokenId)
+            : null;
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: question,
+            evidence: messageEvidence,
+            model: selectedModel,
+            displayName: personality?.displayName,
+            bio: personality?.bio,
+            chainId,
+            wallet: address,
+            timestamp,
+            signature,
+            mode: "fast",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Request failed");
+
+        setMessages((m) => [
+          ...m,
+          {
+            id: `a_${Date.now()}`,
+            role: "assistant",
+            content: String(data.reply ?? "").trim() || "…",
+            meta: `${data.modelLabel ?? "Auto"} · casual`,
+          },
+        ]);
+      } else {
+        const modeHint =
+          "\n\n[Mode: answer from the user's vault knowledge.]";
+        const fullQuestion = `${question}${modeHint}`;
+        const authMessage = boardAuthMessage({
+          wallet: address,
+          timestamp,
+          question: fullQuestion,
+        });
+        const signature = await signMessageAsync({ message: authMessage });
+        const res = await fetch("/api/boardSession", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: fullQuestion,
+            evidence: messageEvidence,
+            mode: "auto",
+            model: selectedModel,
+            agentTokenId: agent?.tokenId.toString(),
+            chainId,
+            wallet: address,
+            timestamp,
+            signature,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Request failed");
+        const session = data.session as BoardSession;
+        setMessages((m) => [
+          ...m,
+          {
+            id: `a_${Date.now()}`,
+            role: "assistant",
+            content: formatAssistant(session),
+            meta: `${session.consensus.verdict} · ${Math.round(session.consensus.confidence * 100)}% · ${session.computeMode}`,
+          },
+        ]);
+      }
+
+      void refreshQuota();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed";
       toast.error(msg);
@@ -527,7 +640,7 @@ export function ChatWorkspace() {
             </span>
           ) : chatReadiness.canSend && intent === "casual" ? (
             <span className="rounded-full bg-muted/70 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-              Casual
+              {readiness.operatorSubsidized ? "Concierge compute" : "Casual"}
             </span>
           ) : null}
           {agent ? (
@@ -543,7 +656,7 @@ export function ChatWorkspace() {
             </Button>
           ) : null}
           <Button asChild size="sm" variant="ghost" className="h-8 rounded-full text-xs">
-            <Link href="/dashboard/vault/my-files">Vault</Link>
+            <Link href="/dashboard/vault">Vault</Link>
           </Button>
         </div>
       </div>
@@ -608,6 +721,10 @@ export function ChatWorkspace() {
               onVaultAttach={(hashes) => void attachFromVault(hashes)}
               onRemoveAttachment={removeAttachment}
               onIntentChange={setIntent}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+              quota={quota}
+              quotaLoading={quotaLoading}
             />
           </div>
 
@@ -640,7 +757,7 @@ export function ChatWorkspace() {
                     ))
                   : suggestedQuestions.map((q) => (
                       <QuestionCard
-                        key={q.prompt}
+                        key={q.id}
                         question={q}
                         disabled={sending}
                         onSelect={() => void send(q.prompt)}
@@ -669,10 +786,10 @@ export function ChatWorkspace() {
                 </Button>
               ) : null}
               <Button asChild variant="outline" className="rounded-full">
-                <Link href="/dashboard/vault/my-files">Open Vault</Link>
+                <Link href="/dashboard/vault/upload">Open Vault</Link>
               </Button>
               <Button asChild variant="outline" className="rounded-full">
-                <Link href="/dashboard/vault/insights">Insights desk</Link>
+                <Link href="/dashboard/knowledge/feed">Knowledge base</Link>
               </Button>
             </div>
           )}
@@ -728,6 +845,10 @@ export function ChatWorkspace() {
                 onVaultAttach={(hashes) => void attachFromVault(hashes)}
                 onRemoveAttachment={removeAttachment}
                 onIntentChange={setIntent}
+                selectedModel={selectedModel}
+                onModelChange={handleModelChange}
+                quota={quota}
+                quotaLoading={quotaLoading}
                 compact
               />
             </div>
@@ -902,6 +1023,10 @@ function ChatInputCard({
   onVaultAttach,
   onRemoveAttachment,
   onIntentChange,
+  selectedModel,
+  onModelChange,
+  quota,
+  quotaLoading,
   compact,
 }: {
   input: string;
@@ -922,6 +1047,10 @@ function ChatInputCard({
   onVaultAttach: (rootHashes: string[]) => void;
   onRemoveAttachment: (id: string) => void;
   onIntentChange: (intent: ChatIntent) => void;
+  selectedModel: string;
+  onModelChange: (model: string) => void;
+  quota: ComputeQuota | null;
+  quotaLoading: boolean;
   compact?: boolean;
 }) {
   return (
@@ -963,40 +1092,48 @@ function ChatInputCard({
       />
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <IntentToggle
-            intent={intent}
-            onChange={onIntentChange}
-            inline
-          />
-          {intent === "vault" ? (
-            <button
-              type="button"
-              disabled={tipsLoading || !canSend}
-              onClick={onTips}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                canSend
-                  ? "bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_18%,transparent)]"
-                  : "bg-muted/50 text-muted-foreground"
-              )}
-            >
-              {tipsLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              Tips
-            </button>
-          ) : null}
-          <ChatAttachmentControls
-            files={files}
-            attachments={attachments}
-            uploading={attachmentsUploading}
-            disabled={!canSend || sending}
-            deviceInputRef={deviceInputRef}
-            onDeviceSelect={onDeviceSelect}
-            onVaultAttach={onVaultAttach}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <IntentToggle
+              intent={intent}
+              onChange={onIntentChange}
+              inline
+            />
+            {intent === "vault" ? (
+              <button
+                type="button"
+                disabled={tipsLoading || !canSend}
+                onClick={onTips}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                  canSend
+                    ? "bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_18%,transparent)]"
+                    : "bg-muted/50 text-muted-foreground"
+                )}
+              >
+                {tipsLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                Tips
+              </button>
+            ) : null}
+            <ChatAttachmentControls
+              files={files}
+              attachments={attachments}
+              uploading={attachmentsUploading}
+              disabled={!canSend || sending}
+              deviceInputRef={deviceInputRef}
+              onDeviceSelect={onDeviceSelect}
+              onVaultAttach={onVaultAttach}
+            />
+          </div>
+          <ChatComputeControls
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            quota={quota}
+            quotaLoading={quotaLoading}
           />
         </div>
 

@@ -182,7 +182,7 @@ export function AutoReadPanel() {
             </button>{" "}
             or use{" "}
             <Link
-              href="/dashboard/vault/insights"
+              href="/dashboard/knowledge/compute"
               className="font-semibold underline underline-offset-2"
             >
               manual Insights

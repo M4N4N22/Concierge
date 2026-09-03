@@ -19,7 +19,10 @@ export type ChatReadinessInput = {
   totalFiles: number;
   knowledgeFiles: number;
   askableCount: number;
+  /** Operator pool (Router) or legacy direct ledger ready */
   canCompute: boolean;
+  /** When true, users skip ledger setup — Concierge covers inference */
+  operatorSubsidized: boolean;
   hasLedger: boolean;
   hasBalance: boolean;
   hasFundedProvider: boolean;
@@ -38,6 +41,8 @@ export function countAgentKnowledge(files: VaultFile[]): number {
 }
 
 export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
+  const computeReady = input.canCompute;
+
   const steps = [
     {
       id: "wallet",
@@ -48,35 +53,35 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       id: "files",
       label: "Add stored files to your vault",
       done: input.totalFiles > 0,
-      href: "/dashboard/vault/my-files",
+      href: "/dashboard/vault/upload",
       action: "Open Vault",
     },
     {
       id: "knowledge",
       label: "Turn files into agent knowledge",
       done: input.knowledgeFiles > 0,
-      href: "/dashboard/vault/insights",
-      action: "Run Insights",
+      href: "/dashboard/knowledge/feed",
+      action: "Feed files",
     },
     {
       id: "ledger",
       label: "Create compute ledger",
-      done: input.hasLedger,
-      href: "/dashboard/vault/insights",
+      done: input.hasLedger || input.operatorSubsidized,
+      href: "/dashboard/knowledge/compute",
       action: "Set up compute",
     },
     {
       id: "balance",
       label: "Deposit OG into ledger",
-      done: input.hasBalance,
-      href: "/dashboard/vault/insights",
+      done: input.hasBalance || input.operatorSubsidized,
+      href: "/dashboard/knowledge/compute",
       action: "Fund ledger",
     },
     {
       id: "provider",
       label: "Fund an AI model provider",
-      done: input.hasFundedProvider,
-      href: "/dashboard/vault/insights",
+      done: input.hasFundedProvider || input.operatorSubsidized,
+      href: "/dashboard/knowledge/compute",
       action: "Fund model",
     },
     {
@@ -100,18 +105,13 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
   }
 
   if (input.intent === "casual") {
-    if (!input.canCompute) {
-      const computeDetail = !input.hasLedger
-        ? "Create your compute ledger on the Insights desk — Chat uses 0G Compute."
-        : !input.hasBalance
-          ? "Deposit OG into your ledger so inference can run when you send a message."
-          : "Fund at least one AI model provider on the Insights desk before Chat can respond.";
-
+    if (!computeReady) {
       return {
         canSend: false,
         blocker: "compute",
-        title: "Finish compute setup",
-        detail: computeDetail,
+        title: "Compute unavailable",
+        detail:
+          "Concierge inference is temporarily unavailable. The operator pool needs funding — try again later.",
         steps,
       };
     }
@@ -120,7 +120,9 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       canSend: true,
       blocker: null,
       title: "Ready to chat",
-      detail: "Casual mode · compute funded",
+      detail: input.operatorSubsidized
+        ? "Casual mode · compute covered by Concierge"
+        : "Casual mode · compute funded",
       steps,
     };
   }
@@ -142,7 +144,7 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       blocker: "no_files",
       title: "No vault files yet",
       detail:
-        "Uploads land on 0G first. Add files in Vault, then run Insights so Chat can answer from them.",
+        "Uploads land on 0G first. Add files in Vault, then feed them in Knowledge base so Chat can answer.",
       steps,
     };
   }
@@ -152,22 +154,24 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       canSend: false,
       blocker: "no_knowledge",
       title: "Stored files — not agent knowledge yet",
-      detail: `You have ${input.totalFiles} stored file${input.totalFiles === 1 ? "" : "s"}, but Chat can't use raw uploads. Run Insights or use Quick add.`,
+      detail: `You have ${input.totalFiles} stored file${input.totalFiles === 1 ? "" : "s"}, but Chat can't use raw uploads. Feed files in Knowledge base or use Quick add.`,
       steps,
     };
   }
 
-  if (!input.canCompute) {
-    const computeDetail = !input.hasLedger
-      ? "Create your compute ledger on the Insights desk — Chat uses 0G Compute."
-      : !input.hasBalance
-        ? "Deposit OG into your ledger so inference can run when you send a message."
-        : "Fund at least one AI model provider on the Insights desk before Chat can respond.";
+  if (!computeReady) {
+    const computeDetail = input.operatorSubsidized
+      ? "Concierge inference is temporarily unavailable. Try again later."
+      : !input.hasLedger
+        ? "Create your compute ledger on the Knowledge base Compute page — Chat uses 0G Compute."
+        : !input.hasBalance
+          ? "Deposit OG into your ledger so inference can run when you send a message."
+          : "Fund at least one AI model provider on the Compute page before Chat can respond.";
 
     return {
       canSend: false,
       blocker: "compute",
-      title: "Finish compute setup",
+      title: input.operatorSubsidized ? "Compute unavailable" : "Finish compute setup",
       detail: computeDetail,
       steps,
     };
@@ -179,7 +183,7 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
       blocker: "load_failed",
       title: "Couldn't load agent knowledge",
       detail:
-        "Your vault has knowledge files, but Chat couldn't read them from storage. Try Refresh or re-run Insights.",
+        "Your vault has knowledge files, but Chat couldn't read them from storage. Try Refresh or re-feed on Knowledge base.",
       steps,
     };
   }
@@ -188,7 +192,9 @@ export function resolveChatReadiness(input: ChatReadinessInput): ChatReadiness {
     canSend: true,
     blocker: null,
     title: "Ready to chat",
-    detail: `${input.askableCount} knowledge file${input.askableCount === 1 ? "" : "s"} loaded · compute funded`,
+    detail: input.operatorSubsidized
+      ? `${input.askableCount} knowledge file${input.askableCount === 1 ? "" : "s"} loaded · compute covered by Concierge`
+      : `${input.askableCount} knowledge file${input.askableCount === 1 ? "" : "s"} loaded · compute funded`,
     steps,
   };
 }

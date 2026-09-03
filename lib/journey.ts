@@ -10,7 +10,7 @@ import {
 
 export type JourneyStepId =
   | "upload"
-  | "insights"
+  | "knowledge"
   | "chat"
   | "agentic-id"
   | "ecosystem"
@@ -49,21 +49,61 @@ export const JOURNEY_STEPS: JourneyStep[] = [
     tagline: "Store files on 0G",
     description:
       "Uploads land on 0G Storage and your Vault registry. Use Quick add for structured packs Chat can read immediately, or upload files and run Insights next.",
-    href: "/dashboard/vault/my-files",
+    href: "/dashboard/vault",
     icon: Upload,
     status: "live",
+    subSteps: [
+      {
+        id: "overview",
+        name: "Overview",
+        href: "/dashboard/vault",
+        description: "Vault stats and quick actions",
+      },
+      {
+        id: "upload",
+        name: "Upload",
+        href: "/dashboard/vault/upload",
+        description: "Store files on 0G Storage",
+      },
+      {
+        id: "files",
+        name: "All files",
+        href: "/dashboard/vault/my-files",
+        description: "Browse and manage your vault registry",
+      },
+    ],
   },
   {
-    id: "insights",
+    id: "knowledge",
     step: 2,
-    title: "Insights",
-    shortTitle: "Insights",
+    title: "Knowledge base",
+    shortTitle: "Knowledge",
     tagline: "Turn storage into agent knowledge",
     description:
-      "Fund 0G Compute, then categorize and summarize vault files. Stored-only uploads become agent knowledge chat can use.",
-    href: "/dashboard/vault/insights",
+      "Feed vault uploads through 0G Compute to categorize and summarize. Stored-only files become agent knowledge Chat can use.",
+    href: "/dashboard/knowledge",
     icon: Sparkles,
     status: "live",
+    subSteps: [
+      {
+        id: "overview",
+        name: "Overview",
+        href: "/dashboard/knowledge",
+        description: "Knowledge stats and quick actions",
+      },
+      {
+        id: "feed",
+        name: "Feed files",
+        href: "/dashboard/knowledge/feed",
+        description: "Run AI on stored vault uploads",
+      },
+      {
+        id: "compute",
+        name: "Compute",
+        href: "/dashboard/knowledge/compute",
+        description: "Monitor 0G Compute and quota",
+      },
+    ],
   },
   {
     id: "chat",
@@ -154,6 +194,19 @@ export function getStepById(id: JourneyStepId): JourneyStep | undefined {
 }
 
 export function getStepByPath(pathname: string): JourneyStep | undefined {
+  if (pathname.startsWith("/dashboard/advisor")) {
+    return JOURNEY_STEPS.find((s) => s.id === "chat");
+  }
+  if (pathname.startsWith("/dashboard/knowledge")) {
+    return JOURNEY_STEPS.find((s) => s.id === "knowledge");
+  }
+  if (pathname.startsWith("/dashboard/vault/insights")) {
+    return JOURNEY_STEPS.find((s) => s.id === "knowledge");
+  }
+  if (pathname.startsWith("/dashboard/vault")) {
+    return JOURNEY_STEPS.find((s) => s.id === "upload");
+  }
+
   for (const step of JOURNEY_STEPS) {
     if (step.href && pathname.startsWith(step.href)) return step;
     if (
@@ -163,9 +216,6 @@ export function getStepByPath(pathname: string): JourneyStep | undefined {
     ) {
       return step;
     }
-  }
-  if (pathname.startsWith("/dashboard/advisor")) {
-    return JOURNEY_STEPS.find((s) => s.id === "chat");
   }
   return undefined;
 }
@@ -188,5 +238,11 @@ export function getPrevStep(currentId: JourneyStepId): JourneyStep | undefined {
 /** Match pathname to a specific nav href (step or sub-step). */
 export function isPathActive(pathname: string, href: string): boolean {
   if (href === "#") return false;
+  if (href === "/dashboard/knowledge") {
+    return pathname === "/dashboard/knowledge";
+  }
+  if (href === "/dashboard/vault") {
+    return pathname === "/dashboard/vault";
+  }
   return pathname === href || pathname.startsWith(href + "/");
 }

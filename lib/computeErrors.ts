@@ -26,6 +26,21 @@ export function classifyComputeError(raw: unknown): ClassifiedComputeError {
   const lower = text.toLowerCase();
 
   if (
+    lower.includes("og_router_api_key") ||
+    lower.includes("private computer router") ||
+    (lower.includes("router") && lower.includes("401"))
+  ) {
+    return {
+      code: "INFERENCE_FAILED",
+      title: "Router compute unavailable",
+      message:
+        "0G Private Computer Router rejected the request. Check OG_ROUTER_API_KEY and balance at pc.0g.ai.",
+      action: "open_compute_setup",
+      raw: text,
+    };
+  }
+
+  if (
     lower.includes("missing galileo_rpc_url") ||
     lower.includes("missing galileo_private_key") ||
     lower.includes("missing og_mainnet_rpc_url") ||

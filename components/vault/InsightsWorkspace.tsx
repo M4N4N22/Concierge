@@ -31,7 +31,7 @@ type FileInsight = {
 };
 
 export default function InsightsWorkspace() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const chainId = useChainId();
   const { files, loading: filesLoading, refetch } = useUserFiles();
   const { readiness } = useComputeLedgerContext();
@@ -69,6 +69,7 @@ export default function InsightsWorkspace() {
         fileName: `vault-${file.rootHash.slice(0, 8)}.txt`,
         content: fileContent,
         chainId,
+        wallet: address,
       },
       updateInsights
     );
@@ -77,7 +78,7 @@ export default function InsightsWorkspace() {
 
   const runInsights = async () => {
     if (!readiness.canCompute) {
-      toast.error("Complete ledger setup and fund a provider first");
+      toast.error("Complete compute setup on the Compute page first");
       return;
     }
     if (selected.size === 0) {
@@ -130,7 +131,7 @@ export default function InsightsWorkspace() {
     return (
       <div className="bento px-6 py-12 text-center">
         <Sparkles className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
-        <p className="text-sm font-medium">Connect wallet to run insights</p>
+        <p className="text-sm font-medium">Connect wallet to feed files</p>
       </div>
     );
   }
@@ -141,16 +142,14 @@ export default function InsightsWorkspace() {
         <div className="flex items-start gap-3 rounded-[var(--radius)] bg-amber-500/10 px-4 py-3">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <div className="text-sm">
-            <p className="font-medium">Finish compute setup above first</p>
-            <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-              {!readiness.hasLedger && <li>→ Create your 0G Compute ledger</li>}
-              {readiness.hasLedger && !readiness.hasBalance && (
-                <li>→ Deposit OG into your ledger</li>
-              )}
-              {readiness.hasBalance && !readiness.hasFundedProvider && (
-                <li>→ Fund at least one AI model provider</li>
-              )}
-            </ul>
+            <p className="font-medium">Compute not ready</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Open the{" "}
+              <Link href="/dashboard/knowledge/compute" className="font-medium text-[var(--brand)] underline-offset-2 hover:underline">
+                Compute page
+              </Link>{" "}
+              to finish setup before feeding files.
+            </p>
           </div>
         </div>
       )}
@@ -158,11 +157,9 @@ export default function InsightsWorkspace() {
       <section className="bento overflow-hidden">
         <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-sm font-semibold  ">
-              Run AI insights
-            </h2>
+            <h2 className="text-sm font-semibold">Feed vault files</h2>
             <p className="text-xs text-muted-foreground">
-              Select vault files — 0G Compute categorizes and summarizes each one
+              Select stored uploads — 0G Compute categorizes and summarizes each one for your knowledge base
             </p>
           </div>
           {files.length > 0 && readiness.canCompute && (
@@ -234,7 +231,7 @@ export default function InsightsWorkspace() {
                 Add evidence first, then return here to organize
               </p>
               <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/vault/my-files">Go to Vault</Link>
+                <Link href="/dashboard/vault/upload">Go to Upload</Link>
               </Button>
             </div>
           ) : (
@@ -304,11 +301,9 @@ export default function InsightsWorkspace() {
       {hasInsights && categories.length > 0 && (
         <section className="bento overflow-hidden">
           <div className="px-5 py-4">
-            <p className="text-sm font-semibold  ">
-              Organized vault
-            </p>
+            <p className="text-sm font-semibold">Knowledge base by category</p>
             <p className="text-xs text-muted-foreground">
-              Grouped by AI category — stored on 0G and written to the registry
+              Grouped after feeding — stored on 0G and written to the registry
             </p>
           </div>
           <div className="border-t border-border/50 px-5 py-4">

@@ -5,7 +5,7 @@ const SURFACES = [
     title: "Vault & Insights",
     line: "Store first. Make it knowledge.",
     body: "Uploads on 0G Storage. Insights (or Quick add) turn them into agent knowledge Concierge can use.",
-    href: "/dashboard/vault/my-files",
+    href: "/dashboard/vault",
     tone: "surface" as const,
   },
   {

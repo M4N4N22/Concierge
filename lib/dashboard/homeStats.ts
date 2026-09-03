@@ -232,7 +232,7 @@ export function buildDashboardActions(args: {
       priority: "critical",
       title: "Upload your first file",
       detail: "Sync your wallet, drop a CSV, or paste a note — stored on 0G Storage.",
-      href: "/dashboard/vault/my-files",
+      href: "/dashboard/vault",
       cta: "Open Vault",
     });
   }
@@ -243,7 +243,7 @@ export function buildDashboardActions(args: {
       priority: "recommended",
       title: "Create 0G Compute ledger",
       detail: `Prepaid account for AI calls. Requires at least 3 OG to create.`,
-      href: "/dashboard/vault/insights",
+      href: "/dashboard/knowledge/compute",
       cta: "Set up Compute",
     });
   } else if (args.totalOG <= 0) {
@@ -251,8 +251,8 @@ export function buildDashboardActions(args: {
       id: "ledger-fund",
       priority: "recommended",
       title: "Fund your Compute ledger",
-      detail: "Deposit OG so Insights and chat can run inference.",
-      href: "/dashboard/vault/insights",
+      detail: "Deposit OG so feeding files and chat can run inference.",
+      href: "/dashboard/knowledge/compute",
       cta: "Add OG",
     });
   } else if (!args.hasFundedProvider) {
@@ -261,7 +261,7 @@ export function buildDashboardActions(args: {
       priority: "recommended",
       title: "Fund an AI provider",
       detail: `${formatOG(args.totalOG)} OG on ledger — pick a model provider to enable inference.`,
-      href: "/dashboard/vault/insights",
+      href: "/dashboard/knowledge/compute",
       cta: "Fund provider",
     });
   }
@@ -272,12 +272,12 @@ export function buildDashboardActions(args: {
     args.stats.vaultFiles > 0
   ) {
     actions.push({
-      id: "insights",
+      id: "knowledge",
       priority: "recommended",
       title: `Turn ${args.stats.unlabeledFiles} stored file${args.stats.unlabeledFiles === 1 ? "" : "s"} into agent knowledge`,
-      detail: "Run Insights to categorize and summarize uploads that are stored-only today.",
-      href: "/dashboard/vault/insights",
-      cta: "Run Insights",
+      detail: "Feed stored uploads on the Knowledge base to categorize and summarize them.",
+      href: "/dashboard/knowledge/feed",
+      cta: "Feed files",
     });
   }
 
@@ -288,8 +288,8 @@ export function buildDashboardActions(args: {
       title: "Build agent knowledge before chat",
       detail:
         "You have stored files, but Concierge can’t use raw uploads yet. Run Insights or Quick add.",
-      href: "/dashboard/vault/insights",
-      cta: "Open Insights",
+      href: "/dashboard/knowledge/feed",
+      cta: "Open Knowledge base",
     });
   } else if (
     args.stats.agentKnowledge > 0 &&
@@ -381,13 +381,13 @@ export function buildJourneyProgress(args: {
       id: "vault",
       label: "Vault",
       done: args.stats.vaultFiles > 0,
-      href: "/dashboard/vault/my-files",
+      href: "/dashboard/vault",
     },
     {
-      id: "insights",
-      label: "Insights",
+      id: "knowledge",
+      label: "Knowledge",
       done: args.stats.agentKnowledge > 0 && args.ledgerExists,
-      href: "/dashboard/vault/insights",
+      href: "/dashboard/knowledge",
     },
     {
       id: "chat",
@@ -411,8 +411,8 @@ export function buildJourneyProgress(args: {
 }
 
 const JOURNEY_PROGRESS_TEMPLATE: JourneyProgress[] = [
-  { id: "vault", label: "Vault", done: false, href: "/dashboard/vault/my-files" },
-  { id: "insights", label: "Insights", done: false, href: "/dashboard/vault/insights" },
+  { id: "vault", label: "Vault", done: false, href: "/dashboard/vault" },
+  { id: "knowledge", label: "Knowledge", done: false, href: "/dashboard/knowledge" },
   { id: "chat", label: "Chat", done: false, href: "/dashboard/advisor/chat" },
   { id: "agent", label: "Agentic ID", done: false, href: "/dashboard/agent/mint" },
   { id: "ecosystem", label: "Ecosystem", done: false, href: "/dashboard/ecosystem" },

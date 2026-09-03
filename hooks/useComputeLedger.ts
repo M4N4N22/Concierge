@@ -13,6 +13,29 @@ export type ComputeModel = {
   tags?: string[];
 };
 
+export type OperatorComputeStatus = {
+  backend: "router" | "direct" | "none";
+  subsidized: boolean;
+  operatorReady: boolean;
+  routerConfigured: boolean;
+  directConfigured: boolean;
+  freeTierDailyLimit: number;
+  routerModel?: string;
+  privateComputerUrl: string;
+  copy?: string;
+};
+
+export type ComputeReadiness = {
+  hasLedger: boolean;
+  hasBalance: boolean;
+  hasFundedProvider: boolean;
+  canCompute: boolean;
+  operatorSubsidized: boolean;
+  operatorReady: boolean;
+  backend: "router" | "direct" | "none";
+  freeTierDailyLimit: number;
+};
+
 export type LedgerState = {
   total: bigint;
   locked: bigint;
@@ -61,6 +84,17 @@ export function useComputeLedger() {
   );
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [operator, setOperator] = useState<OperatorComputeStatus | null>(null);
+
+  const refreshOperator = useCallback(async () => {
+    try {
+      const res = await fetch("/api/compute/status");
+      const data = (await res.json()) as OperatorComputeStatus;
+      setOperator(data);
+    } catch {
+      setOperator(null);
+    }
+  }, []);
 
   const refreshLedger = useCallback(async () => {
     try {
@@ -106,11 +140,11 @@ export function useComputeLedger() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([refreshModels(), refreshLedger()]);
+      await Promise.all([refreshModels(), refreshLedger(), refreshOperator()]);
     } finally {
       setLoading(false);
     }
-  }, [refreshLedger, refreshModels]);
+  }, [refreshLedger, refreshModels, refreshOperator]);
 
   useEffect(() => {
     void refresh();
@@ -190,13 +224,32 @@ export function useComputeLedger() {
   const availableOG = ledger ? ogFromWei(ledger.available) : 0;
   const totalOG = ledger ? ogFromWei(ledger.total) : 0;
 
-  const readiness = useMemo(() => {
+  const readiness = useMemo((): ComputeReadiness => {
     const hasLedger = ledgerExists;
     const hasBalance = totalOG > 0;
     const hasFundedProvider = fundedProviders.size > 0;
-    const canCompute = hasLedger && hasBalance && hasFundedProvider;
-    return { hasLedger, hasBalance, hasFundedProvider, canCompute };
-  }, [ledgerExists, totalOG, fundedProviders.size]);
+    const directReady = hasLedger && hasBalance && hasFundedProvider;
+    const operatorReady = operator?.operatorReady ?? false;
+    const operatorSubsidized = operator?.subsidized ?? false;
+    const canCompute =
+      operatorSubsidized && operatorReady ? true : directReady;
+
+    return {
+      hasLedger,
+      hasBalance,
+      hasFundedProvider,
+      canCompute,
+      operatorSubsidized,
+      operatorReady,
+      backend: operator?.backend ?? "none",
+      freeTierDailyLimit: operator?.freeTierDailyLimit ?? 10,
+    };
+  }, [
+    ledgerExists,
+    totalOG,
+    fundedProviders.size,
+    operator,
+  ]);
 
   return {
     models,
@@ -209,6 +262,7 @@ export function useComputeLedger() {
     availableOG,
     totalOG,
     readiness,
+    operator,
     refresh,
     createLedger,
     deposit,

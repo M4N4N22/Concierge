@@ -1,7 +1,7 @@
 "use client";
 
-import { VaultWorkspace } from "@/components/dashboard/VaultWorkspace";
+import { VaultFilesWorkspace } from "@/components/dashboard/VaultFilesWorkspace";
 
 export default function MyFilesPage() {
-  return <VaultWorkspace />;
+  return <VaultFilesWorkspace />;
 }

@@ -312,12 +312,16 @@ export function HomeDashboard() {
             loading={ledgerLoading}
             hint={
               readiness.canCompute
-                ? "Ledger funded · provider ready"
-                : !ledgerExists
-                  ? "Create ledger first"
-                  : totalOG <= 0
-                    ? "Deposit OG"
-                    : "Fund a model provider"
+                ? readiness.operatorSubsidized
+                  ? "Concierge compute · daily free tier"
+                  : "Ledger funded · provider ready"
+                : readiness.operatorSubsidized && !readiness.operatorReady
+                  ? "Operator pool not configured"
+                  : !ledgerExists
+                    ? "Create ledger first"
+                    : totalOG <= 0
+                      ? "Deposit OG"
+                      : "Fund a model provider"
             }
           />
         </div>
@@ -380,7 +384,7 @@ export function HomeDashboard() {
                     available
                   </p>
                   <Button asChild variant="outline" size="sm" className="rounded-full">
-                    <Link href="/dashboard/vault/insights">Manage ledger</Link>
+                    <Link href="/dashboard/knowledge/compute">Manage compute</Link>
                   </Button>
                 </div>
               ) : (
@@ -393,7 +397,7 @@ export function HomeDashboard() {
                   </p>
                   {showConnected && (
                     <Button asChild size="sm" className="rounded-full">
-                      <Link href="/dashboard/vault/insights">Set up Compute</Link>
+                      <Link href="/dashboard/knowledge/compute">Set up Compute</Link>
                     </Button>
                   )}
                 </div>
@@ -416,8 +420,9 @@ export function HomeDashboard() {
               Jump to the module you need — no duplicate menus
             </p>
             <nav className="mt-3 grid gap-1.5">
-              <QuickLink href="/dashboard/vault/my-files" label="Vault" />
-              <QuickLink href="/dashboard/vault/insights" label="Insights" />
+              <QuickLink href="/dashboard/vault" label="Vault" />
+              <QuickLink href="/dashboard/vault/upload" label="Upload" />
+              <QuickLink href="/dashboard/knowledge" label="Knowledge" />
               <QuickLink href="/dashboard/advisor/chat" label="Chat" />
               <QuickLink href="/dashboard/agent/mint" label="Agentic ID" />
               <QuickLink href="/dashboard/ecosystem" label="Ecosystem" />
