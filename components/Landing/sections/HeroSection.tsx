@@ -21,7 +21,7 @@ export function HeroSection() {
             className="landing-fade font-display text-9xl font-light tracking-[-0.07em]  text-white/70 sm:text-9xl lg:text-[7.25rem]"
             style={{ animationDelay: "120ms" }}
           >
-            <span className="text-white/95">Intillegence</span> you <span className="text-brand">own</span>.
+            <span className="text-white/95">Intelligence</span> you <span className="text-brand">own</span>.
           </h1>
 
           <p
