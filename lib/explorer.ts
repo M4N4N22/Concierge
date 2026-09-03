@@ -8,7 +8,11 @@ export function getChainExplorerBaseUrl(chainId: number): string {
 }
 
 export function getTxExplorerUrl(chainId: number, txHash: string): string {
-  return `${getChainExplorerBaseUrl(chainId)}/tx/${txHash}`;
+  const hash = txHash.startsWith("0x") ? txHash : `0x${txHash}`;
+  if (chainId === zeroGMainnet.id) {
+    return `https://explorer.0g.ai/mainnet/blockchain/txns/${hash}/overview`;
+  }
+  return `${getChainExplorerBaseUrl(chainId)}/tx/${hash}`;
 }
 
 /** 0G StorageScan — browse network storage activity (does not download files). */
@@ -16,6 +20,15 @@ export function getStorageScanUrl(chainId: number): string {
   return chainId === zeroGMainnet.id
     ? "https://storagescan.0g.ai"
     : "https://storagescan-galileo.0g.ai";
+}
+
+/** StorageScan submission page for a sequence id. */
+export function getStorageSubmissionUrl(
+  chainId: number,
+  sequence: string | number
+): string {
+  const base = getStorageScanUrl(chainId);
+  return `${base}/submission/${sequence}`;
 }
 
 /**
