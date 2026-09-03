@@ -304,7 +304,7 @@ export function BoardWorkspace({ intent, session, onSessionChange }: Props) {
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
             <span>No agent knowledge yet</span>
             <Button asChild size="sm" variant="outline">
-              <Link href="/dashboard/vault/my-files">Open Vault</Link>
+              <Link href="/dashboard/vault/upload">Open Vault</Link>
             </Button>
           </div>
         ) : (

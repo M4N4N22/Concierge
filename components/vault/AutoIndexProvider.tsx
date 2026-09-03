@@ -202,6 +202,7 @@ export function AutoIndexProvider({
             fileName: item.fileName,
             content,
             chainId,
+            wallet: address,
           },
           updateInsights
         );

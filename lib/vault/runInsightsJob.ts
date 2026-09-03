@@ -30,6 +30,7 @@ export async function runInsightsJob(
     fileName: string;
     content: string;
     chainId: number;
+    wallet?: string;
   },
   updateVault: VaultInsightsUpdater
 ): Promise<InsightsJobResult> {

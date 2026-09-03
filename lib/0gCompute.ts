@@ -1,6 +1,8 @@
 import { createZGComputeNetworkBroker } from "@0gfoundation/0g-compute-ts-sdk";
 import { ethers } from "ethers";
 import { resolveComputeBrokerConfig } from "@/lib/computeBroker";
+import { isRouterConfigured } from "@/lib/computeOperator";
+import { runRouterInference } from "@/lib/computeRouter";
 
 async function getBroker(chainId?: number | null) {
   const cfg = resolveComputeBrokerConfig(chainId);
@@ -12,8 +14,8 @@ async function getBroker(chainId?: number | null) {
   };
 }
 
-/** Run a prompt through 0G Compute on the selected chain (mainnet or Galileo). */
-export async function run0GInference(
+/** Direct SDK path — per-provider ledger sub-accounts (legacy / advanced). */
+async function runDirectInference(
   prompt: string,
   chainId?: number | null
 ): Promise<string> {
@@ -91,3 +93,24 @@ export async function run0GInference(
   );
   return aiOutput;
 }
+
+/**
+ * Run a prompt through 0G Compute.
+ * Prefers Router (operator 0G Pay pool) when OG_ROUTER_API_KEY is set;
+ * falls back to Direct SDK broker ledger.
+ */
+export async function run0GInference(
+  prompt: string,
+  chainId?: number | null,
+  options?: { json?: boolean; model?: string | null }
+): Promise<string> {
+  if (isRouterConfigured()) {
+    return runRouterInference(prompt, {
+      json: options?.json,
+      model: options?.model,
+    });
+  }
+  return runDirectInference(prompt, chainId);
+}
+
+export { runRouterInference, runDirectInference };

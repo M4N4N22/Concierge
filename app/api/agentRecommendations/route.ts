@@ -32,7 +32,7 @@ Domain focus: ${domain}
 Vault insights:
 ${contextLines.length ? contextLines.join("\n") : "No files categorized yet — give general best-practice recommendations for this domain."}`;
 
-    const raw = await run0GInference(prompt);
+    const raw = await run0GInference(prompt, undefined, { json: true });
     let parsed: { summary?: string; recommendations?: string[] };
     try {
       parsed = JSON.parse(raw);

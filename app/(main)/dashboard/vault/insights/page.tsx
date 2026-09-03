@@ -1,7 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { InsightsDesk } from "@/components/dashboard/InsightsDesk";
-
-export default function InsightsPage() {
-  return <InsightsDesk />;
+/** Legacy route — Knowledge base lives at /dashboard/knowledge */
+export default function LegacyInsightsPage() {
+  redirect("/dashboard/knowledge");
 }

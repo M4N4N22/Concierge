@@ -6,14 +6,14 @@ const BEATS = [
     title: "Save files in your vault",
     detail: "Storage",
     body: "Sync a wallet, upload a spreadsheet, paste notes. Everything lands on 0G Storage and shows up in your Vault registry.",
-    href: "/dashboard/vault/my-files",
+    href: "/dashboard/vault",
   },
   {
     n: "02",
     title: "Turn storage into agent knowledge",
     detail: "Compute",
     body: "Fund compute once. Run Insights to categorize and summarize — Concierge can’t use raw uploads until they’re knowledge.",
-    href: "/dashboard/vault/insights",
+    href: "/dashboard/knowledge/feed",
   },
   {
     n: "03",

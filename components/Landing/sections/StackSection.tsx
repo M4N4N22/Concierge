@@ -7,7 +7,7 @@ const PILLARS = [
     use: "Vault",
     punch: "Your files. Your vault.",
     body: "Wallet history, spreadsheets, notes — held on Storage, indexed on-chain.",
-    href: "/dashboard/vault/my-files",
+    href: "/dashboard/vault",
   },
   {
     id: "compute",
@@ -15,7 +15,7 @@ const PILLARS = [
     use: "Insights · Chat · Lenses",
     punch: "AI you fund yourself.",
     body: "Insights and chat (casual or vault Q&A) — prepaid OG on your compute ledger.",
-    href: "/dashboard/vault/insights",
+    href: "/dashboard/knowledge",
   },
   {
     id: "agentic",

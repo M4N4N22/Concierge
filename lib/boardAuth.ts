@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
 import { verifyMessage, type Address, isAddress } from "viem";
 import { boardAuthMessage } from "@/lib/boardAuthMessage";
+import {
+  checkAndConsumeWalletDailyQuota,
+  peekWalletDailyQuota,
+} from "@/lib/computeUsage";
+import { getOperatorComputeConfig } from "@/lib/computeOperator";
 
 export { boardAuthMessage } from "@/lib/boardAuthMessage";
 
@@ -172,6 +177,19 @@ export async function authorizeBoardRequest(
     };
   }
 
+  const operator = getOperatorComputeConfig();
+  if (operator.subsidized) {
+    const daily = checkAndConsumeWalletDailyQuota(walletKey);
+    if (!daily.ok) {
+      const hours = Math.ceil(daily.retryAfterMs / (60 * 60 * 1000));
+      return {
+        ok: false,
+        status: 429,
+        error: `Daily free compute limit reached (${daily.limit} messages). Resets in ~${hours}h — top up on Private Computer for more.`,
+      };
+    }
+  }
+
   return {
     ok: true,
     wallet: walletRaw as Address,
@@ -179,3 +197,5 @@ export async function authorizeBoardRequest(
     question,
   };
 }
+
+export { peekWalletDailyQuota, checkAndConsumeWalletDailyQuota };

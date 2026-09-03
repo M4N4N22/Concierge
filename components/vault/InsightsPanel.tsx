@@ -31,6 +31,7 @@ export default function AIInsights() {
           fileName: `file-${file.rootHash.slice(0, 6)}.json`,
           content: fileContent,
           chainId,
+          wallet: address,
         },
         updateInsights
       );

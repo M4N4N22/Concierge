@@ -31,7 +31,16 @@ function parseTipsResponse(raw: string): {
         description: String(q.description ?? "").slice(0, 120),
         prompt: String(q.prompt).trim().slice(0, 280),
       }));
-    return { summary: parsed.summary, questions };
+
+    const seen = new Set<string>();
+    const unique = questions.filter((q) => {
+      const key = q.prompt.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return { summary: parsed.summary, questions: unique };
   } catch {
     return { questions: [] };
   }
@@ -85,7 +94,7 @@ Rules:
 Recent vault context:
 ${lines.join("\n\n")}`;
 
-    const raw = await run0GInference(prompt);
+    const raw = await run0GInference(prompt, undefined, { json: true });
     const parsed = parseTipsResponse(raw);
 
     if (parsed.questions.length) {

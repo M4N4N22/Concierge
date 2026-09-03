@@ -64,6 +64,8 @@ export async function POST(req: NextRequest) {
       agentTokenId:
         agentTokenId !== null ? agentTokenId.toString() : undefined,
       wallet: auth.wallet,
+      chainId,
+      model: typeof body.model === "string" ? body.model : undefined,
     });
     return NextResponse.json({ session });
   } catch (err) {

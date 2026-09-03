@@ -152,7 +152,7 @@ export default function AgenticIdWorkspace() {
   const primaryCta = hasAgent
     ? { href: "/dashboard/advisor/chat", label: "Continue to chat" }
     : files.length === 0 && isConnected
-      ? { href: "/dashboard/vault/my-files", label: "Add evidence first" }
+      ? { href: "/dashboard/vault/upload", label: "Add evidence first" }
       : null;
 
   const handleMint = async () => {
@@ -404,7 +404,7 @@ export default function AgenticIdWorkspace() {
                         evidence first for a richer metadata hash.
                       </p>
                       <Button asChild size="sm" variant="outline" className="mt-3">
-                        <Link href="/dashboard/vault/my-files" className="gap-1.5">
+                        <Link href="/dashboard/vault/upload" className="gap-1.5">
                           <Upload className="h-3.5 w-3.5" />
                           Open Vault
                         </Link>

@@ -21,6 +21,8 @@ import { MIN_LEDGER_CREATE_OG, MIN_PROVIDER_FUND_OG } from "@/lib/computeConstan
 import { getOgFundingLinks } from "@/lib/computeFunding";
 import { useState } from "react";
 import Link from "next/link";
+import { OperatorComputeBanner } from "@/components/compute/OperatorComputeBanner";
+import { ComputeTopUpPanel } from "@/components/compute/ComputeTopUpPanel";
 
 const SETUP_STEPS = [
   { id: "ledger", label: "Create ledger", detail: "Register on 0G Compute" },
@@ -168,9 +170,11 @@ export default function ComputeSetupPanel() {
   const shortfall = broker?.shortfallOg ?? MIN_LEDGER_CREATE_OG;
   const canCreate = broker?.canCreateLedger ?? false;
   const fundingLinks = getOgFundingLinks(isTestnet);
+  const hideDirectSetup =
+    readiness.operatorSubsidized && readiness.canCompute;
 
-  return (
-    <div className="space-y-3">
+  const directSetup = (
+    <>
       {/* Broker wallet + network balance */}
       <section className="bento overflow-hidden">
         <div className="px-5 py-4">
@@ -532,6 +536,25 @@ export default function ComputeSetupPanel() {
             )}
           </div>
         </section>
+      )}
+    </>
+  );
+
+  return (
+    <div className="space-y-3">
+      <OperatorComputeBanner />
+      <ComputeTopUpPanel />
+      {hideDirectSetup ? (
+        <details className="bento overflow-hidden group">
+          <summary className="cursor-pointer px-5 py-3.5 text-sm font-semibold list-none marker:content-none">
+            Advanced: Direct ledger setup (BYO compute)
+          </summary>
+          <div className="space-y-3 border-t border-border/50 p-3 pt-0">
+            {directSetup}
+          </div>
+        </details>
+      ) : (
+        directSetup
       )}
     </div>
   );

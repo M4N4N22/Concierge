@@ -101,7 +101,7 @@ export function ComputeSetupDialog({
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border/50 px-5 py-3">
           <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/vault/insights" onClick={onClose}>
+            <Link href="/dashboard/knowledge/compute" onClick={onClose}>
               Open Insights setup
             </Link>
           </Button>

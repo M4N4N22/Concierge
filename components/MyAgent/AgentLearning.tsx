@@ -244,7 +244,7 @@ export default function AgentLearning() {
                   <div className="flex shrink-0 gap-2">
                     {stats.total === 0 ? (
                       <Button asChild size="sm" variant="outline">
-                        <Link href="/dashboard/vault/my-files" className="gap-1.5">
+                        <Link href="/dashboard/vault/upload" className="gap-1.5">
                           <Upload className="h-3.5 w-3.5" />
                           Open Vault
                         </Link>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useChainId } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 import { useAddToVault } from "@/hooks/useAddToVault";
 import { runInsightsJob } from "@/lib/vault/runInsightsJob";
 
@@ -7,6 +7,7 @@ export function useComputeInsights() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chainId = useChainId();
+  const { address } = useAccount();
   const { updateInsights } = useAddToVault();
 
   const computeInsights = async (
@@ -19,7 +20,7 @@ export function useComputeInsights() {
 
     try {
       return await runInsightsJob(
-        { rootHash, fileName, content, chainId },
+        { rootHash, fileName, content, chainId, wallet: address },
         updateInsights
       );
     } catch (err: unknown) {
