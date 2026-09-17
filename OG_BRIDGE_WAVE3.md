@@ -64,22 +64,6 @@ RPC: `https://evmrpc-testnet.0g.ai` · Explorer: `https://chainscan-galileo.0g.a
 
 Network-wide storage: [storagescan.0g.ai](https://storagescan.0g.ai) · Unified explorer: [explorer.0g.ai](https://explorer.0g.ai)
 
-### Live Concierge loop (mainnet product activity)
-
-End-to-end activity on **0G Mainnet** covering **Agentic ID mint**, **vault / storage registration**, and **compute-related on-chain steps** (store → run inference → write insights back to 0G). Share with this URL pattern:
-
-`https://explorer.0g.ai/mainnet/blockchain/txns/{txHash}/overview`
-
-| Role in loop | Tx | Explorer |
-|--------------|-----|----------|
-| Mainnet interaction | `0xbb9fa5e58431daa454d4b64b0b8ad68b051799f9c5b71153bf999a1267224437` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0xbb9fa5e58431daa454d4b64b0b8ad68b051799f9c5b71153bf999a1267224437/overview) |
-| Mainnet interaction | `0xddd9adb2556866df18dd562185ca86f461db905274d792f55809d1ea4bbcd83e` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0xddd9adb2556866df18dd562185ca86f461db905274d792f55809d1ea4bbcd83e/overview) |
-| Mainnet interaction | `0x26797bfb03bcb54e6729648004f8e25fac5cc984b60e1c11aa898b5591906871` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0x26797bfb03bcb54e6729648004f8e25fac5cc984b60e1c11aa898b5591906871/overview) |
-| Mainnet interaction | `0x8f0777e23d63db8b7f167b30efb87f4629be5e927dcf14b1166f140a1526f625` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0x8f0777e23d63db8b7f167b30efb87f4629be5e927dcf14b1166f140a1526f625/overview) |
-| Mainnet interaction | `0x95ab2eb95d3d9225c4315dcecb02f92e8cec0770a7a5430480d75bcc3b67d14c` | [overview](https://explorer.0g.ai/mainnet/blockchain/txns/0x95ab2eb95d3d9225c4315dcecb02f92e8cec0770a7a5430480d75bcc3b67d14c/overview) |
-
-**Storage file proof (same loop):** [https://storagescan.0g.ai/submission/212383](https://storagescan.0g.ai/submission/212383)
-
 ### Galileo testnet
 
 | What | Transaction | Link |
