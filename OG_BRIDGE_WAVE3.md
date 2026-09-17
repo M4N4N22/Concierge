@@ -80,19 +80,6 @@ End-to-end activity on **0G Mainnet** covering **Agentic ID mint**, **vault / st
 
 **Storage file proof (same loop):** [https://storagescan.0g.ai/submission/212383](https://storagescan.0g.ai/submission/212383)
 
-### How to share proofs (Storage · Agentic ID · Compute)
-
-Paste these into the AKINDO submission or demo notes.
-
-| Layer | What to share | Where you get it |
-|-------|---------------|------------------|
-| **0G Storage** | [StorageScan #212383](https://storagescan.0g.ai/submission/212383) | After upload: [storagescan.0g.ai](https://storagescan.0g.ai) → submission sequence. Pattern: `https://storagescan.0g.ai/submission/{sequence}`. Also keep the **root hash** from My Files / server logs. |
-| **Vault / Chain txs** | Explorer **overview** links | `https://explorer.0g.ai/mainnet/blockchain/txns/{txHash}/overview` — use for `addFile`, `updateInsights`, `mintAgent`, storage Flow submits, compute ledger/settlement. See [Live Concierge loop](#live-concierge-loop-mainnet-product-activity) above. |
-| **Agentic ID mint** | Mint tx overview (+ optional NFT view) | Confirmed tx from Agentic ID UI / wallet. Contract: [INFTAgent](https://chainscan.0g.ai/address/0x721c164D1c7e67e522d50194C342006E36Fde05f). Token ID from tx `Transfer` logs → NFT tab on that contract. |
-| **0G Compute** | On-chain twin of inference | Router inference itself is billed via [pc.0g.ai](https://pc.0g.ai) (catalog: [models](https://router-api.0g.ai/v1/models)). **On-chain proof you ran compute over vault files:** Storage submissions for category/summary blobs + Vault **`updateInsights`** (and any Direct SDK ledger/settlement txs) — included in the live loop txs above. |
-
-**Demo bundle:** [StorageScan #212383](https://storagescan.0g.ai/submission/212383) + the five [live loop txs](#live-concierge-loop-mainnet-product-activity) + [Router models](https://router-api.0g.ai/v1/models).
-
 ### Galileo testnet
 
 | What | Transaction | Link |
@@ -217,13 +204,5 @@ Vault (0G Storage + Vault.sol)
 ```
 
 ---
-
-## How to verify quickly
-
-1. Open [StorageScan #212383](https://storagescan.0g.ai/submission/212383) — live mainnet file proof.
-2. Open the [live Concierge loop txs](#live-concierge-loop-mainnet-product-activity) — mint + store + compute-related mainnet activity.
-3. Open [mainnet marketplace](https://chainscan.0g.ai/address/0x5cbAdD85bb8f96d8c5b43c7Ae18819F29Cc121Ac) — creation tx `0x73cc238c…`.
-4. Hit [Router models](https://router-api.0g.ai/v1/models) — same catalog Concierge uses in `lib/computeRouterModels.ts`.
-5. Run the app on Mainnet: upload → feed → chat → mint (see [How to share proofs](#how-to-share-proofs-storage--agentic-id--compute)).
 
 See [README.md](./README.md) for setup and vision. Program one-pager: [OG_BRIDGE.md](./OG_BRIDGE.md). Wave 1: [WAVE1_UPDATES.md](./WAVE1_UPDATES.md).
