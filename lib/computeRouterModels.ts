@@ -1,19 +1,28 @@
 import { getOperatorComputeConfig } from "@/lib/computeOperator";
 import { withTtlCache } from "@/lib/ttlCache";
-import { AUTO_MODEL_ID, getDefaultRouterModel } from "@/lib/computeModels";
+import {
+  AUTO_MODEL_ID,
+  getDefaultRouterModel,
+  inferModelCompany,
+  preferChatFormat,
+  type ChatApiFormat,
+} from "@/lib/computeModels";
 
 export type LiveRouterModel = {
   id: string;
   name: string;
   description?: string;
   type?: string;
+  company: string;
   providerCount: number;
-  formats: string[];
+  formats: ChatApiFormat[];
+  preferredFormat: ChatApiFormat;
   promptUsd: number;
   completionUsd: number;
 };
 
 const LIVE_MODELS_TTL_MS = 5 * 60_000;
+const CHAT_FORMATS = new Set<ChatApiFormat>(["openai", "anthropic"]);
 
 function routerModelsUrl(): string {
   const base = getOperatorComputeConfig().routerBaseUrl.replace(/\/$/, "");
@@ -23,6 +32,13 @@ function routerModelsUrl(): string {
 function parseUsd(value: unknown): number {
   const n = typeof value === "string" ? Number(value) : Number(value ?? NaN);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function normalizeFormats(raw: string[] | undefined): ChatApiFormat[] {
+  const formats = (raw ?? ["openai"]).filter((f): f is ChatApiFormat =>
+    CHAT_FORMATS.has(f as ChatApiFormat)
+  );
+  return formats.length ? formats : ["openai"];
 }
 
 function costScore(m: LiveRouterModel): number {
@@ -55,24 +71,32 @@ export async function listLiveRouterModels(): Promise<LiveRouterModel[]> {
     };
     return (data.data ?? [])
       .filter((m) => typeof m.id === "string" && m.id.length > 0)
-      .map((m) => ({
-        id: m.id as string,
-        name: m.name || (m.id as string),
-        description: m.description,
-        type: m.type,
-        providerCount: m.provider_count ?? 0,
-        formats: m.supported_formats ?? ["openai"],
-        promptUsd: parseUsd(m.pricing_usd?.prompt),
-        completionUsd: parseUsd(m.pricing_usd?.completion),
-      }));
+      .map((m) => {
+        const id = m.id as string;
+        const name = m.name || id;
+        const formats = normalizeFormats(m.supported_formats);
+        return {
+          id,
+          name,
+          description: m.description,
+          type: m.type,
+          company: inferModelCompany(id, name),
+          providerCount: m.provider_count ?? 0,
+          formats,
+          preferredFormat: preferChatFormat(formats),
+          promptUsd: parseUsd(m.pricing_usd?.prompt),
+          completionUsd: parseUsd(m.pricing_usd?.completion),
+        };
+      });
   });
 }
 
+/** Chatbots with at least one live provider and an API Concierge can call. */
 export function isLiveChatModel(m: LiveRouterModel): boolean {
   return (
     (m.type === "chatbot" || !m.type) &&
     m.providerCount > 0 &&
-    m.formats.includes("openai")
+    m.formats.length > 0
   );
 }
 
@@ -84,6 +108,13 @@ export async function listLiveChatModels(): Promise<LiveRouterModel[]> {
 export async function listLiveChatModelIds(): Promise<string[]> {
   const models = await listLiveChatModels();
   return models.map((m) => m.id);
+}
+
+export async function getLiveChatModel(
+  modelId: string
+): Promise<LiveRouterModel | null> {
+  const models = await listLiveChatModels();
+  return models.find((m) => m.id === modelId) ?? null;
 }
 
 /** Explicit pick if it exists; otherwise the cheapest live chatbot. */

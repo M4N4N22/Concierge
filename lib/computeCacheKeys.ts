@@ -22,7 +22,7 @@ export function computeStatusCacheKey(): string {
 }
 
 export function computeCatalogCacheKey(): string {
-  return "compute:catalog:v2";
+  return "compute:catalog:v4";
 }
 
 export function quotaCacheKey(wallet: string): string {

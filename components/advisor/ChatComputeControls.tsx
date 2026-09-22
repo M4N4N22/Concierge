@@ -4,13 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Cpu, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ChatModelPicker } from "@/components/advisor/ChatModelPicker";
 import { useComputeLedgerContext } from "@/components/vault/ComputeLedgerContext";
 import type { ComputeQuota } from "@/hooks/useComputeQuota";
 import { cachedJson } from "@/lib/cachedJson";
@@ -54,7 +48,15 @@ export function ChatComputeControls({
       { ttlMs: COMPUTE_CACHE_TTL.modelsCatalog }
     )
       .then((data) => {
-        setModels(data.models ?? []);
+        setModels(
+          (data.models ?? []).map((m) => ({
+            ...m,
+            company: m.company || "Other",
+            type: m.type || "chatbot",
+            formats: m.formats?.length ? m.formats : ["openai"],
+            preferredFormat: m.preferredFormat || "openai",
+          }))
+        );
         setDefaultModel(data.defaultModel ?? null);
       })
       .catch(() => setModels([]));
@@ -88,33 +90,11 @@ export function ChatComputeControls({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={
-            models.some((m) => m.id === selectedModel)
-              ? selectedModel
-              : undefined
-          }
-          onValueChange={onModelChange}
-        >
-          <SelectTrigger
-            size="sm"
-            className="h-8 rounded-full border-border/60 bg-muted/30 px-3 text-[11px] font-medium"
-          >
-            <SelectValue placeholder="Model" />
-          </SelectTrigger>
-          <SelectContent align="start" className="max-h-72">
-            {models.map((m) => (
-              <SelectItem key={m.id} value={m.id} className="text-xs">
-                <span className="font-medium">{m.label}</span>
-                {m.description ? (
-                  <span className="ml-1 text-muted-foreground">
-                    · {m.description}
-                  </span>
-                ) : null}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ChatModelPicker
+          models={models}
+          selectedModel={selectedModel}
+          onModelChange={onModelChange}
+        />
 
         {showQuota ? (
           <div className="inline-flex min-w-0 items-center gap-2 rounded-full bg-muted/40 px-3 py-1.5">
